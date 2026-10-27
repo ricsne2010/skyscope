@@ -179,7 +179,7 @@ sudo systemctl restart gpsd
 | F | Fullscreen ↔ window |
 | Q / Esc | Quit |
 
-Clicking or tapping the radar also cycles the range. All changes are saved.
+All changes are saved.
 
 ### Ranges
 
@@ -271,7 +271,7 @@ settings page.
 - **Aircraft photo** under the card (switch it off under *Display*): only a
   photo of that exact aircraft, from Planespotters.net, credited; clicking it
   opens the original page. Aircraft without one show no photo.
-- **Click empty radar space** or press **R**: next range. **F**: fullscreen.
+- **R** (or Space): next range; clicking the radar never changes it. **F**: fullscreen.
 - **⚙ Filters** (bottom of the panel) opens a panel to pick any combination of
   kinds of aircraft and altitude blocks, a preset, and the SIDs/STARs switch.
   It applies at once; the button shows what's being shown (e.g.

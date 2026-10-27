@@ -9,7 +9,7 @@ screen height), info panel on the right, rotating sweep with a fading trail.
 
 Keys: R/Space/→ next range, ← previous range, U km/mi, W runways, G ground
 traffic, S sweep on/off, A aircraft symbol style, L airline logos (off/panel/all),
-D dots for aircraft beyond the range, F fullscreen, Q/Esc quit. Click/tap the radar = next range.
+D dots for aircraft beyond the range, F fullscreen, Q/Esc quit.
 """
 
 import argparse
@@ -954,10 +954,10 @@ class SkyScope:
                 self.screen.blit(tile, (x, y + round(4 * s)))
                 x += tile.get_width() + round(20 * s)
         t.draw(self.screen, ac.callsign, round(64 * s), LABEL, (x, y))
-        if ac.reg:
-            t.draw(self.screen, ac.reg, round(34 * s), PANEL_DIM, (right, y + round(14 * s)), "topright")
         y += round(62 * s)
         desc = ac.desc or ac.type or "Unknown type"
+        if ac.reg and ac.reg != ac.callsign:  # once, on the type line (GA callsigns are the reg)
+            desc = f"{desc[:30]}  ·  {ac.reg}"
         t.draw(self.screen, desc[:40], round(32 * s), TAG_TYPE, (x, y))
         y += round(42 * s)
 
@@ -1260,8 +1260,6 @@ def main() -> int:
                     app.resize(screen)
                 else:
                     running = app.handle_key(event.key)
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.pos[0] < app.layout.radar_w:
-                app.handle_key(pygame.K_r)
 
         if web:
             web.apply_pending(app.apply_changes)

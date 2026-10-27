@@ -83,9 +83,13 @@ SHAPES = {
     "heli": (HELI_BODY, 30),
 }
 
-HELI_TYPES = ("EC", "AS3", "AS5", "AS6", "H1", "H2", "H6", "R22", "R44", "R66",
-              "B06", "B407", "B412", "B429", "A109", "A119", "A139", "A169", "A189",
-              "AW", "S61", "S76", "S92", "BK17", "EH10", "NH90", "MI8", "UH1")
+# Helicopter type codes. Prefixes are kept specific: "H2…" alone would also
+# match business jets such as the Hawker 750/800 (H25B).
+HELI_TYPES = ("EC", "AS3", "AS5", "AS6", "R22", "R44", "R66", "B06", "B105", "B407", "B412",
+              "B427", "B429", "B430", "B505", "A109", "A119", "A139", "A169", "A189", "AW", "S61",
+              "S64", "S70", "S76", "S92", "BK17", "EH10", "NH90", "MI8", "MI17", "UH1", "H47", "H53",
+              "H60", "H64", "H500", "H269", "MD52", "MD60", "MD90", "EN28", "EN48", "G2CA", "CABR",
+              "K126", "V22", "TIGR", "LYNX", "PUMA", "SUCO", "GAZL", "ALO2", "ALO3")
 TURBOPROP_TYPES = ("AT4", "AT7", "DH8", "SF34", "F50", "D328", "JS3", "JS4", "B190",
                    "C208", "PC12", "BE20", "BE9", "SW4", "L410", "C130", "A400",
                    "DHC6", "E120", "SB20", "P180", "TBM")

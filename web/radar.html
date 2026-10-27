@@ -19,7 +19,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--label); overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
   #app { display: flex; width: 100vw; height: 100vh; }
-  #scope { position: relative; flex: 0 0 var(--scope-w); height: 100vh; cursor: crosshair; }
+  #scope { position: relative; flex: 0 0 var(--scope-w); height: 100vh; cursor: default; }
   #scope canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   #panel { flex: 1; min-width: 0; background: var(--panel); border-left: 2px solid var(--grid);
     padding: calc(var(--u) * 36); display: flex; flex-direction: column; box-sizing: border-box; }
@@ -130,7 +130,7 @@
 </head>
 <body>
 <div id="app">
-  <div id="scope" title="Click a plane to select it · click empty space to change range"><canvas id="cv"></canvas></div>
+  <div id="scope" title="Click a plane to select it · R: next range"><canvas id="cv"></canvas></div>
   <div id="panel">
     <div class="row"><h1>SKYSCOPE</h1><span id="clock" class="right"></span></div>
     <div class="row small"><span id="loc"></span><span id="locnote"></span><span id="utc" class="right"></span></div>
@@ -154,7 +154,7 @@
     </div>
     <footer><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
       · <a href="/radar_config">Settings</a> · <button id="fs">Fullscreen (F)</button>
-      · Click a plane or row to select · empty radar or R: range</footer>
+      · Click a plane or row to select · R: next range</footer>
   </div>
 </div>
 <script>
@@ -685,8 +685,8 @@ function updatePanel() {
   showPhoto(st.show_photos ? n : null);
   $("cardwrap").innerHTML = n ? `<div class="eyebrow ${selected ? "sel" : ""}">${selected ? "SELECTED" : "NEAREST"} · ${esc(n.class_label.toUpperCase())}${selected ? '<button class="clear" id="clear-sel" title="Clear selection (Esc)">✕</button>' : ""}</div>
     <div id="card">${logoTag(n.airline)}<div class="body">
-      <div class="row"><span class="callsign">${esc(n.callsign)}</span><span class="reg right">${esc(n.reg)}</span></div>
-      <div class="desc">${esc(n.desc || n.type || "Unknown type")}</div>
+      <div class="row"><span class="callsign">${esc(n.callsign)}</span></div>
+      <div class="desc">${esc(n.desc || n.type || "Unknown type")}${n.reg && n.reg !== n.callsign ? " · " + esc(n.reg) : ""}</div>
       <div class="line alt">${esc(n.alt_summary)}</div>
       <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
       <div class="line">${esc(n.speed_summary)}</div>
@@ -851,11 +851,13 @@ function hitAt(x, y) {
 }
 scope.addEventListener("click", e => {
   const r = scope.getBoundingClientRect(), id = hitAt(e.clientX - r.left, e.clientY - r.top);
-  if (id) select(id); else nextRange();
+  // A plane selects it; empty space just clears the selection (the range only
+  // changes with R or the settings, never by accident).
+  if (id) select(id); else if (selectedId) select(null);
 });
 scope.addEventListener("mousemove", e => {
   const r = scope.getBoundingClientRect();
-  scope.style.cursor = hitAt(e.clientX - r.left, e.clientY - r.top) ? "pointer" : "crosshair";
+  scope.style.cursor = hitAt(e.clientX - r.left, e.clientY - r.top) ? "pointer" : "default";
 });
 $("tbody").addEventListener("click", e => {
   const tr = e.target.closest("tr[data-id]");
