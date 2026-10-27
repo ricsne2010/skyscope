@@ -1055,6 +1055,7 @@ class SkyScope:
                 "range_label": st.range_label(),
                 "rings": [{"frac": f, "label": label} for f, label in st.rings()],
                 "color_by_kind": st.color_by_kind, "watch_notice": st.watch_notice,
+                "show_photos": st.show_photos,
                 "legend": [{"label": label, "color": "#%02x%02x%02x" % CLASS_COLORS[cid]}
                            for cid, label in CLASSES],
                 "presets": list(all_presets(st)), "preset": matching_preset(st) or "",

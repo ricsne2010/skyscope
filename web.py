@@ -21,10 +21,12 @@ from airports import AirportIndex
 from filters import (ALT_BANDS, BUILTIN_PRESETS, CLASS_COLORS, CLASSES, PRESET_FIELDS,
                      AircraftFilter, all_presets, matching_preset, preset_changes)
 from overlays import Overlays
+from photos import PhotoLookup
 from settings import MAX_RANGE_PRESETS, Settings
 
 AIRPORT_INDEX = AirportIndex()
 OVERLAYS = Overlays()  # SID/STAR counts for the Map tab (loaded on first use)
+PHOTOS = PhotoLookup()  # aircraft photos for the browser card
 
 COUNTRY_NAMES = AircraftFilter().countries
 FILTER_MODES = [("off", "Off"), ("only", "Show only"), ("hide", "Hide")]
@@ -64,6 +66,7 @@ FIELDS = [
     ("color_by_kind", "Colour aircraft by kind", "bool", None),
     ("airline_logos", "Airline logos", "choice",
      [("off", "Off"), ("panel", "Panel"), ("all", "Panel + radar")]),
+    ("show_photos", "Aircraft photo on the web radar's card", "bool", None),
     ("show_beyond_dots", "Dots for aircraft just outside the range", "bool", None),
     ("show_ground", "Aircraft on the ground", "bool", None),
     ("sweep_enabled", "Radar sweep", "bool", None),
@@ -659,6 +662,9 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + toggle("color_by_kind", st)
         + f'<div class="legend" data-when="color_by_kind=on">{legend}</div>'
         + choice("airline_logos", st)
+        + toggle("show_photos", st)
+        + '<div class="hint" data-when="show_photos=on">The exact aircraft from Planespotters.net when '
+          'there is one, otherwise its type from Wikipedia; credited and linked.</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
@@ -845,6 +851,11 @@ class SettingsServer:
                         return
                     if path == "/api/state":
                         self._send_json(radar.web_state())
+                        return
+                    if path == "/api/photo":
+                        a = {k: v[0][:60] for k, v in parse_qs(self.path.partition("?")[2]).items()}
+                        photo = PHOTOS.find(a.get("hex", ""), a.get("reg", ""), a.get("desc", ""), a.get("type", ""))
+                        self._send_json(photo or {})
                         return
                     if path == "/api/airports":
                         args = parse_qs(self.path.partition("?")[2])

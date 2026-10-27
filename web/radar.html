@@ -53,6 +53,11 @@
   th.l, td.l { text-align: left; }
   td .logo { width: calc(var(--u) * 30); height: calc(var(--u) * 30); vertical-align: middle; }
   td.type { color: var(--amber); } td.alt { color: var(--blue); } td.na { color: var(--dim); }
+  #photo { margin: calc(var(--u) * 12) 0 0; }
+  #photo img { display: block; width: 100%; max-height: calc(var(--u) * 230); object-fit: cover;
+    border-radius: calc(var(--u) * 10); border: 1px solid var(--grid); background: #0b1735; }
+  #photo figcaption { color: var(--dim); font-size: calc(var(--u) * 17); margin-top: calc(var(--u) * 4);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .alert { font-size: calc(var(--u) * 26); font-weight: 700; padding: calc(var(--u) * 8) calc(var(--u) * 12);
     border-radius: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .alert.emg { background: #780a0a; color: #ff5a5a; animation: blink 1s steps(2) infinite; }
@@ -129,6 +134,9 @@
     <hr>
     <div id="alerts"></div>
     <div id="cardwrap"></div>
+    <figure id="photo" hidden><a id="photo-link" target="_blank" rel="noopener"><img id="photo-img" alt=""></a>
+      <figcaption id="photo-credit"></figcaption></figure>
+    <hr id="card-rule" hidden>
     <div id="listwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
     <div id="more"></div>
     <div id="legend"></div>
@@ -670,6 +678,7 @@ function updatePanel() {
   const selected = list.find(a => a.id === selectedId) || null;
   if (selectedId && !selected) selectedId = null;  // it left the area or was filtered out
   const n = selected || list.reduce((best, a) => (!best || a.dist_km < best.dist_km ? a : best), null);
+  showPhoto(st.show_photos ? n : null);
   $("cardwrap").innerHTML = n ? `<div class="eyebrow ${selected ? "sel" : ""}">${selected ? "SELECTED" : "NEAREST"} · ${esc(n.class_label.toUpperCase())}${selected ? '<button class="clear" id="clear-sel" title="Clear selection (Esc)">✕</button>' : ""}</div>
     <div id="card">${logoTag(n.airline)}<div class="body">
       <div class="row"><span class="callsign">${esc(n.callsign)}</span><span class="reg right">${esc(n.reg)}</span></div>
@@ -677,7 +686,8 @@ function updatePanel() {
       <div class="line alt">${esc(n.alt_summary)}</div>
       <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
       <div class="line">${esc(n.speed_summary)}</div>
-    </div></div><hr>` : "";
+    </div></div>` : "";
+  $("card-rule").hidden = !n;
 
   const logos = st.airline_logos !== "off";
   // Column widths (%): callsign gets the most; with no airspeed column the rest widen.
@@ -710,6 +720,31 @@ function updatePanel() {
   $("filter-summary").textContent = filterSummary(st);
   if ($("filter-panel").hidden) buildFilterPanel(st);
   fitRows();
+}
+
+// Aircraft photo under the card: looked up once per aircraft (the server asks
+// Planespotters, then Wikipedia), and only swapped when the card's aircraft changes.
+const photoCache = {};
+let photoFor = null;
+async function showPhoto(ac) {
+  const fig = $("photo");
+  const key = ac ? ac.id : null;
+  if (key === photoFor) return;
+  photoFor = key;
+  if (!ac) { fig.hidden = true; fitRows(); return; }
+  if (!(key in photoCache)) {
+    fig.hidden = true;
+    const q = new URLSearchParams({ hex: ac.id || "", reg: ac.reg || "", desc: ac.desc || "", type: ac.type || "" });
+    photoCache[key] = await fetch("/api/photo?" + q).then(r => r.json()).catch(() => ({}));
+    if (photoFor !== key) return;  // the card moved on while we waited
+  }
+  const p = photoCache[key];
+  if (!p || !p.src) { fig.hidden = true; fitRows(); return; }
+  $("photo-img").src = p.src;
+  $("photo-link").href = p.link || p.src;
+  $("photo-credit").textContent = `${p.caption} · ${p.credit}`;
+  fig.hidden = false;
+  $("photo-img").onload = fitRows;
 }
 
 // Hide table rows that don't fit, and say how many. Rerun on every resize

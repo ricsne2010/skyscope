@@ -75,6 +75,7 @@ class Settings:
     hidden_alt_bands: list = field(default_factory=list)  # "low", "mid", "high" (filters.ALT_BANDS)
     sweep_enabled: bool = True
     color_by_kind: bool = False  # colour symbols by class (airliner, GA, ...)
+    show_photos: bool = True  # aircraft photo on the browser display's card
     highlight_emergencies: bool = True  # flash 7500/7600/7700 and emergency status
     # Watchlist: callsigns, registrations, ICAO hex addresses or type codes
     # (wildcards allowed). Matches are highlighted and shown despite filters.
