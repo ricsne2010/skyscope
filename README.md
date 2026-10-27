@@ -268,10 +268,9 @@ settings page.
   highlighted, and the card shows its details as "SELECTED" instead of the
   nearest aircraft. Click it again, press **Esc** or the ✕ to clear. Hovering a
   table row briefly highlights that plane on the scope.
-- **Aircraft photo** under the card (switch it off under *Display*): a photo
-  of the exact aircraft from Planespotters.net when there is one, otherwise a
-  Wikipedia photo of its type; always credited, and clicking it opens the
-  original page.
+- **Aircraft photo** under the card (switch it off under *Display*): only a
+  photo of that exact aircraft, from Planespotters.net, credited; clicking it
+  opens the original page. Aircraft without one show no photo.
 - **Click empty radar space** or press **R**: next range. **F**: fullscreen.
 - **⚙ Filters** (bottom of the panel) opens a panel to pick any combination of
   kinds of aircraft and altitude blocks, a preset, and the SIDs/STARs switch.
@@ -387,7 +386,7 @@ scope design, range presets and colours were the starting point.
 | SIDs and STARs (US) | FAA CIFP (Coded Instrument Flight Procedures) | Public domain |
 | Country from ICAO address | ICAO Annex 10 Vol III allocation table (via tar1090) | Facts |
 | Airline logos | Downloaded at run time from [Jxck-S/airline-logos](https://github.com/Jxck-S/airline-logos); not stored in this repo | Airlines' trademarks |
-| Aircraft photos (web radar) | [Planespotters.net](https://www.planespotters.net/) photo API (exact aircraft), else the Wikipedia article's [Wikimedia Commons](https://commons.wikimedia.org/) image (type); shown from their servers, never stored | Photographers' copyright; shown with credit and link (Planespotters' API terms; each Commons file's own licence) |
+| Aircraft photos (web radar) | [Planespotters.net](https://www.planespotters.net/) photo API, exact aircraft only; shown from their servers, never stored | Photographers' copyright; shown with credit and link, per Planespotters' API terms |
 
 **Not for navigation.** Map layers are approximations for watching traffic;
 procedure routes skip legs flown on a heading, and arcs are drawn as chords.

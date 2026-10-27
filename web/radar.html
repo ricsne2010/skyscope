@@ -53,10 +53,14 @@
   th.l, td.l { text-align: left; }
   td .logo { width: calc(var(--u) * 30); height: calc(var(--u) * 30); vertical-align: middle; }
   td.type { color: var(--amber); } td.alt { color: var(--blue); } td.na { color: var(--dim); }
-  #photo { margin: calc(var(--u) * 12) 0 0; }
-  #photo img { display: block; width: 100%; max-height: calc(var(--u) * 230); object-fit: cover;
-    border-radius: calc(var(--u) * 10); border: 1px solid var(--grid); background: #0b1735; }
-  #photo figcaption { color: var(--dim); font-size: calc(var(--u) * 17); margin-top: calc(var(--u) * 4);
+  /* Photo: a thumbnail beside the card's text, so it adds no height. */
+  #cardrow { display: flex; gap: calc(var(--u) * 16); align-items: flex-end; }
+  #cardwrap { flex: 1; min-width: 0; }
+  #cardwrap .desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #photo { flex: none; width: calc(var(--u) * 190); margin: 0; }
+  #photo img { display: block; width: 100%; height: calc(var(--u) * 120); object-fit: cover;
+    border-radius: calc(var(--u) * 8); border: 1px solid var(--grid); background: #0b1735; }
+  #photo figcaption { color: var(--dim); font-size: calc(var(--u) * 14); margin-top: calc(var(--u) * 3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .alert { font-size: calc(var(--u) * 26); font-weight: 700; padding: calc(var(--u) * 8) calc(var(--u) * 12);
     border-radius: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -133,9 +137,9 @@
     <div class="row status"><span id="status">Connecting…</span><span id="range" class="right" style="color:var(--green)"></span></div>
     <hr>
     <div id="alerts"></div>
-    <div id="cardwrap"></div>
-    <figure id="photo" hidden><a id="photo-link" target="_blank" rel="noopener"><img id="photo-img" alt=""></a>
-      <figcaption id="photo-credit"></figcaption></figure>
+    <div id="cardrow"><div id="cardwrap"></div>
+      <figure id="photo" hidden><a id="photo-link" target="_blank" rel="noopener" title="Open the full photo">
+        <img id="photo-img" alt=""></a><figcaption id="photo-credit"></figcaption></figure></div>
     <hr id="card-rule" hidden>
     <div id="listwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
     <div id="more"></div>
@@ -722,8 +726,9 @@ function updatePanel() {
   fitRows();
 }
 
-// Aircraft photo under the card: looked up once per aircraft (the server asks
-// Planespotters, then Wikipedia), and only swapped when the card's aircraft changes.
+// Aircraft photo under the card: the exact aircraft only (the server asks
+// Planespotters), looked up once per aircraft and only swapped when the card's
+// aircraft changes. No photo of this airframe: no photo at all.
 const photoCache = {};
 let photoFor = null;
 async function showPhoto(ac) {
@@ -734,7 +739,7 @@ async function showPhoto(ac) {
   if (!ac) { fig.hidden = true; fitRows(); return; }
   if (!(key in photoCache)) {
     fig.hidden = true;
-    const q = new URLSearchParams({ hex: ac.id || "", reg: ac.reg || "", desc: ac.desc || "", type: ac.type || "" });
+    const q = new URLSearchParams({ hex: ac.id || "", reg: ac.reg || "" });
     photoCache[key] = await fetch("/api/photo?" + q).then(r => r.json()).catch(() => ({}));
     if (photoFor !== key) return;  // the card moved on while we waited
   }
@@ -742,7 +747,8 @@ async function showPhoto(ac) {
   if (!p || !p.src) { fig.hidden = true; fitRows(); return; }
   $("photo-img").src = p.src;
   $("photo-link").href = p.link || p.src;
-  $("photo-credit").textContent = `${p.caption} · ${p.credit}`;
+  $("photo-credit").textContent = p.credit.replace(/^Photo: /, "© ").replace(" · Planespotters.net", "");
+  $("photo-credit").title = p.credit;
   fig.hidden = false;
   $("photo-img").onload = fitRows;
 }

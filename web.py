@@ -663,8 +663,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + f'<div class="legend" data-when="color_by_kind=on">{legend}</div>'
         + choice("airline_logos", st)
         + toggle("show_photos", st)
-        + '<div class="hint" data-when="show_photos=on">The exact aircraft from Planespotters.net when '
-          'there is one, otherwise its type from Wikipedia; credited and linked.</div>'
+        + '<div class="hint" data-when="show_photos=on">Only photos of the exact aircraft (from '
+          'Planespotters.net, credited and linked); aircraft without one show no photo.</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
@@ -854,7 +854,7 @@ class SettingsServer:
                         return
                     if path == "/api/photo":
                         a = {k: v[0][:60] for k, v in parse_qs(self.path.partition("?")[2]).items()}
-                        photo = PHOTOS.find(a.get("hex", ""), a.get("reg", ""), a.get("desc", ""), a.get("type", ""))
+                        photo = PHOTOS.find(a.get("hex", ""), a.get("reg", ""))
                         self._send_json(photo or {})
                         return
                     if path == "/api/airports":
