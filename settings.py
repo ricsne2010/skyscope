@@ -19,11 +19,13 @@ ALTITUDE_UNITS = {"ft": ("ft", 1.0), "m": ("m", 0.3048)}
 
 # Range presets: the distance to the outer ring, as round numbers in each
 # distance unit. (The ESP32 labelled ring 3 of 4 instead; here every ring is
-# labelled, so the range is simply how far the scope reaches.)
+# labelled, so the range is simply how far the scope reaches.) The largest stay
+# within adsb.fi's 250 nm query radius, including the ~11% fetched beyond the
+# outer ring for the edge dots.
 RANGE_PRESETS = {
-    "km": [5, 10, 15, 25, 50, 100, 150],
-    "mi": [2, 5, 10, 15, 25, 50, 75, 100],
-    "nm": [2, 5, 10, 20, 40, 60, 80],
+    "km": [5, 10, 15, 25, 50, 100, 150, 200, 300, 400],
+    "mi": [2, 5, 10, 15, 25, 50, 75, 100, 150, 200, 250],
+    "nm": [2, 5, 10, 20, 40, 60, 80, 100, 150, 200],
 }
 MAX_RANGE_PRESETS = max(len(v) for v in RANGE_PRESETS.values())
 

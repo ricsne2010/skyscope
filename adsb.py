@@ -30,7 +30,8 @@ SDR_AUTO_LOCATIONS = [
 SDR_INTERVAL_S = 1.0
 SDR_STALE_S = 60.0  # whole file this old → decoder not running
 SDR_MAX_POS_AGE_S = 60.0  # drop aircraft whose last position is older
-MAX_AIRCRAFT = 800  # 100 mi around a busy area can pass 300
+MAX_AIRCRAFT = 1500  # 250 mi around Phoenix held ~600 on a weekday afternoon; leave headroom
+MAX_QUERY_NM = 250.0  # adsb.fi's largest query radius
 # seen_pos is capped so a very stale fix isn't flung far by dead-reckoning.
 MAX_POS_AGE_S = 30.0
 
@@ -198,7 +199,7 @@ class AdsbFeed:
     def _fetch_internet(self) -> list[Aircraft]:
         with self._lock:
             lat, lon, radius_km = self._query
-        url = f"{API_BASE}{lat:.6f}/lon/{lon:.6f}/dist/{radius_km / KM_PER_NM:.1f}"
+        url = f"{API_BASE}{lat:.6f}/lon/{lon:.6f}/dist/{min(radius_km / KM_PER_NM, MAX_QUERY_NM):.1f}"
         doc = _load_json(url)
         return [ac for ac in map(parse_aircraft, doc.get("ac") or []) if ac is not None]
 

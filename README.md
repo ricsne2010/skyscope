@@ -190,14 +190,18 @@ spoke), at a round step: 25 mi → 5 / 10 / 15 / 20 / 25, 50 km → 10 … 50,
 
 | Unit | Ranges |
 |------|--------|
-| km | 5, 10, 15, 25, 50, 100, 150 |
-| mi | 2, 5, 10, 15, 25, 50, 75, 100 |
-| nm | 2, 5, 10, 20, 40, 60, 80 |
+| km | 5, 10, 15, 25, 50, 100, 150, 200, 300, 400 |
+| mi | 2, 5, 10, 15, 25, 50, 75, 100, 150, 200, 250 |
+| nm | 2, 5, 10, 20, 40, 60, 80, 100, 150, 200 |
 
 Changing the unit moves to the nearest equivalent range (e.g. 50 km → 25 mi).
-Larger ranges can be busy near big airports (about 165 aircraft at 100 km
-around Phoenix); labels thin themselves out and every aircraft stays in the
-table.
+The largest ranges stay within adsb.fi's 250 nm query radius (the scope
+fetches ~11% past its outer ring for the edge dots). They can be busy: around
+Phoenix about 240 aircraft at 100 mi and 600 at 250 mi on a weekday
+afternoon. Labels thin themselves out, every aircraft stays in the table, and
+up to 1,500 aircraft are handled; filters help most here. The browser display
+draws 500+ aircraft in under 10 ms per frame; on a Pi, the pygame display may
+slow down at the largest ranges.
 
 ## Settings
 
