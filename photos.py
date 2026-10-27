@@ -30,6 +30,13 @@ def _get_json(url: str, params: dict | None = None) -> dict:
         return json.load(resp)
 
 
+def fetch_image(src: str) -> bytes:
+    """The photo itself, for the Pi display (kept in memory only, never saved)."""
+    req = urllib.request.Request(src, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
+        return resp.read()
+
+
 class PhotoLookup:
     def __init__(self):
         self._airframes: dict[str, tuple[float, dict | None]] = {}

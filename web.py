@@ -66,7 +66,7 @@ FIELDS = [
     ("color_by_kind", "Colour aircraft by kind", "bool", None),
     ("airline_logos", "Airline logos", "choice",
      [("off", "Off"), ("panel", "Panel"), ("all", "Panel + radar")]),
-    ("show_photos", "Aircraft photo on the web radar's card", "bool", None),
+    ("show_photos", "Aircraft photo on the card", "bool", None),
     ("show_beyond_dots", "Dots for aircraft just outside the range", "bool", None),
     ("show_ground", "Aircraft on the ground", "bool", None),
     ("sweep_enabled", "Radar sweep", "bool", None),

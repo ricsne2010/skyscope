@@ -13,6 +13,8 @@ D dots for aircraft beyond the range, F fullscreen, Q/Esc quit.
 """
 
 import argparse
+import io
+import threading
 import json
 import math
 import time
@@ -31,7 +33,8 @@ from filters import (ALT_BANDS, CLASS_COLORS, CLASS_LABELS, CLASSES, SINGLE_COLO
                      watch_patterns)
 from gps import GpsReader
 from logos import LogoStore, airline_code
-from web import SettingsServer, lan_address
+from photos import fetch_image
+from web import PHOTOS, SettingsServer, lan_address
 from settings import Settings
 
 HERE = Path(__file__).resolve().parent
@@ -220,6 +223,11 @@ class SkyScope:
         self.airports = airports.load_map()
         self.airport_index = airports.AirportIndex()
         self.overlays = Overlays()
+        # Aircraft photo for the card (shares the web page's lookup and cache).
+        self._photo_key = None  # aircraft the photo is for
+        self._photo = None  # (pygame Surface or None, credit) once fetched
+        self._photo_images: dict[str, pygame.Surface] = {}  # src → full image, in memory
+        self._photo_thumb = (None, None, None)  # (image id, size, scaled thumbnail)
         self.static: pygame.Surface | None = None
         self.static_obstacles: list[pygame.Rect] = []  # fixed labels tags must avoid
         self.layout = Layout(*screen.get_size())
@@ -942,32 +950,87 @@ class SkyScope:
             y += round(8 * s)
         return y
 
+    def card_photo(self, ac: Aircraft):
+        """(Surface, credit) for this exact aircraft once fetched in the
+        background, else None. Only photos of the airframe itself (see photos.py)."""
+        key = ac.hex or ac.reg
+        if key != self._photo_key:
+            self._photo_key, self._photo = key, None
+
+            def fetch(key=key, hex_id=ac.hex, reg=ac.reg):
+                found = PHOTOS.find(hex_id, reg)
+                image = None
+                if found:
+                    try:
+                        image = self._photo_images.get(found["src"]) or \
+                            pygame.image.load(io.BytesIO(fetch_image(found["src"])))
+                        if len(self._photo_images) > 30:
+                            self._photo_images.clear()
+                        self._photo_images[found["src"]] = image
+                    except Exception as exc:  # offline or a bad image: no photo
+                        print(f"photos: {exc}")
+                if self._photo_key == key:  # still the aircraft on the card
+                    self._photo = (image, found["credit"].replace("Photo: ", "© ").replace(
+                        " · Planespotters.net", "") if found else "")
+
+            threading.Thread(target=fetch, daemon=True).start()
+        return self._photo if self._photo and self._photo[0] is not None else None
+
+    def draw_fit(self, text, size, color, pos, max_w) -> None:
+        """Draw text in max_w pixels: a slightly smaller font if needed, then '...'."""
+        t = self.text
+        for sz in range(size, round(size * 0.78) - 1, -1):
+            if t.render(text, sz, color).get_width() <= max_w:
+                t.draw(self.screen, text, sz, color, pos)
+                return
+        sz = round(size * 0.78)
+        while len(text) > 4 and t.render(text + "...", sz, color).get_width() > max_w:
+            text = text[:-1]
+        t.draw(self.screen, text.rstrip() + "...", sz, color, pos)
+
     def draw_nearest_card(self, entry, x, y, right):
         dist, bearing, ac = entry
         s, t, st = self.layout.s, self.text, self.settings
         label = CLASS_LABELS[self.filter.aircraft_class(ac)].upper()
         t.draw(self.screen, f"NEAREST  ·  {label}", round(24 * s), HIGHLIGHT, (x, y))
         y += round(30 * s)
+        # Photo of this exact aircraft, as a thumbnail at the card's right.
+        photo = self.card_photo(ac) if st.show_photos else None
+        if photo:
+            pw, ph = round(209 * s), round(132 * s)
+            img, credit = photo
+            if self._photo_thumb[:2] != (id(img), (pw, ph)):  # scale once per photo, not per frame
+                k = max(pw / img.get_width(), ph / img.get_height())  # cover the box, then crop
+                scaled = pygame.transform.smoothscale(
+                    img.convert(), (round(img.get_width() * k), round(img.get_height() * k)))
+                crop = pygame.Rect((scaled.get_width() - pw) // 2, (scaled.get_height() - ph) // 2, pw, ph)
+                self._photo_thumb = (id(img), (pw, ph), scaled.subsurface(crop).copy())
+            box = pygame.Rect(right - pw, y + round(26 * s), pw, ph)
+            self.screen.blit(self._photo_thumb[2], box)
+            pygame.draw.rect(self.screen, GRID, box, 1)
+            self.draw_fit(credit, round(16 * s), PANEL_DIM, (box.x, box.bottom + round(3 * s)), pw)
+            right = box.x - round(16 * s)  # card text stays left of the photo
         if st.airline_logos != "off":
             tile = self.logos.tile(ac.callsign, round(96 * s))
             if tile is not None:
                 self.screen.blit(tile, (x, y + round(4 * s)))
                 x += tile.get_width() + round(20 * s)
-        t.draw(self.screen, ac.callsign, round(64 * s), LABEL, (x, y))
+        width = right - x
+        self.draw_fit(ac.callsign, round(64 * s), LABEL, (x, y), width)
         y += round(62 * s)
         desc = ac.desc or ac.type or "Unknown type"
         if ac.reg and ac.reg != ac.callsign:  # once, on the type line (GA callsigns are the reg)
             desc = f"{desc[:30]}  ·  {ac.reg}"
-        t.draw(self.screen, desc[:40], round(32 * s), TAG_TYPE, (x, y))
+        self.draw_fit(desc, round(32 * s), TAG_TYPE, (x, y), width)
         y += round(42 * s)
 
-        t.draw(self.screen, self.altitude_summary(ac), round(30 * s), TAG_ALT, (x, y))
+        self.draw_fit(self.altitude_summary(ac), round(30 * s), TAG_ALT, (x, y), width)
         y += round(38 * s)
         line = (f"{st.format_distance(dist)}  ·  bearing {bearing:03.0f}°  ·  "
                 f"track {ac.track_deg:03.0f}°")
-        t.draw(self.screen, line, round(30 * s), LABEL, (x, y))
+        self.draw_fit(line, round(30 * s), LABEL, (x, y), width)
         y += round(38 * s)
-        t.draw(self.screen, self.speed_summary(ac), round(30 * s), LABEL, (x, y))
+        self.draw_fit(self.speed_summary(ac), round(30 * s), LABEL, (x, y), width)
         return y + round(38 * s)
 
     def altitude_summary(self, ac: Aircraft) -> str:
