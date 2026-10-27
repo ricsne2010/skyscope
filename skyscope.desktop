@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=SkyScope
+Comment=Live ADS-B radar, fullscreen
+Exec=/usr/bin/python3 /home/pi/skyscope/skyscope.py
+Terminal=false

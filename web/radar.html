@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyScope</title>
+<style>
+  :root {
+    --bg: #040a1c; --panel: #071028; --grid: rgb(16, 100, 32); --label: #ffffff;
+    --dim: #7888aa; --green: #46ff78; --amber: #ffc800; --blue: #5ac8ff; --error: #ff5a5a;
+    /* The scope takes the full height but at most 60% of the width, so the
+       panel always keeps 40%+ on 16:10, 4:3-ish and other non-16:9 screens. */
+    --scope-w: min(100vh, 60vw);
+    --panel-w: calc(100vw - var(--scope-w));
+    /* Panel unit: 1 px on a 1080p 16:9 screen (840 px wide panel), scaled to
+       whichever of height and panel width is tighter, so text never outgrows it. */
+    --u: min(calc(100vh / 1080), calc(var(--panel-w) / 840));
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--label); overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  #app { display: flex; width: 100vw; height: 100vh; }
+  #scope { position: relative; flex: 0 0 var(--scope-w); height: 100vh; cursor: crosshair; }
+  #scope canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #panel { flex: 1; min-width: 0; background: var(--panel); border-left: 2px solid var(--grid);
+    padding: calc(var(--u) * 36); display: flex; flex-direction: column; box-sizing: border-box; }
+  .row { display: flex; align-items: baseline; gap: calc(var(--u) * 12); white-space: nowrap; }
+  .row .right { margin-left: auto; }
+  .row > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .row > .right { flex: none; }
+  h1 { margin: 0; color: var(--green); font-size: calc(var(--u) * 50); letter-spacing: .03em; }
+  #clock { font-size: calc(var(--u) * 50); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .small { font-size: calc(var(--u) * 26); color: var(--dim); font-weight: 600; margin-top: calc(var(--u) * 6); }
+  .status { font-size: calc(var(--u) * 28); font-weight: 600; margin-top: calc(var(--u) * 6); }
+  hr { border: 0; border-top: 2px solid var(--grid); width: 100%; margin: calc(var(--u) * 18) 0; }
+  #card { display: flex; gap: calc(var(--u) * 20); }
+  #card .logo { width: calc(var(--u) * 96); height: calc(var(--u) * 96); flex: none; }
+  #card .body { flex: 1; min-width: 0; }
+  .eyebrow { color: var(--amber); font-size: calc(var(--u) * 22); font-weight: 700; letter-spacing: .05em; }
+  .callsign { font-size: calc(var(--u) * 60); font-weight: 800; line-height: 1.1; }
+  .reg { color: var(--dim); font-size: calc(var(--u) * 32); font-weight: 700; }
+  .desc { color: var(--amber); font-size: calc(var(--u) * 30); font-weight: 700; }
+  .line { font-size: calc(var(--u) * 28); font-weight: 600; margin-top: calc(var(--u) * 6); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .alt { color: var(--blue); }
+  .logo { display: inline-block; }
+  #listwrap { flex: 1; min-height: 0; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; table-layout: fixed; }
+  th, td { padding-left: calc(var(--u) * 10); text-overflow: ellipsis; }
+  th:first-child, td:first-child { padding-left: 0; }
+  th { color: var(--dim); font-size: calc(var(--u) * 22); font-weight: 700; text-align: right; padding-bottom: calc(var(--u) * 8); }
+  th .unit { display: block; font-size: calc(var(--u) * 20); font-weight: 600; }
+  td { font-size: calc(var(--u) * 28); font-weight: 700; text-align: right; height: calc(var(--u) * 38); white-space: nowrap; overflow: hidden; }
+  th.l, td.l { text-align: left; }
+  td .logo { width: calc(var(--u) * 30); height: calc(var(--u) * 30); vertical-align: middle; }
+  td.type { color: var(--amber); } td.alt { color: var(--blue); } td.na { color: var(--dim); }
+  .alert { font-size: calc(var(--u) * 26); font-weight: 700; padding: calc(var(--u) * 8) calc(var(--u) * 12);
+    border-radius: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .alert.emg { background: #780a0a; color: #ff5a5a; animation: blink 1s steps(2) infinite; }
+  .alert.watch { background: #5a4600; color: #ffd60a; }
+  @keyframes blink { 50% { background: #3c0505; } }
+  td.emg { color: #ff5a5a; } td.watch { color: #ffd60a; }
+  td .mark { font-size: .8em; margin-right: calc(var(--u) * 4); }
+  #legend { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 6) calc(var(--u) * 16); color: var(--dim);
+    font-size: calc(var(--u) * 20); font-weight: 600; margin-top: calc(var(--u) * 6); }
+  #legend i { display: inline-block; width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 3px;
+    margin-right: calc(var(--u) * 6); vertical-align: -1px; }
+  tbody tr { cursor: pointer; }
+  tbody tr.hov td { background: rgba(255,255,255,0.06); }
+  tbody tr.sel td { background: rgba(0,229,255,0.16); }
+  tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 #00e5ff; }
+  .eyebrow.sel { color: #00e5ff; }
+  .eyebrow .clear { margin-left: calc(var(--u) * 12); background: none; border: 1px solid #00e5ff66; color: #00e5ff;
+    border-radius: 6px; font: inherit; cursor: pointer; padding: 0 calc(var(--u) * 8); }
+  footer { line-height: 1.9; }
+  #panel { position: relative; }
+  #filters-btn { color: var(--bg); background: var(--green); border-radius: 6px; padding: 1px 8px; font-weight: 700; }
+  #filter-panel { position: absolute; left: calc(var(--u) * 36); right: calc(var(--u) * 36); bottom: calc(var(--u) * 70);
+    z-index: 3; background: #0b1735; border: 1px solid var(--grid); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6); font-size: 15px; }
+  .fp-head { display: flex; align-items: center; margin-bottom: 6px; color: var(--green); font-size: 16px; }
+  .fp-head button { margin-left: auto; background: none; border: 0; color: var(--dim); font-size: 16px; cursor: pointer; }
+  .fp-label { display: block; color: var(--dim); font-weight: 700; font-size: 13px; margin: 10px 0 6px; }
+  .fp-label select { margin-left: 8px; background: var(--panel); color: var(--green); border: 1px solid var(--grid);
+    border-radius: 6px; font: inherit; padding: 3px 6px; }
+  .fp-ticks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .fp-tick { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #1d2f55; border-radius: 8px;
+    background: #071028; cursor: pointer; font-weight: 600; user-select: none; }
+  .fp-tick:hover { background: #13284a; }
+  .fp-tick:has(input:checked) { border-color: #46ff7899; background: #10642040; }
+  .fp-tick input { width: 17px; height: 17px; margin: 0; accent-color: #46ff78; cursor: pointer; }
+  .fp-seg { display: flex; border: 1px solid #1d2f55; border-radius: 8px; overflow: hidden; }
+  .fp-seg button { flex: 1; background: #071028; color: var(--dim); border: 0; border-right: 1px solid #1d2f55;
+    padding: 7px; font: inherit; font-weight: 700; cursor: pointer; }
+  .fp-seg button:last-child { border-right: 0; }
+  .fp-seg button.on { background: #46ff78; color: #040a1c; }
+  .fp-foot { color: var(--dim); font-size: 12px; margin-top: 10px; }
+  .fp-foot a { color: var(--green); }
+  footer select { background: var(--panel); color: var(--green); border: 1px solid var(--grid); border-radius: 6px;
+    font: inherit; padding: 1px 4px; max-width: 40%; }
+  #more { color: var(--dim); font-size: calc(var(--u) * 22); font-weight: 600; margin-top: calc(var(--u) * 6); }
+  footer { margin-top: calc(var(--u) * 12); font-size: calc(var(--u) * 22); color: var(--dim); font-weight: 600; }
+  footer a, footer button { color: var(--green); background: none; border: 0; font: inherit; cursor: pointer; padding: 0; text-decoration: none; }
+  /* Portrait / narrow windows: scope on top, panel underneath. */
+  @media (max-aspect-ratio: 3/2) {
+    :root { --u: 1px; }
+    html, body { overflow: auto; }
+    #app { flex-direction: column; height: auto; }
+    #scope { flex: none; width: 100vw; height: min(100vw, 85vh); }
+    th, td { padding-left: 6px; }
+    #panel { border-left: 0; border-top: 2px solid var(--grid); padding: 16px; }
+    .row { flex-wrap: wrap; white-space: normal; }
+    #app, #panel { width: 100vw; max-width: 100%; box-sizing: border-box; }
+    #listwrap { overflow: visible; }
+    h1, #clock { font-size: 28px; } .callsign { font-size: 34px; } #card .logo { width: 64px; height: 64px; }
+    .small, .status, .line, td { font-size: 16px; } .reg, .desc { font-size: 18px; }
+    th, footer, #more, .eyebrow, #legend { font-size: 13px; } .alert { font-size: 15px; } th .unit { font-size: 12px; } td { height: 28px; }
+    td .logo { width: 22px; height: 22px; }
+  }
+  body.idle, body.idle #scope { cursor: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="scope" title="Click a plane to select it · click empty space to change range"><canvas id="cv"></canvas></div>
+  <div id="panel">
+    <div class="row"><h1>SKYSCOPE</h1><span id="clock" class="right"></span></div>
+    <div class="row small"><span id="loc"></span><span id="locnote"></span><span id="utc" class="right"></span></div>
+    <div class="row status"><span id="status">Connecting…</span><span id="range" class="right" style="color:var(--green)"></span></div>
+    <hr>
+    <div id="alerts"></div>
+    <div id="cardwrap"></div>
+    <div id="listwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    <div id="more"></div>
+    <div id="legend"></div>
+    <div id="filter-panel" hidden>
+      <div class="fp-head"><b>Filters</b><button id="fp-close" title="Close (Esc)">✕</button></div>
+      <label class="fp-label">Preset <select id="preset" title="Filter preset"></select></label>
+      <div class="fp-label">Kinds of aircraft</div><div class="fp-ticks" id="fp-kinds"></div>
+      <div class="fp-label">Altitude</div><div class="fp-ticks" id="fp-alts"></div>
+      <div id="fp-procs-wrap"><div class="fp-label">SIDs / STARs</div><div class="fp-seg" id="fp-procs"></div></div>
+      <div class="fp-foot">Applies at once. Types, airlines and countries: <a href="/radar_config">Settings</a>.</div>
+    </div>
+    <footer><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
+      · <a href="/radar_config">Settings</a> · <button id="fs">Fullscreen (F)</button>
+      · Click a plane or row to select · empty radar or R: range</footer>
+  </div>
+</div>
+<script>
+"use strict";
+// Colours: the same palette as the pygame display (radar_theme.h targets).
+const C = {
+  bg: "#040a1c", grid: "rgb(16,100,32)", label: "#ffffff", aircraft: "#ff0000", track: "#ff00ff",
+  type: "#ffc800", alt: "#5ac8ff", runway: "rgb(165,185,205)", runwayLabel: "rgb(110,210,230)",
+  centerline: "rgb(70,110,135)", runwayNumber: "rgb(120,140,165)",
+  airspace: { B: "rgb(70,115,210)", C: "rgb(165,95,185)", D: "rgb(70,115,210)" },
+  star: "rgb(210,150,55)", sid: "rgb(55,180,180)",
+  sweep: [70, 255, 120], highlight: "#ffc800", tile: "#e8ecf2", ringLabel: "rgb(40,170,70)",
+  watch: "#ffd60a", alert: "#ff3030", select: "#00e5ff",
+};
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const D = Math.PI / 180, KM_PER_DEG = 111;
+// Speed vector: the distance flown in one minute, at the scope's true scale,
+// kept between a readable minimum and a cap (like an ATC prediction line).
+const TRACK_HORIZON_S = 60, TRACK_MIN_PX = 8, TRACK_MAX_PX = 70;
+
+const scope = document.getElementById("scope");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+
+let state = null, stateAt = 0, staticData = null, staticKey = "", connectionLost = false;
+// Selection: click a plane (symbol or label) on the scope or a table row.
+// Hovering a table row highlights its plane until the pointer leaves.
+let selectedId = null, hoverId = null, hitTargets = [];
+const tagSide = {};  // aircraft id → last label side, so labels don't hop about
+let G = null, staticCanvas = null, staticFor = "", obstacles = [], mapLabels = [];
+const logoImgs = {}, logoFailed = {};
+
+// --- geometry -----------------------------------------------------------------
+
+function layout() {
+  const r = scope.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = r.width, h = r.height, S = Math.min(w, h), s = S / 1080;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  }
+  const rim = S / 2 - 10 * s, grid = rim - 52 * s;
+  G = { w, h, dpr, s, cx: w / 2, cy: h / 2, rim, grid, dotR: grid + 16 * s, cardR: grid + 36 * s,
+        stroke: Math.max(1, 2 * s), nose: 16 * s, tail: 6 * s, tailHalf: 9 * s, dot: Math.max(3, 7 * s),
+        tagFont: Math.max(11, 26 * s) };
+  G.inset = G.nose + G.tailHalf + 2;
+}
+
+function offsetKm(lat, lon) {
+  const st = state.settings;
+  return [(lon - st.lon) * KM_PER_DEG * Math.cos(st.lat * D), (lat - st.lat) * KM_PER_DEG];
+}
+function toXY(lat, lon) {
+  const [dx, dy] = offsetKm(lat, lon), k = G.grid / state.settings.outer_km;
+  return [G.cx + dx * k, G.cy - dy * k];
+}
+
+// --- static layer: grid, runways, labels (rebuilt on resize / range / location) -----
+
+function buildStatic() {
+  const key = `${G.w}x${G.h}@${G.dpr}|${staticKey}|${state.settings.range_label}`;
+  if (staticFor === key && staticCanvas) return;
+  staticFor = key;
+  staticCanvas = staticCanvas || document.createElement("canvas");
+  staticCanvas.width = cv.width; staticCanvas.height = cv.height;
+  const g = staticCanvas.getContext("2d");
+  g.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+  const { cx, cy, grid, s } = G;
+  obstacles = [];
+
+  g.fillStyle = C.bg; g.fillRect(0, 0, G.w, G.h);
+  g.strokeStyle = C.grid; g.lineWidth = G.stroke;
+  const rings = state.settings.rings;
+  for (const r of rings) { g.beginPath(); g.arc(cx, cy, grid * r.frac, 0, 2 * Math.PI); g.stroke(); }
+  g.beginPath(); g.moveTo(cx, cy - grid); g.lineTo(cx, cy + grid); g.moveTo(cx - grid, cy); g.lineTo(cx + grid, cy); g.stroke();
+  for (let deg = 0; deg < 360; deg += 10) {
+    const inner = grid - (deg % 30 === 0 ? 12 : 6) * s, a = deg * D;
+    g.beginPath(); g.moveTo(cx + Math.sin(a) * inner, cy - Math.cos(a) * inner);
+    g.lineTo(cx + Math.sin(a) * grid, cy - Math.cos(a) * grid); g.stroke();
+  }
+
+  if (staticData) drawOverlayLines(g);
+  g.fillStyle = C.label; g.beginPath(); g.arc(cx, cy, Math.max(2, 4 * s), 0, 2 * Math.PI); g.fill();
+
+  g.font = `700 ${Math.max(14, 40 * s)}px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle";
+  for (const [t, deg] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]]) {
+    const x = cx + Math.sin(deg * D) * G.cardR, y = cy - Math.cos(deg * D) * G.cardR;
+    g.fillText(t, x, y);
+    const w = g.measureText(t).width, hh = 40 * s;
+    obstacles.push(rect(x - w / 2 - 4 * s, y - hh / 2, w + 8 * s, hh));
+  }
+
+  // Each ring's distance, just inside the ring above the east spoke, with a
+  // background knockout so lines don't run through the text.
+  g.font = `700 ${Math.max(10, 24 * s)}px ${FONT}`; g.textAlign = "right"; g.textBaseline = "bottom";
+  for (const r of rings) {
+    const lx = cx + grid * r.frac - 6 * s, ly = cy - 5 * s;
+    const lw = g.measureText(r.label).width + 8 * s, lh = 26 * s;
+    g.fillStyle = C.bg; g.fillRect(lx - lw + 4 * s, ly - lh, lw, lh);
+    g.fillStyle = C.ringLabel; g.fillText(r.label, lx, ly);
+    obstacles.push(rect(lx - lw + 4 * s, ly - lh, lw, lh));
+  }
+  // Map labels avoid each other and the fixed labels; aircraft labels only
+  // avoid the fixed ones (traffic is drawn over the map).
+  mapLabels = obstacles.slice();
+  if (staticData) { drawRunways(g); drawOverlayLabels(g); }
+}
+
+// Runways as on an ATC video map: true length (and width once wider than 2 px),
+// 10 nm extended centrelines with a tick each mile and a longer one each 5,
+// runway numbers when zoomed in, and airport codes.
+function drawRunways(g) {
+  const { cx, cy, grid, s } = G, k = grid / state.settings.outer_km, nm = 1.852 * k, tick = Math.max(2, 4 * s);
+  g.save(); g.beginPath(); g.arc(cx, cy, grid, 0, 2 * Math.PI); g.clip();
+  g.lineCap = "butt";
+  const numbers = [];
+  for (const rw of staticData.runways) {
+    const [a0, a1] = toXY(rw.ends[0], rw.ends[1]), [b0, b1] = toXY(rw.ends[2], rw.ends[3]);
+    const len = Math.hypot(b0 - a0, b1 - a1);
+    if (len < 0.5) continue;
+    const ux = (b0 - a0) / len, uy = (b1 - a1) / len;
+    const ends = [[a0, a1, -ux, -uy, rw.le], [b0, b1, ux, uy, rw.he]];  // outward from each threshold
+    if (rw.centerline) {
+      g.strokeStyle = C.centerline; g.lineWidth = 1;
+      for (const [x, y, sx, sy] of ends) {
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + sx * nm * staticData.centerline_nm, y + sy * nm * staticData.centerline_nm);
+        if (nm >= 6) {  // ticks only when miles are far enough apart to read
+          for (let n = 1; n <= staticData.centerline_nm; n++) {
+            const px = x + sx * nm * n, py = y + sy * nm * n, h = tick * (n % 5 ? 1 : 2);
+            g.moveTo(px - uy * h, py + ux * h); g.lineTo(px + uy * h, py - ux * h);
+          }
+        }
+        g.stroke();
+      }
+    }
+    g.strokeStyle = C.runway; g.lineWidth = Math.max(2, rw.width_ft * 0.0003048 * k);
+    g.beginPath(); g.moveTo(a0, a1); g.lineTo(b0, b1); g.stroke();
+    if (len > 70 * s) for (const [x, y, sx, sy, id] of ends) if (id) numbers.push([id, x + sx * 14 * s, y + sy * 14 * s]);
+  }
+  g.fillStyle = C.runwayNumber; g.font = `600 ${Math.max(10, 18 * s)}px ${FONT}`;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  for (const [id, x, y] of numbers) g.fillText(id, x, y);
+  g.restore();
+  // Airport codes: bigger airports first; a code that would overlap another
+  // (or the ring labels) is left off. The centre airport is named in the panel.
+  g.font = `700 ${Math.max(11, 26 * s)}px ${FONT}`; g.fillStyle = C.runwayLabel;
+  const rank = { L: 0, M: 1, S: 2 };
+  for (const ap of staticData.airports.filter(a => a.label).sort((a, b) => rank[a.type] - rank[b.type])) {
+    let [x, y] = toXY(ap.lat, ap.lon);
+    const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy);
+    if (d > grid + 20 * s || d < 12 * s) continue;  // off the scope, or the centre airport
+    if (d > grid) { x = cx + dx / d * grid; y = cy + dy / d * grid; }
+    x += dx / d * 22 * s; y += dy / d * 22 * s;
+    const w = g.measureText(ap.ident).width, h = 26 * s, box = rect(x - w / 2 - 3 * s, y - h / 2, w + 6 * s, h);
+    if (mapLabels.some(o => hits(box, o))) continue;
+    mapLabels.push(box);
+    g.fillText(ap.ident, x, y);
+  }
+}
+
+// Airspace (chart convention: B solid blue, C solid magenta, D dashed blue) and
+// SID/STAR routes (STAR amber, SID teal), under the runways and traffic.
+function drawOverlayLines(g) {
+  const { cx, cy, grid, s } = G;
+  g.save(); g.beginPath(); g.arc(cx, cy, grid, 0, 2 * Math.PI); g.clip();
+  g.lineWidth = Math.max(1, 1.5 * s); g.lineJoin = "round";
+  for (const shape of staticData.airspace || []) {
+    g.strokeStyle = C.airspace[shape.class];
+    g.setLineDash(shape.class === "D" ? [6 * s, 6 * s] : []);
+    for (const ring of shape.rings) {
+      g.beginPath();
+      ring.forEach(([lon, lat], i) => { const [x, y] = toXY(lat, lon); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+      g.closePath(); g.stroke();
+    }
+  }
+  g.setLineDash([5 * s, 5 * s]);
+  for (const proc of staticData.procedures || []) {
+    g.strokeStyle = proc.kind === "STAR" ? C.star : C.sid;
+    for (const line of proc.lines) {
+      g.beginPath();
+      line.forEach(([lat, lon], i) => { const [x, y] = toXY(lat, lon); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+      g.stroke();
+    }
+  }
+  g.restore();
+}
+
+// Shelf altitudes (ceiling/floor in hundreds of ft), fix names and procedure
+// names, each only where it doesn't overlap something already placed.
+function drawOverlayLabels(g) {
+  const { cx, cy, grid, s } = G, outer = state.settings.outer_km;
+  const small = Math.max(10, 18 * s);
+  function place(text, x, y, color, align = "center", size = small) {
+    g.font = `600 ${size}px ${FONT}`;
+    const w = g.measureText(text).width, h = size * 1.1;
+    const bx = align === "left" ? x : x - w / 2, box = rect(bx - 3 * s, y - h / 2, w + 6 * s, h);
+    if (Math.hypot(bx + w / 2 - cx, y - cy) > grid - 8 * s || mapLabels.some(o => hits(box, o))) return false;
+    mapLabels.push(box);
+    g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(text, x, y);
+    return true;
+  }
+  const centroid = ring => {
+    let a = 0, x = 0, y = 0;
+    ring.forEach(([x0, y0], i) => { const [x1, y1] = ring[(i + 1) % ring.length], c = x0 * y1 - x1 * y0; a += c; x += (x0 + x1) * c; y += (y0 + y1) * c; });
+    return Math.abs(a) < 1e-12 ? [ring[0][0], ring[0][1], 0] : [x / (3 * a), y / (3 * a), Math.abs(a) / 2];
+  };
+  for (const shape of staticData.airspace || []) {
+    if (outer > (shape.class === "D" ? 40 : 80) || !shape.rings.length) continue;
+    const [lon, lat] = shape.rings.map(centroid).sort((a, b) => b[2] - a[2])[0];
+    const [x, y] = toXY(lat, lon);
+    place(`${shape.ceiling}/${shape.floor}`, x, y, C.airspace[shape.class]);
+  }
+  const procs = staticData.procedures || [];
+  if (outer <= 100) {
+    const seen = new Set();
+    for (const proc of procs) {
+      const color = proc.kind === "STAR" ? C.star : C.sid;
+      for (const line of proc.lines) for (const [lat, lon, fix] of line) {
+        if (seen.has(fix) || fix.startsWith("RW")) continue;
+        seen.add(fix);
+        const [x, y] = toXY(lat, lon);
+        if (Math.hypot(x - cx, y - cy) > grid) continue;
+        g.strokeStyle = color; g.lineWidth = Math.max(1, 1.2 * s); g.setLineDash([]);
+        g.beginPath(); g.moveTo(x, y - 4 * s); g.lineTo(x - 3.5 * s, y + 2.5 * s); g.lineTo(x + 3.5 * s, y + 2.5 * s); g.closePath(); g.stroke();
+        place(fix, x + 6 * s, y, color, "left");
+      }
+    }
+  }
+  for (const proc of procs) {  // name at the route's last on-scope fix
+    const longest = proc.lines.reduce((a, b) => (b.length > a.length ? b : a));
+    for (let i = longest.length - 1; i >= 0; i--) {
+      const [x, y] = toXY(longest[i][0], longest[i][1]);
+      if (Math.hypot(x - cx, y - cy) < grid - 30 * s) {
+        place(proc.name, x, y + 16 * s, proc.kind === "STAR" ? C.star : C.sid, "center", small + 2);
+        break;
+      }
+    }
+  }
+}
+
+// --- sweep --------------------------------------------------------------------
+
+function drawSweep(now) {
+  const st = state.settings;
+  const period = Math.max(0.5, st.sweep_period_s), trail = Math.max(5, Math.min(360, st.sweep_trail_deg));
+  const head = (now / 1000 / period * 360) % 360;
+  const { cx, cy } = G, r = G.grid - G.stroke;
+  const [R, Gc, B] = C.sweep;
+  // Canvas angles run clockwise from 3 o'clock; headings clockwise from north.
+  const a1 = (head - 90) * D, a0 = (head - trail - 90) * D;
+  ctx.save();
+  if (ctx.createConicGradient) {
+    const grad = ctx.createConicGradient(a0, cx, cy), span = trail / 360;
+    for (let i = 0; i <= 12; i++) {
+      const f = i / 12;
+      grad.addColorStop(f * span, `rgba(${R},${Gc},${B},${(0.43 * Math.pow(f, 1.8)).toFixed(3)})`);
+    }
+    if (span < 1) grad.addColorStop(Math.min(1, span + 1e-4), `rgba(${R},${Gc},${B},0)`);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a0, a1); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+  } else {
+    const steps = Math.max(8, Math.round(trail / 1.5)), step = trail / steps;
+    for (let i = 0; i < steps; i++) {
+      const alpha = 0.43 * Math.pow(1 - i / steps, 1.8);
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, (head - (i + 1) * step - 90) * D, (head - i * step - 90) * D + 0.002);
+      ctx.closePath(); ctx.fillStyle = `rgba(${R},${Gc},${B},${alpha})`; ctx.fill();
+    }
+  }
+  const tx = cx + Math.cos(a1) * r, ty = cy + Math.sin(a1) * r;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = `rgba(${R},${Gc},${B},0.35)`; ctx.lineWidth = Math.max(3, 8 * G.s);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+  ctx.strokeStyle = "rgb(200,255,210)"; ctx.lineWidth = Math.max(1.5, 3 * G.s);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+  ctx.restore();
+}
+
+// --- aircraft -----------------------------------------------------------------
+
+function extrapolate(ac, dt) {
+  // Dead-reckon along the ground track since the last poll.
+  if (!(ac.gs_motion > 0)) return [ac.lat, ac.lon];
+  const km = ac.gs_motion * 1.852 * dt / 3600, a = ac.track * D;
+  return [ac.lat + km * Math.cos(a) / KM_PER_DEG,
+          ac.lon + km * Math.sin(a) / (KM_PER_DEG * Math.cos(ac.lat * D))];
+}
+
+function symbolRadius(ac) {
+  return ac.kind && staticData ? staticData.shapes[ac.kind].length * G.s / 2 : G.nose;
+}
+
+function colorOf(ac, now) {
+  if (ac.emergency) return Math.floor(now / 500) % 2 ? "#ffffff" : C.alert;
+  return ac.color;
+}
+
+function drawSymbol(ac, x, y, color) {
+  const a = ac.nose * D, sn = Math.sin(a), c = Math.cos(a);
+  ctx.fillStyle = color;
+  if (ac.kind && staticData) {
+    const shape = staticData.shapes[ac.kind], half = shape.length * G.s / 2;
+    for (const poly of shape.polys) {
+      ctx.beginPath();
+      poly.forEach(([px, py], i) => {
+        const X = x + (px * c - py * sn) * half, Y = y + (px * sn + py * c) * half;
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      });
+      ctx.closePath(); ctx.fill();
+    }
+    if (ac.kind === "heli") {
+      ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, 1.5 * G.s);
+      ctx.beginPath(); ctx.arc(x + 0.2 * sn * half, y - 0.2 * c * half, half * 0.82, 0, 2 * Math.PI); ctx.stroke();
+    }
+    return;
+  }
+  const { nose, tail, tailHalf } = G, bx = x - sn * tail, by = y + c * tail;
+  ctx.beginPath(); ctx.moveTo(x + sn * nose, y - c * nose);
+  ctx.lineTo(bx + c * tailHalf, by + sn * tailHalf); ctx.lineTo(bx - c * tailHalf, by - sn * tailHalf);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawVector(ac, x, y) {
+  if (!(ac.gs_motion > 0)) return;
+  const nose = symbolRadius(ac), a = ac.nose * D;
+  const sx = x + Math.sin(a) * nose, sy = y - Math.cos(a) * nose;
+  const km = ac.gs_motion * 1.852 * TRACK_HORIZON_S / 3600;
+  const len = Math.min(TRACK_MAX_PX, Math.max(TRACK_MIN_PX, km * G.grid / state.settings.outer_km / G.s)) * G.s;
+  const t = ac.track * D;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.sin(t) * len, sy - Math.cos(t) * len); ctx.stroke();
+}
+
+function rect(x, y, w, h) { return { x, y, w, h }; }
+function hits(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+
+function logoImg(code) {
+  if (!code || state.settings.airline_logos === "off") return null;
+  if (logoFailed[code] && performance.now() - logoFailed[code] < 60000) return null;
+  let img = logoImgs[code];
+  if (!img) {
+    img = logoImgs[code] = new Image();
+    img.onerror = () => { logoFailed[code] = performance.now(); delete logoImgs[code]; };
+    img.src = `/logo/${code}.png`;
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+
+function drawTile(img, x, y, size) {
+  const r = size / 6;
+  ctx.fillStyle = C.tile; ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + size, y, x + size, y + size, r); ctx.arcTo(x + size, y + size, x, y + size, r);
+  ctx.arcTo(x, y + size, x, y, r); ctx.arcTo(x, y, x + size, y, r); ctx.closePath(); ctx.fill();
+  const inner = size * 0.86, k = inner / Math.max(img.naturalWidth, img.naturalHeight);
+  const w = img.naturalWidth * k, h = img.naturalHeight * k;
+  ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+}
+
+// Label where it overlaps nothing placed so far: toward the centre first,
+// then the far side, above, below; otherwise leave it off.
+function drawTag(ac, x, y, placed, focus) {
+  const lines = [[ac.callsign, ac.watched ? C.watch : C.label], [ac.type, C.type], [ac.alt, C.alt]];
+  if (ac.emergency) lines.unshift([ac.emergency, C.alert]);
+  for (let i = lines.length - 1; i >= 0; i--) if (!lines[i][0] || lines[i][0] === "—") lines.splice(i, 1);
+  if (!lines.length) return;
+  const s = G.s, fs = G.tagFont, lh = fs * 1.12;
+  ctx.font = `700 ${fs}px ${FONT}`;
+  const img = state.settings.airline_logos === "all" ? logoImg(ac.airline) : null;
+  const tile = img ? Math.min(2, lines.length) * lh - 4 * s : 0, logoW = img ? tile + 6 * s : 0;
+  const w = logoW + Math.max(...lines.map(([t]) => ctx.measureText(t).width)), h = lh * lines.length;
+  const gap = symbolRadius(ac) + 10 * s;
+  const right = rect(x + gap, y - h / 2, w, h), left = rect(x - gap - w, y - h / 2, w, h);
+  const above = rect(x - w / 2, y - gap - h, w, h), below = rect(x - w / 2, y + gap, w, h);
+  const sides = { right, left, above, below };
+  const order = (x < G.cx ? [right, left] : [left, right]).concat([above, below]);
+  const last = sides[tagSide[ac.id]];
+  if (last) order.unshift(...order.splice(order.indexOf(last), 1));
+  const inBounds = r => r.x >= 0 && r.y >= 0 && r.x + r.w <= G.w && r.y + r.h <= G.h;
+  let chosen = order.find(r => inBounds(r) && !placed.some(p => hits(r, p)));
+  if (!chosen && focus === "selected") chosen = order.find(inBounds) || order[0];  // always label the selection
+  if (chosen) tagSide[ac.id] = Object.keys(sides).find(k => sides[k] === chosen);
+  for (const r of chosen ? [chosen] : []) {
+    placed.push(rect(r.x - 3 * s, r.y - 1 * s, r.w + 6 * s, r.h + 2 * s));
+    hitTargets.push({ id: ac.id, x: r.x - 4 * s, y: r.y - 2 * s, w: r.w + 8 * s, h: r.h + 4 * s });
+    if (focus) {
+      ctx.fillStyle = "rgba(4,10,28,0.85)";
+      ctx.fillRect(r.x - 6 * s, r.y - 3 * s, r.w + 12 * s, r.h + 6 * s);
+      ctx.strokeStyle = focus === "selected" ? C.select : "rgba(255,255,255,0.7)";
+      ctx.lineWidth = Math.max(1, 1.5 * s);
+      ctx.strokeRect(r.x - 6 * s, r.y - 3 * s, r.w + 12 * s, r.h + 6 * s);
+    }
+    const onLeft = r === left;
+    if (img) drawTile(img, onLeft ? r.x + r.w - tile : r.x, r.y + 2 * s, tile);
+    ctx.textBaseline = "top"; ctx.textAlign = onLeft ? "right" : "left";
+    const tx = onLeft ? r.x + r.w - logoW : r.x + logoW;
+    lines.forEach(([t, col], i) => { ctx.fillStyle = col; ctx.fillText(t, tx, r.y + i * lh + fs * 0.06); });
+    return;
+  }
+}
+
+function drawBrackets(x, y, r, color) {
+  const a = r + 12 * G.s, l = Math.max(7, 12 * G.s);
+  ctx.strokeStyle = color; ctx.lineWidth = Math.max(2, 3 * G.s); ctx.lineCap = "square";
+  ctx.beginPath();
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    ctx.moveTo(x + sx * a, y + sy * (a - l)); ctx.lineTo(x + sx * a, y + sy * a); ctx.lineTo(x + sx * (a - l), y + sy * a);
+  }
+  ctx.stroke();
+}
+
+function drawTraffic(now) {
+  const st = state.settings, dt = (now - stateAt) / 1000;
+  hitTargets = [];
+  const insideKm = st.outer_km * (G.grid - G.inset) / G.grid;
+  const inside = [];
+  for (const ac of state.aircraft) {
+    const [lat, lon] = extrapolate(ac, dt), [dx, dy] = offsetKm(lat, lon), dist = Math.hypot(dx, dy);
+    if (dist <= insideKm) {
+      const [x, y] = toXY(lat, lon); inside.push({ ac, x, y, dist });
+    } else if ((st.show_beyond_dots || ac.emergency || ac.watched) && dist > 0.01) {
+      const b = Math.atan2(dx, dy), bx = G.cx + Math.sin(b) * G.dotR, by = G.cy - Math.cos(b) * G.dotR;
+      ctx.fillStyle = colorOf(ac, now); ctx.beginPath(); ctx.arc(bx, by, G.dot, 0, 2 * Math.PI); ctx.fill();
+      if (ac.emergency || ac.watched) {
+        ctx.strokeStyle = ac.emergency ? C.alert : C.watch; ctx.lineWidth = Math.max(1, 1.5 * G.s);
+        ctx.beginPath(); ctx.arc(bx, by, G.dot + 5 * G.s, 0, 2 * Math.PI); ctx.stroke();
+      }
+    }
+  }
+  inside.sort((a, b) => b.dist - a.dist);  // far first: nearer symbols on top
+  ctx.save(); ctx.beginPath(); ctx.arc(G.cx, G.cy, G.grid, 0, 2 * Math.PI); ctx.clip();
+  ctx.lineWidth = G.stroke; ctx.lineCap = "round";
+  for (const p of inside) {
+    ctx.strokeStyle = st.color_by_kind ? p.ac.color : C.track;
+    drawVector(p.ac, p.x, p.y);
+  }
+  ctx.restore();
+  for (const p of inside) {
+    drawSymbol(p.ac, p.x, p.y, colorOf(p.ac, now));
+    const r = symbolRadius(p.ac);
+    hitTargets.push({ id: p.ac.id, cx: p.x, cy: p.y, r: r + 10 * G.s });
+    ctx.lineWidth = Math.max(1, 1.5 * G.s);
+    if (p.ac.watched) {
+      ctx.strokeStyle = C.watch;
+      for (const k of [8, 11]) { ctx.beginPath(); ctx.arc(p.x, p.y, r + k * G.s, 0, 2 * Math.PI); ctx.stroke(); }
+    }
+    if (p.ac.emergency) {
+      const pulse = 10 + 10 * ((now / 700) % 1);  // expanding ring
+      ctx.strokeStyle = C.alert;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r + pulse * G.s, 0, 2 * Math.PI); ctx.stroke();
+    }
+  }
+  if (inside.length) {
+    const n = inside[inside.length - 1];
+    ctx.strokeStyle = C.highlight; ctx.lineWidth = Math.max(1, 1.5 * G.s);
+    ctx.beginPath(); ctx.arc(n.x, n.y, symbolRadius(n.ac) + 8 * G.s, 0, 2 * Math.PI); ctx.stroke();
+  }
+  // Labels nearest first; they avoid each other, every symbol and the fixed labels.
+  const placed = obstacles.slice();
+  for (const p of inside) { const r = symbolRadius(p.ac); placed.push(rect(p.x - r, p.y - r, 2 * r, 2 * r)); }
+  // Selected / hovered first, then emergencies, watched aircraft, nearest first.
+  const focusOf = ac => ac.id === selectedId ? "selected" : ac.id === hoverId ? "hover" : null;
+  const order = inside.slice().sort((a, b) =>
+    (!focusOf(a.ac) - !focusOf(b.ac)) || (!a.ac.emergency - !b.ac.emergency) ||
+    (!a.ac.watched - !b.ac.watched) || a.dist - b.dist);
+  for (const p of order) drawTag(p.ac, p.x, p.y, placed, focusOf(p.ac));
+  // Brackets last, so no label or symbol covers them.
+  for (const p of inside) {
+    const f = focusOf(p.ac);
+    if (f) drawBrackets(p.x, p.y, symbolRadius(p.ac), f === "selected" ? C.select : "rgba(255,255,255,0.8)");
+  }
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!state) return;
+  layout();
+  buildStatic();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(staticCanvas, 0, 0);
+  ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+  if (state.settings.sweep_enabled) drawSweep(now);
+  drawTraffic(now);
+}
+
+// --- side panel (HTML, updated once a second) --------------------------------------
+
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// The panel is rebuilt every second, so it can't wait on <img> loads (they'd
+// blink). Each airline's tile is drawn once into a data URL, ready instantly.
+const logoURLs = {};
+function logoURL(code) {
+  if (!code || state.settings.airline_logos === "off") return null;
+  if (logoURLs[code]) return logoURLs[code];
+  const img = logoImg(code);  // starts the download if needed
+  if (!img) return null;
+  const size = 128, c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d"), r = size / 6;
+  g.fillStyle = C.tile; g.beginPath();
+  g.moveTo(r, 0); g.arcTo(size, 0, size, size, r); g.arcTo(size, size, 0, size, r);
+  g.arcTo(0, size, 0, 0, r); g.arcTo(0, 0, size, 0, r); g.closePath(); g.fill();
+  const k = size * 0.86 / Math.max(img.naturalWidth, img.naturalHeight);
+  const w = img.naturalWidth * k, h = img.naturalHeight * k;
+  g.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+  return (logoURLs[code] = c.toDataURL());
+}
+function logoTag(code, cls = "logo") {
+  const url = logoURL(code);
+  return url ? `<img class="${cls}" src="${url}" alt="">` : "";
+}
+
+function updatePanel() {
+  const st = state.settings, list = state.aircraft;
+  $("loc").textContent = st.location_text;
+  const note = state.status.location_note;
+  $("locnote").textContent = note ? `·  ${note}` : "";
+  $("locnote").style.color = state.status.location_note_color;
+  $("range").textContent = (st.preset && st.preset !== "Everything" ? `${st.preset} · ` : "") + `Range ${st.range_label}`;
+  updateStatus();
+
+  // Alert banners: emergencies always, watched aircraft if the notice is on.
+  const alerts = list.filter(a => a.emergency || (a.watched && st.watch_notice)).slice(0, 3);
+  $("alerts").innerHTML = alerts.map(a => `<div class="alert ${a.emergency ? "emg" : "watch"}">
+    ${esc(a.emergency || "WATCHLIST")}: ${esc(a.callsign)} ${esc(a.type)} · ${esc(a.dist_long)} at ${String(Math.round(a.bearing)).padStart(3, "0")}°</div>`).join("");
+  const selected = list.find(a => a.id === selectedId) || null;
+  if (selectedId && !selected) selectedId = null;  // it left the area or was filtered out
+  const n = selected || list.reduce((best, a) => (!best || a.dist_km < best.dist_km ? a : best), null);
+  $("cardwrap").innerHTML = n ? `<div class="eyebrow ${selected ? "sel" : ""}">${selected ? "SELECTED" : "NEAREST"} · ${esc(n.class_label.toUpperCase())}${selected ? '<button class="clear" id="clear-sel" title="Clear selection (Esc)">✕</button>' : ""}</div>
+    <div id="card">${logoTag(n.airline)}<div class="body">
+      <div class="row"><span class="callsign">${esc(n.callsign)}</span><span class="reg right">${esc(n.reg)}</span></div>
+      <div class="desc">${esc(n.desc || n.type || "Unknown type")}</div>
+      <div class="line alt">${esc(n.alt_summary)}</div>
+      <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
+      <div class="line">${esc(n.speed_summary)}</div>
+    </div></div><hr>` : "";
+
+  const logos = st.airline_logos !== "off";
+  // Column widths (%): callsign gets the most; with no airspeed column the rest widen.
+  // Callsign gets extra room when it carries a ★ / ⚠ marker as well as a logo.
+  const marked = list.some(a => a.emergency || a.watched);
+  const w = st.show_airspeed ? (marked ? [32, 12, 14, 11, 9, 11, 11] : [27, 13, 15, 12, 10, 11, 12])
+                             : (marked ? [34, 14, 16, 12, 11, 13] : [29, 15, 17, 14, 12, 13]);
+  const cols = [["CALLSIGN", "", "l"], ["TYPE", "", "l"], ["ALT", st.altitude_symbol, ""],
+                ["DIST", st.distance_symbol, ""], ["BRG", "°", ""], ["GS", st.speed_symbol, ""]];
+  if (st.show_airspeed) cols.push([st.airspeed_symbol, st.speed_symbol, ""]);
+  cols.forEach((c, i) => c.push(w[i] + "%"));
+  $("thead").innerHTML = "<tr>" + cols.map(([name, unit, cls, w]) =>
+    `<th class="${cls}" style="width:${w}">${name}<span class="unit">${unit || "&nbsp;"}</span></th>`).join("") + "</tr>";
+  $("tbody").innerHTML = list.map(a => {
+    const cells = [
+      `<td class="l ${a.emergency ? "emg" : a.watched ? "watch" : ""}">${a.emergency ? '<span class="mark">⚠</span>' : a.watched ? '<span class="mark">★</span>' : ""}${logos ? (logoTag(a.airline) || '<span class="logo" style="visibility:hidden;display:inline-block;width:calc(var(--u)*30)"></span>') + " " : ""}${esc(a.callsign)}</td>`,
+      `<td class="l type">${esc(a.type || "—")}</td>`, `<td class="alt">${esc(a.alt_short)}</td>`,
+      `<td>${esc(a.dist)}</td>`, `<td>${String(Math.round(a.bearing) % 360).padStart(3, "0")}</td>`,
+      `<td class="${a.gs === "—" ? "na" : ""}">${esc(a.gs)}</td>`];
+    if (st.show_airspeed) cells.push(`<td class="${a.airspeed === "—" ? "na" : ""}">${esc(a.airspeed)}</td>`);
+    const cls = a.id === selectedId ? "sel" : a.id === hoverId ? "hov" : "";
+    return `<tr data-id="${esc(a.id)}" class="${cls}">${cells.join("")}</tr>`;
+  }).join("");
+  $("legend").innerHTML = st.color_by_kind ? st.legend.map(l =>
+    `<span><i style="background:${l.color}"></i>${esc(l.label)}</span>`).join("") : "";
+  const sel = $("preset");
+  const opts = st.presets.map(p => `<option${p === st.preset ? " selected" : ""}>${esc(p)}</option>`).join("")
+    + (st.preset ? "" : `<option selected disabled>Custom filters</option>`);
+  if (sel.dataset.opts !== opts && document.activeElement !== sel) { sel.innerHTML = opts; sel.dataset.opts = opts; }
+  $("filter-summary").textContent = filterSummary(st);
+  if ($("filter-panel").hidden) buildFilterPanel(st);
+  fitRows();
+}
+
+// Hide table rows that don't fit, and say how many. Rerun on every resize
+// (e.g. entering fullscreen) so the list never fits a stale window size.
+function hideOverflow(rows, limit) {
+  let hidden = 0;
+  for (const r of rows) if (r.getBoundingClientRect().bottom > limit) { r.style.display = "none"; hidden++; }
+  return hidden;
+}
+
+function fitRows() {
+  const wrap = $("listwrap"), rows = $("tbody").rows;
+  for (const r of rows) r.style.display = "";
+  let hidden = 0;
+  if (getComputedStyle(wrap).overflow === "hidden") {
+    $("more").textContent = "+ 0 more";  // reserve its line while measuring
+    const limit = wrap.getBoundingClientRect().bottom;
+    hidden = hideOverflow(rows, limit);
+    // The selected row stays where it is (so rows don't jump under the pointer),
+    // unless it was cut off: then lift it to just under any emergencies.
+    const sel = [...rows].find(r => r.dataset.id === selectedId);
+    if (sel && sel.style.display === "none") {
+      const anchor = [...rows].find(r => !r.querySelector("td.emg"));
+      $("tbody").insertBefore(sel, anchor || null);
+      for (const r of rows) r.style.display = "";
+      hidden = hideOverflow($("tbody").rows, limit);
+    }
+  }
+  $("more").textContent = hidden ? `+ ${hidden} more` : "";
+}
+
+function updateStatus() {
+  if (!state) return;
+  const s = state.status, el = $("status");
+  if (connectionLost) { el.textContent = "Lost connection to the radar"; el.style.color = "var(--error)"; return; }
+  if (s.age_s == null) {
+    el.textContent = s.error ? `No data: ${s.error}`.slice(0, 70) : "Waiting for data…";
+    el.style.color = s.error ? "var(--error)" : "var(--dim)"; return;
+  }
+  const age = Math.round(s.age_s + (performance.now() - stateAt) / 1000);
+  el.textContent = `${s.count_text} · ${s.source} · ${age}s ago`;
+  el.style.color = s.error ? "var(--error)" : "var(--label)";
+}
+
+function tickClock() {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  $("clock").textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  $("utc").textContent = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+  updateStatus();
+}
+
+// --- data -------------------------------------------------------------------
+
+async function poll() {
+  try {
+    const res = await fetch("/api/state", { cache: "no-store" });
+    const next = await res.json();
+    if (next.static_key !== staticKey) {
+      staticData = await (await fetch("/api/static", { cache: "no-store" })).json();
+      staticKey = next.static_key;
+    }
+    state = next; stateAt = performance.now(); connectionLost = false;
+    updatePanel();
+  } catch (e) {
+    connectionLost = true; updateStatus();
+  }
+}
+
+async function nextRange() {
+  await fetch("/api/next-range", { method: "POST" }).catch(() => {});
+  poll();
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+}
+
+window.addEventListener("resize", () => { if (state) fitRows(); });
+document.addEventListener("fullscreenchange", () => { if (state) fitRows(); });
+function select(id) {
+  selectedId = id && id !== selectedId ? id : null;  // clicking the selection again clears it
+  if (state) updatePanel();
+}
+
+// Scope click: a plane's label or symbol selects it; empty space changes range.
+function hitAt(x, y) {
+  let best = null, bestD = Infinity;
+  for (const t of hitTargets) {
+    if (t.w !== undefined) {
+      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) return t.id;  // labels win
+    } else {
+      const d = Math.hypot(x - t.cx, y - t.cy);
+      if (d <= t.r && d < bestD) { best = t.id; bestD = d; }
+    }
+  }
+  return best;
+}
+scope.addEventListener("click", e => {
+  const r = scope.getBoundingClientRect(), id = hitAt(e.clientX - r.left, e.clientY - r.top);
+  if (id) select(id); else nextRange();
+});
+scope.addEventListener("mousemove", e => {
+  const r = scope.getBoundingClientRect();
+  scope.style.cursor = hitAt(e.clientX - r.left, e.clientY - r.top) ? "pointer" : "crosshair";
+});
+$("tbody").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) select(tr.dataset.id);
+});
+$("tbody").addEventListener("mouseover", e => {
+  const tr = e.target.closest("tr[data-id]");
+  hoverId = tr ? tr.dataset.id : null;
+});
+$("tbody").addEventListener("mouseleave", () => { hoverId = null; });
+$("cardwrap").addEventListener("click", e => { if (e.target.id === "clear-sel") select(null); });
+$("fs").addEventListener("click", toggleFullscreen);
+// --- filter panel (footer button) ---------------------------------------------------
+function filterSummary(st) {
+  const kinds = st.classes.filter(c => !st.hidden_classes.includes(c.id));
+  const alts = st.alt_bands.filter(b => !st.hidden_alt_bands.includes(b.id));
+  const parts = [kinds.length === st.classes.length ? "All aircraft" : kinds.map(k => k.label).join(", ") || "Nothing"];
+  if (alts.length < st.alt_bands.length) parts.push(alts.map(a => a.label).join(", ") || "no altitudes");
+  return (st.preset && st.preset !== "Everything" ? st.preset + " · " : "") + parts.join(" · ");
+}
+
+function buildFilterPanel(st) {
+  const tickRow = (group, id, label, on) =>
+    `<label class="fp-tick"><input type="checkbox" data-group="${group}" value="${esc(id)}"${on ? " checked" : ""}>${esc(label)}</label>`;
+  $("fp-kinds").innerHTML = st.classes.map(c => tickRow("kind", c.id, c.label, !st.hidden_classes.includes(c.id))).join("");
+  $("fp-alts").innerHTML = st.alt_bands.map(b => tickRow("alt", b.id, b.label, !st.hidden_alt_bands.includes(b.id))).join("");
+  $("fp-procs-wrap").hidden = !st.has_procedures;
+  $("fp-procs").innerHTML = [["both", "As set"], ["sid", "SIDs"], ["star", "STARs"], ["off", "Off"]].map(([v, l]) =>
+    `<button data-procs="${v}" class="${st.procedure_mode === v ? "on" : ""}">${l}</button>`).join("");
+}
+
+async function quick(change) {
+  await fetch("/api/quick", { method: "POST", body: JSON.stringify(change) }).catch(() => {});
+  poll();
+}
+
+$("filter-panel").addEventListener("change", e => {
+  const g = e.target.dataset.group;
+  if (!g) return;
+  const unticked = [...document.querySelectorAll(`#filter-panel input[data-group="${g}"]`)]
+    .filter(i => !i.checked).map(i => i.value);
+  quick(g === "kind" ? { hidden_classes: unticked } : { hidden_alt_bands: unticked });
+});
+$("fp-procs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-procs]");
+  if (!b) return;
+  for (const x of $("fp-procs").children) x.classList.toggle("on", x === b);
+  quick({ procedures: b.dataset.procs });
+});
+$("preset").addEventListener("change", async e => {
+  await fetch("/api/preset", { method: "POST", body: e.target.value }).catch(() => {});
+  await poll();
+  buildFilterPanel(state.settings);  // the preset changed the ticks
+});
+function toggleFilterPanel(open) {
+  const panel = $("filter-panel");
+  panel.hidden = !(open ?? panel.hidden);
+  if (!panel.hidden && state) buildFilterPanel(state.settings);
+}
+$("filters-btn").addEventListener("click", () => toggleFilterPanel());
+$("fp-close").addEventListener("click", () => toggleFilterPanel(false));
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("filter-panel").hidden) toggleFilterPanel(false);
+  else if (e.key === "Escape" && selectedId) select(null);
+  else if (e.key === "f" || e.key === "F") toggleFullscreen();
+  else if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); nextRange(); }
+});
+// Hide the pointer after 3 s without movement (kiosk / TV use).
+let idleTimer;
+document.addEventListener("mousemove", () => {
+  document.body.classList.remove("idle"); clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => document.body.classList.add("idle"), 3000);
+});
+
+poll(); setInterval(poll, 1000);
+tickClock(); setInterval(tickClock, 1000);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
