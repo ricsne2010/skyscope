@@ -372,6 +372,10 @@ python3 skyscope.py --window 1280x720
 python3 skyscope.py --window 1920x1080 --screenshot out.png --seconds 8
 ```
 
+The Pi display opens with a three-second start-up screen (the Project Moon Pi
+logo, version and credit) while the first aircraft load; any key skips it, and
+`--no-splash` leaves it out (`--screenshot` always does).
+
 ## Airports and runways (ATC-style map)
 
 Runways are drawn like an ATC video map: true length (and true width when

@@ -330,9 +330,10 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
 </table>
 <table>
   <tr><th>Command</th><th>What it does</th></tr>
-  <tr><td><code>python3 skyscope.py</code></td><td>Pi display, full screen</td></tr>
+  <tr><td><code>python3 skyscope.py</code></td><td>Pi display, full screen. It opens with a three-second start-up screen (the Project Moon Pi logo, the version and the credit) while the first aircraft load; any key skips it</td></tr>
   <tr><td><code>python3 skyscope.py --window 1280x720</code></td><td>Pi display in a window</td></tr>
   <tr><td><code>python3 skyscope.py --web-only</code></td><td>Web radar only, and opens it in the browser</td></tr>
+  <tr><td><code>python3 skyscope.py --no-splash</code></td><td>Starts without the start-up screen</td></tr>
 </table>
 <table>
   <tr><th>Ranges</th><th>Choices (distance to the outer ring)</th></tr>

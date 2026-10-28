@@ -1445,6 +1445,42 @@ def parse_size(text: str) -> tuple[int, int]:
     return int(w), int(h)
 
 
+LOGO = Path(__file__).resolve().parent / "docs" / "images" / "moon-pi-logo.png"
+CREDIT = "Designed and Created by Project Moon Pi"
+
+
+def show_splash(screen: pygame.Surface, seconds: float = 3.0) -> bool:
+    """The start-up screen: the Project Moon Pi logo, SKYSCOPE, the version and the credit,
+    for a few seconds while the first aircraft load. Any key or click skips it.
+    Returns False if the window was closed."""
+    from version import VERSION
+    w, h = screen.get_size()
+    screen.fill((0, 0, 0))                          # the logo's own black, so it has no visible edge
+    try:
+        logo = pygame.image.load(str(LOGO)).convert()
+        size = round(min(w, h) * 0.46)
+        logo = pygame.transform.smoothscale(logo, (size, size))
+        screen.blit(logo, logo.get_rect(midtop=(w // 2, round(h * 0.13))))
+    except (pygame.error, FileNotFoundError):
+        size = 0
+    y = round(h * 0.13) + size + round(h * 0.04)
+    for text, px, color in (("SKYSCOPE", 0.085, (60, 230, 110)), (f"Version {VERSION}", 0.04, RUNWAY),
+                            (CREDIT, 0.04, RUNWAY_NUMBER)):
+        surf = pygame.font.Font(None, max(12, round(h * px))).render(text, True, color)
+        screen.blit(surf, surf.get_rect(midtop=(w // 2, y)))
+        y += surf.get_height() + round(h * 0.018)
+    pygame.display.flip()
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
+                return True
+        time.sleep(0.03)
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--window", type=parse_size, metavar="WxH",
@@ -1452,6 +1488,7 @@ def main() -> int:
     ap.add_argument("--screenshot", metavar="PNG",
                     help="render for --seconds, save a PNG and exit (for testing)")
     ap.add_argument("--seconds", type=float, default=8.0)
+    ap.add_argument("--no-splash", action="store_true", help="skip the start-up screen")
     ap.add_argument("--web-only", action="store_true",
                     help="no window: serve the radar to a browser at /radar (sharp on any screen)")
     args = ap.parse_args()
@@ -1474,10 +1511,13 @@ def main() -> int:
     if web and web.start():
         app.web_url = f"http://{lan_address()}:{settings.web_port}/radar_config"
 
+    running = True
+    if not (args.no_splash or args.screenshot):     # aircraft start loading behind it
+        running = show_splash(screen)
+
     clock = pygame.time.Clock()
     started = time.monotonic()
     fullscreen = not args.window
-    running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
