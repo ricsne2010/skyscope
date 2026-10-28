@@ -54,7 +54,6 @@ class Settings:
     distance_unit: str = "km"  # km, mi or nm
     speed_unit: str = "kt"  # kt, kmh or mph
     altitude_unit: str = "ft"  # ft or m
-    show_airspeed: bool = True  # true airspeed (TAS) column/line beside ground speed
     show_runways: bool = True
     runway_types: list = field(default_factory=lambda: ["L", "M", "S"])  # airports shown: L major, M regional, S small paved
     runway_centerlines: bool = True  # ATC-style extended centrelines with mile ticks
@@ -117,10 +116,6 @@ class Settings:
     @property
     def altitude_symbol(self) -> str:
         return ALTITUDE_UNITS.get(self.altitude_unit, ALTITUDE_UNITS["ft"])[0]
-
-    @property
-    def airspeed_symbol(self) -> str:
-        return "TAS"  # true airspeed; indicated airspeed isn't shown
 
     def distance(self, km: float) -> float:
         return km * DISTANCE_UNITS.get(self.distance_unit, DISTANCE_UNITS["km"])[1]

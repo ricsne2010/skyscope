@@ -878,18 +878,11 @@ class SkyScope:
         # Table of contacts, nearest first. Header: column name, unit beneath.
         show_logos = st.airline_logos != "off"
         logo_w = round(46 * s) if show_logos else 0
-        cols = [("CALLSIGN", "", 0.0, "topleft"), ("TYPE", "", 0.27, "topleft")]
-        if st.show_airspeed:
-            cols += [("ALT", st.altitude_symbol, 0.52, "topright"),
-                     ("DIST", st.distance_symbol, 0.65, "topright"),
-                     ("BRG", "°", 0.75, "topright"),
-                     ("GS", st.speed_symbol, 0.875, "topright"),
-                     (st.airspeed_symbol, st.speed_symbol, 1.0, "topright")]
-        else:
-            cols += [("ALT", st.altitude_symbol, 0.56, "topright"),
-                     ("DIST", st.distance_symbol, 0.72, "topright"),
-                     ("BRG", "°", 0.85, "topright"),
-                     ("GS", st.speed_symbol, 1.0, "topright")]
+        cols = [("CALLSIGN", "", 0.0, "topleft"), ("TYPE", "", 0.27, "topleft"),
+                ("ALT", st.altitude_symbol, 0.56, "topright"),
+                ("DIST", st.distance_symbol, 0.72, "topright"),
+                ("BRG", "°", 0.85, "topright"),
+                ("GS", st.speed_symbol, 1.0, "topright")]
         width = right - x
         hsize = round(24 * s)
         for i, (name, unit, frac, anchor) in enumerate(cols):
@@ -905,15 +898,12 @@ class SkyScope:
         footer_h = round(140 * s if st.color_by_kind else 110 * s)
         rows_fit = max(0, (L.h - footer_h - y) // row_h)
         for dist, bearing, ac in listing[:rows_fit]:
-            airspeed = ac.tas_kt
             sty = self.styles.get(id(ac), {})
             call_color = ERROR if sty.get("emergency") else WATCH_COLOR if sty.get("watched") else LABEL
             cells = [(ac.callsign, call_color), (ac.type or "—", TAG_TYPE),
                      (st.format_altitude(ac.alt_ft, ac.on_ground, unit=False), TAG_ALT),
                      (st.format_distance(dist, unit=False), LABEL), (f"{bearing:03.0f}", LABEL),
                      (st.format_speed(ac.gs_kt, unit=False), LABEL)]
-            if st.show_airspeed:
-                cells.append((st.format_speed(airspeed, unit=False), PANEL_DIM if airspeed is None else LABEL))
             if show_logos:
                 tile = self.logos.tile(ac.callsign, row_h - round(6 * s))
                 if tile is not None:
@@ -1077,15 +1067,8 @@ class SkyScope:
         return alt
 
     def speed_summary(self, ac: Aircraft) -> str:
-        """Ground speed, plus true airspeed when the aircraft reports it."""
-        st = self.settings
-        speeds = [f"GS {st.format_speed(ac.gs_kt)}"]
-        if st.show_airspeed:
-            if ac.tas_kt is not None:
-                speeds.append(f"TAS {st.format_speed(ac.tas_kt)}")
-            if len(speeds) == 1:
-                speeds.append("TAS not reported")
-        return "  ·  ".join(speeds)
+        """Ground speed. (Airspeeds aren't shown: few aircraft report them.)"""
+        return f"GS {self.settings.format_speed(ac.gs_kt)}"
 
     # --- browser display (/radar) -------------------------------------------
     # The page draws the scope itself; these supply the data, formatted with
@@ -1118,7 +1101,6 @@ class SkyScope:
             lat, lon = self.extrapolate(ac, base_time)
             dx, dy = self.offset_km(lat, lon)
             dist = math.hypot(dx, dy)
-            airspeed = ac.tas_kt
             cls = self.filter.aircraft_class(ac)
             color = CLASS_COLORS[cls] if st.color_by_kind else SINGLE_COLOR
             rows.append({
@@ -1134,7 +1116,6 @@ class SkyScope:
                 "dist_long": st.format_distance(dist),
                 "bearing": math.degrees(math.atan2(dx, dy)) % 360.0,
                 "gs": st.format_speed(ac.gs_kt, unit=False),
-                "airspeed": st.format_speed(airspeed, unit=False),
                 "speed_summary": self.speed_summary(ac),
                 "class_label": CLASS_LABELS[cls],
                 "route_codes": "", "route_cities": "", "_ac": ac,
@@ -1169,8 +1150,7 @@ class SkyScope:
                 "alt_bands": [{"id": b, "label": label} for b, label in ALT_BANDS],
                 "has_procedures": bool(st.procedure_airports),
                 "distance_symbol": st.distance_symbol, "speed_symbol": st.speed_symbol,
-                "altitude_symbol": st.altitude_symbol, "airspeed_symbol": st.airspeed_symbol,
-                "show_airspeed": st.show_airspeed, "show_beyond_dots": st.show_beyond_dots,
+                "altitude_symbol": st.altitude_symbol, "show_beyond_dots": st.show_beyond_dots,
                 "sweep_enabled": st.sweep_enabled, "sweep_period_s": st.sweep_period_s,
                 "sweep_trail_deg": st.sweep_trail_deg, "airline_logos": st.airline_logos,
                 "aircraft_symbol": st.aircraft_symbol,

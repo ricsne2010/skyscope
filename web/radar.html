@@ -713,14 +713,12 @@ function updatePanel() {
   $("card-rule").hidden = !n;
 
   const logos = st.airline_logos !== "off";
-  // Column widths (%): callsign gets the most; with no airspeed column the rest widen.
-  // Callsign gets extra room when it carries a ★ / ⚠ marker as well as a logo.
+  // Column widths (%): callsign gets the most, and extra room when it carries
+  // a ★ / ⚠ marker as well as a logo.
   const marked = list.some(a => a.emergency || a.watched);
-  const w = st.show_airspeed ? (marked ? [32, 12, 14, 11, 9, 11, 11] : [27, 13, 15, 12, 10, 11, 12])
-                             : (marked ? [34, 14, 16, 12, 11, 13] : [29, 15, 17, 14, 12, 13]);
+  const w = marked ? [34, 14, 16, 12, 11, 13] : [29, 15, 17, 14, 12, 13];
   const cols = [["CALLSIGN", "", "l"], ["TYPE", "", "l"], ["ALT", st.altitude_symbol, ""],
                 ["DIST", st.distance_symbol, ""], ["BRG", "°", ""], ["GS", st.speed_symbol, ""]];
-  if (st.show_airspeed) cols.push([st.airspeed_symbol, st.speed_symbol, ""]);
   cols.forEach((c, i) => c.push(w[i] + "%"));
   $("thead").innerHTML = "<tr>" + cols.map(([name, unit, cls, w]) =>
     `<th class="${cls}" style="width:${w}">${name}<span class="unit">${unit || "&nbsp;"}</span></th>`).join("") + "</tr>";
@@ -730,7 +728,6 @@ function updatePanel() {
       `<td class="l type">${esc(a.type || "—")}</td>`, `<td class="alt">${esc(a.alt_short)}</td>`,
       `<td>${esc(a.dist)}</td>`, `<td>${String(Math.round(a.bearing) % 360).padStart(3, "0")}</td>`,
       `<td class="${a.gs === "—" ? "na" : ""}">${esc(a.gs)}</td>`];
-    if (st.show_airspeed) cells.push(`<td class="${a.airspeed === "—" ? "na" : ""}">${esc(a.airspeed)}</td>`);
     const cls = a.id === selectedId ? "sel" : a.id === hoverId ? "hov" : "";
     return `<tr data-id="${esc(a.id)}" class="${cls}">${cells.join("")}</tr>`;
   }).join("");

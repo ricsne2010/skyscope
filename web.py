@@ -63,7 +63,6 @@ FIELDS = [
     ("distance_unit", "Distance", "choice", [("km", "km"), ("mi", "mi"), ("nm", "nm")]),
     ("speed_unit", "Speed", "choice", [("kt", "kt"), ("kmh", "km/h"), ("mph", "mph")]),
     ("altitude_unit", "Altitude", "choice", [("ft", "ft"), ("m", "m")]),
-    ("show_airspeed", "Show true airspeed (TAS) beside ground speed", "bool", None),
     ("range_index", "Range", "choice", [(str(i), str(i)) for i in range(MAX_RANGE_PRESETS)]),
     ("aircraft_symbol", "Aircraft symbols", "choice",
      [("silhouette", "Silhouettes"), ("triangle", "Triangles")]),
@@ -677,8 +676,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                   + card("Aircraft data", data, statuses.get("Aircraft data", "")))
 
     # --- Display: units, scope, sweep ----------------------------------------------
-    units = (choice("distance_unit", st) + choice("speed_unit", st) + choice("altitude_unit", st)
-             + toggle("show_airspeed", st))
+    units = (choice("distance_unit", st) + choice("speed_unit", st) + choice("altitude_unit", st))
     ranges = [(str(i), f"{v:g}") for i, v in enumerate(st.range_presets())]
     legend = "".join(
         f'<span><i class="swatch" style="background:rgb{CLASS_COLORS[cid]}"></i>{esc(label)}</span>'
