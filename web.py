@@ -35,6 +35,9 @@ FILTER_MODES = [("off", "Off"), ("only", "Show only"), ("hide", "Hide")]
 RADAR_PAGE = Path(__file__).resolve().parent / "web" / "radar.html"
 DOCS_DIR = Path(__file__).resolve().parent / "docs"
 # The guide and its images/PDF: only these file types, only inside docs/.
+# The radar page's own files: the start-up splash's script and the badge it lights up.
+WEB_FILES_RE = re.compile(r"^/web/((?:img/)?[A-Za-z0-9._-]+\.(js|png|json))$")
+WEB_TYPES = {"js": "text/javascript; charset=utf-8", "png": "image/png", "json": "application/json"}
 DOCS_PATH_RE = re.compile(r"^/docs/((?:images/)?[A-Za-z0-9._-]+\.(html|jpg|png|pdf))$")
 DOCS_TYPES = {"html": "text/html; charset=utf-8", "jpg": "image/jpeg", "png": "image/png", "pdf": "application/pdf"}
 CONFIG_PATH = "/radar_config"
@@ -1046,6 +1049,14 @@ class SettingsServer:
                     self.send_response(302)
                     self.send_header("Location", "/docs/guide.html")
                     self.end_headers()
+                    return
+                m = WEB_FILES_RE.match(path)
+                if m and ".." not in m.group(1):
+                    f = RADAR_PAGE.parent / m.group(1)
+                    if f.is_file():
+                        self._send_bytes(f.read_bytes(), WEB_TYPES[m.group(2)], "max-age=300")
+                    else:
+                        self.send_error(404)
                     return
                 m = DOCS_PATH_RE.match(path)
                 if m and ".." not in m.group(1):

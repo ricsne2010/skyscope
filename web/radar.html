@@ -30,6 +30,19 @@
   .row > .right { flex: none; }
   img.brand { width: calc(var(--u) * 52); height: calc(var(--u) * 52); align-self: center; margin-right: calc(var(--u) * 4); }
   h1 { margin: 0; color: var(--green); font-size: calc(var(--u) * 50); letter-spacing: .03em; }
+  /* Start-up splash: the Project Moon Pi badge's light show (splashfx.js, as the train tracker's). */
+  #splash { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 6px; background: #000; color: #e6e9ef; text-align: center; padding: 16px;
+    transition: opacity .6s ease; cursor: pointer; }
+  #splash[hidden] { display: none; }
+  #splash canvas { width: min(332px, 76vw); height: auto; margin: -36px 0; animation: splash-in .9s ease-out both; }
+  #splash h1 { font-size: 28px; margin: 14px 0 0; letter-spacing: .08em; }
+  #splash p { margin: 0; color: #98a2b3; font-size: 15px; }
+  #splash .loading { margin-top: 18px; font-size: 12px; color: #667085; animation: pulse 1.6s ease-in-out infinite; }
+  #splash.gone { opacity: 0; pointer-events: none; }
+  @keyframes splash-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 50% { opacity: .4; } }
+  @media (prefers-reduced-motion: reduce) { #splash canvas, #splash .loading { animation: none; } }
   #clock { font-size: calc(var(--u) * 50); font-weight: 700; font-variant-numeric: tabular-nums; }
   .small { font-size: calc(var(--u) * 26); color: var(--dim); font-weight: 600; margin-top: calc(var(--u) * 6); }
   .status { font-size: calc(var(--u) * 28); font-weight: 600; margin-top: calc(var(--u) * 6); }
@@ -147,6 +160,12 @@
 </style>
 </head>
 <body>
+<div id="splash" role="status" aria-label="Loading" hidden>
+  <canvas id="splash-logo" width="655" height="655" role="img" aria-label="Project Moon Pi"></canvas>
+  <h1>SKYSCOPE</h1>
+  <p>Designed and Created by Project Moon Pi</p>
+  <span class="loading">Loading the radar…</span>
+</div>
 <div id="app">
   <div id="scope" title="Click a plane to select it · R: next range"><canvas id="cv"></canvas></div>
   <div id="panel">
@@ -177,6 +196,7 @@
       <div class="foot-hint">Click a plane or row to select · R: next range</div></footer>
   </div>
 </div>
+<script src="/web/splashfx.js"></script>
 <script>
 "use strict";
 // Colours: the same palette as the pygame display (radar_theme.h targets).
@@ -879,6 +899,7 @@ async function poll() {
     }
     state = next; stateAt = performance.now(); connectionLost = false;
     updatePanel();
+    splashReady("data");
   } catch (e) {
     connectionLost = true; updateStatus();
   }
@@ -996,6 +1017,32 @@ document.addEventListener("mousemove", () => {
   document.body.classList.remove("idle"); clearTimeout(idleTimer);
   idleTimer = setTimeout(() => document.body.classList.add("idle"), 3000);
 });
+
+// Start-up splash, as the train tracker's: the badge's light show until the first
+// aircraft are in and it has played (8 s at most; a click skips it). Once per
+// browser tab, so coming back from the settings page doesn't replay it.
+const splashWaiting = new Set(["data", "intro"]);
+function splashReady(what) {
+  splashWaiting.delete(what);
+  if (!splashWaiting.size) hideSplash();
+}
+function hideSplash() {
+  const s = $("splash");
+  if (!s || s.hidden || s.classList.contains("gone")) return;
+  s.classList.add("gone");
+  setTimeout(() => { s.remove(); if (typeof SplashFX !== "undefined") SplashFX.stop(); }, 700);
+}
+(function startSplash() {
+  let seen = false;
+  try { seen = sessionStorage.getItem("skyscopeSplash") === "1"; sessionStorage.setItem("skyscopeSplash", "1"); } catch (e) {}
+  if (seen || typeof SplashFX === "undefined") { $("splash").remove(); return; }
+  $("splash").hidden = false;
+  SplashFX.play($("splash-logo"), "/web/img/moon-pi-logo")
+    .catch(e => console.warn("splash:", e.message))
+    .finally(() => splashReady("intro"));
+  setTimeout(hideSplash, 8000);
+  $("splash").addEventListener("click", hideSplash);
+})();
 
 poll(); setInterval(poll, 1000);
 tickClock(); setInterval(tickClock, 1000);

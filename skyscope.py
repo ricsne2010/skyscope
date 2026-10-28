@@ -1492,35 +1492,56 @@ LOGO = Path(__file__).resolve().parent / "docs" / "images" / "moon-pi-logo.png"
 CREDIT = "Designed and Created by Project Moon Pi"
 
 
-def show_splash(screen: pygame.Surface, seconds: float = 3.0) -> bool:
-    """The start-up screen: the Project Moon Pi logo, SKYSCOPE, the version and the credit,
-    for a few seconds while the first aircraft load. Any key or click skips it.
-    Returns False if the window was closed."""
+SPLASH_LOGO = Path(__file__).resolve().parent / "web" / "img" / "moon-pi-logo.png"
+
+
+def show_splash(screen: pygame.Surface, seconds: float = 4.2) -> bool:
+    """The start-up screen, as the train tracker's and the M.O.S.S. dash's: the
+    Project Moon Pi badge with its light show (splashfx.py: lens flare along the
+    swoosh, twinkling stars, flickering lander flames, a metal sheen), SKYSCOPE,
+    the version and the credit, while the first aircraft load. Any key or click
+    skips it. Returns False if the window was closed."""
+    from splashfx import SplashFX
     from version import VERSION
     w, h = screen.get_size()
-    screen.fill((0, 0, 0))                          # the logo's own black, so it has no visible edge
+    # A plain 24-bit surface: copies of one with an alpha channel can come out
+    # transparent on some displays (a macOS window, for one).
+    base = pygame.Surface((w, h), 0, 24)
+    base.fill((0, 0, 0))                            # the badge's own black, so it has no visible edge
+    fx, size = None, 0
     try:
-        logo = pygame.image.load(str(LOGO)).convert()
+        logo = pygame.image.load(str(SPLASH_LOGO)).convert_alpha()
         size = round(min(w, h) * 0.46)
         logo = pygame.transform.smoothscale(logo, (size, size))
-        screen.blit(logo, logo.get_rect(midtop=(w // 2, round(h * 0.13))))
+        at = logo.get_rect(midtop=(w // 2, round(h * 0.13)))
+        base.blit(logo, at)
+        try:
+            fx = SplashFX(str(SPLASH_LOGO), at)
+        except Exception as exc:                    # no effect files: the badge, still
+            print(f"splash: shown still ({exc})")
     except (pygame.error, FileNotFoundError):
         size = 0
     y = round(h * 0.13) + size + round(h * 0.04)
     for text, px, color in (("SKYSCOPE", 0.085, (60, 230, 110)), (f"Version {VERSION}", 0.04, RUNWAY),
                             (CREDIT, 0.04, RUNWAY_NUMBER)):
         surf = pygame.font.Font(None, max(12, round(h * px))).render(text, True, color)
-        screen.blit(surf, surf.get_rect(midtop=(w // 2, y)))
+        base.blit(surf, surf.get_rect(midtop=(w // 2, y)))
         y += surf.get_height() + round(h * 0.018)
-    pygame.display.flip()
-    end = time.monotonic() + seconds
-    while time.monotonic() < end:
+    clock = pygame.time.Clock()
+    start = time.monotonic()
+    while (t := time.monotonic() - start) < seconds:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
             if event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
                 return True
-        time.sleep(0.03)
+        frame = base
+        if fx is not None:
+            frame = base.copy()
+            fx.draw(frame, t)
+        screen.blit(frame, (0, 0))
+        pygame.display.flip()
+        clock.tick(30)
     return True
 
 

@@ -385,9 +385,15 @@ python3 skyscope.py --window 1280x720
 python3 skyscope.py --window 1920x1080 --screenshot out.png --seconds 8
 ```
 
-The Pi display opens with a three-second start-up screen (the Project Moon Pi
-logo, version and credit) while the first aircraft load; any key skips it, and
-`--no-splash` leaves it out (`--screenshot` always does).
+Both displays open with the Project Moon Pi start-up screen, the same as the
+train tracker's and the M.O.S.S. dash's: the badge with its light show (a lens
+flare along the red swoosh bursting at its tip, twinkling stars, flickering
+lander flames and a metal sheen), SKYSCOPE and "Designed and Created by
+Project Moon Pi", while the first aircraft load. On the Pi display it lasts
+about four seconds (any key or click skips it; `--no-splash` leaves it out and
+`--screenshot` always does). In the browser it shows once per tab, until the
+radar has its first data and the show has played (a click skips it), and
+still for anyone with reduced motion turned on.
 
 ## Airports and runways (ATC-style map)
 
