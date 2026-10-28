@@ -118,6 +118,13 @@
     font: inherit; padding: 1px 4px; max-width: 40%; }
   #more { color: var(--dim); font-size: calc(var(--u) * 22); font-weight: 600; margin-top: calc(var(--u) * 6); }
   footer { margin-top: calc(var(--u) * 12); font-size: calc(var(--u) * 22); color: var(--dim); font-weight: 600; }
+  footer .foot-btns { display: flex; gap: calc(var(--u) * 10); align-items: center; }  /* one row */
+  footer .btn { border: 1px solid var(--green); border-radius: 6px; padding: 1px calc(var(--u) * 12);
+    line-height: 1.6; white-space: nowrap; }
+  footer .btn:hover, footer .btn:focus-visible { background: var(--green); color: var(--bg); }
+  #filters-btn { line-height: 1.6; border: 1px solid var(--green); min-width: 0; flex: 0 1 auto;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* the summary gives way first */
+  footer .btn { flex: none; }
   footer .foot-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* its own last line, unbroken */
   footer a, footer button { color: var(--green); background: none; border: 0; font: inherit; cursor: pointer; padding: 0; text-decoration: none; }
   /* Portrait / narrow windows: scope on top, panel underneath. */
@@ -165,8 +172,8 @@
       <div id="fp-procs-wrap"><div class="fp-label">SIDs / STARs</div><div class="fp-seg" id="fp-procs"></div></div>
       <div class="fp-foot">Applies at once. Types, airlines and countries: <a href="/radar_config">Settings</a>.</div>
     </div>
-    <footer><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
-      · <a href="/radar_config">Settings</a> · <a href="/guide" target="_blank">Guide</a> · <button id="fs">Fullscreen (F)</button>
+    <footer><div class="foot-btns"><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
+      <a class="btn" href="/radar_config">Settings</a><a class="btn" href="/guide" target="_blank">Guide</a><button class="btn" id="fs">Fullscreen (F)</button></div>
       <div class="foot-hint">Click a plane or row to select · R: next range</div></footer>
   </div>
 </div>
