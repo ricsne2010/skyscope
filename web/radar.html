@@ -201,7 +201,6 @@ function layout() {
   G = { w, h, dpr, s, cx: w / 2, cy: h / 2, rim, grid, dotR: grid + 16 * s, cardR: grid + 36 * s,
         stroke: Math.max(1, 2 * s), nose: 16 * s, tail: 6 * s, tailHalf: 9 * s, dot: Math.max(3, 7 * s),
         tagFont: Math.max(11, 26 * s) };
-  G.inset = G.nose + G.tailHalf + 2;
 }
 
 function offsetKm(lat, lon) {
@@ -568,7 +567,9 @@ function drawBrackets(x, y, r, color) {
 function drawTraffic(now) {
   const st = state.settings, dt = (now - stateAt) / 1000;
   hitTargets = [];
-  const insideKm = st.outer_km * (G.grid - G.inset) / G.grid;
+  // Drawn as soon as they're inside the outer ring; symbols at the edge are
+  // clipped by it, so they "paint" in as they cross. The list shows the same set.
+  const insideKm = st.outer_km;
   const inside = [];
   for (const ac of state.aircraft) {
     const [lat, lon] = extrapolate(ac, dt), [dx, dy] = offsetKm(lat, lon), dist = Math.hypot(dx, dy);
@@ -591,8 +592,10 @@ function drawTraffic(now) {
     drawVector(p.ac, p.x, p.y);
   }
   ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.arc(G.cx, G.cy, G.grid, 0, 2 * Math.PI); ctx.clip();
+  for (const p of inside) drawSymbol(p.ac, p.x, p.y, colorOf(p.ac, now));
+  ctx.restore();
   for (const p of inside) {
-    drawSymbol(p.ac, p.x, p.y, colorOf(p.ac, now));
     const r = symbolRadius(p.ac);
     hitTargets.push({ id: p.ac.id, cx: p.x, cy: p.y, r: r + 10 * G.s });
     ctx.lineWidth = Math.max(1, 1.5 * G.s);
@@ -667,7 +670,9 @@ function logoTag(code, cls = "logo") {
 }
 
 function updatePanel() {
-  const st = state.settings, list = state.aircraft;
+  // The list matches the scope: aircraft inside the outer ring, plus any
+  // emergency or watched aircraft just beyond it (their banners need them).
+  const st = state.settings, list = state.aircraft.filter(a => a.in_range || a.emergency || a.watched);
   $("loc").textContent = st.location_text;
   const note = state.status.location_note;
   $("locnote").textContent = note ? `·  ${note}` : "";

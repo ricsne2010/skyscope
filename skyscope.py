@@ -108,7 +108,6 @@ class Layout:
         self.tail = round(6 * s)
         self.tail_half = round(9 * s)
         self.dot_size = max(3, round(7 * s))
-        self.inside_inset = self.nose + self.tail_half + 2
 
         self.font_cardinal = max(12, round(40 * s))
         self.font_scale = max(10, round(24 * s))
@@ -741,7 +740,11 @@ class SkyScope:
         # Watched aircraft and emergencies show even when filtered out.
         shown = [ac for ac in base if self.filter.passes(ac, st) or is_watched(ac, self._watch)
                  or (st.highlight_emergencies and emergency_label(ac))]
-        self.counts = (len(shown), len(base))
+        # Count what's inside the outer ring (the list and scope show the same
+        # set); aircraft fetched beyond it only feed the edge dots.
+        outer = st.outer_km
+        in_range = lambda ac: math.hypot(*self.offset_km(ac.lat, ac.lon)) <= outer
+        self.counts = (sum(map(in_range, shown)), sum(map(in_range, base)))
         return shown
 
     def count_text(self) -> str:
@@ -753,7 +756,10 @@ class SkyScope:
     def draw_traffic(self, planes, base_time):
         """Draws the radar contacts; returns [(dist_km, bearing, ac)] nearest first."""
         L = self.layout
-        inside_km = self.settings.outer_km * (L.grid_r - L.inside_inset) / L.grid_r
+        # Drawn as soon as they're inside the outer ring (a symbol right at the
+        # edge pokes out by at most half its size); the list shows the same set,
+        # plus emergencies and watched aircraft just beyond it.
+        inside_km = self.settings.outer_km
         inside, beyond, listing = [], [], []
 
         self.styles = {}
@@ -763,7 +769,8 @@ class SkyScope:
             dx, dy = self.offset_km(lat, lon)
             dist = math.hypot(dx, dy)
             bearing = math.degrees(math.atan2(dx, dy)) % 360.0
-            listing.append((dist, bearing, ac))
+            if dist <= inside_km or sty["emergency"] or sty["watched"]:
+                listing.append((dist, bearing, ac))
             if dist <= inside_km:
                 x, y = self.to_screen(lat, lon)
                 inside.append((dist, x, y, ac))
@@ -1104,6 +1111,7 @@ class SkyScope:
                 "airspeed": st.format_speed(airspeed, unit=False),
                 "speed_summary": self.speed_summary(ac),
                 "class_label": CLASS_LABELS[cls],
+                "in_range": dist <= st.outer_km,  # inside the outer ring (listed and drawn)
                 "color": "#%02x%02x%02x" % color,
                 "emergency": emergency_label(ac) if st.highlight_emergencies else "",
                 "watched": is_watched(ac, self._watch),
