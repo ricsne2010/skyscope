@@ -158,10 +158,10 @@ PAGE = """<!doctype html>
                border-bottom: 3px solid transparent; padding: 8px 14px 10px; cursor: pointer; border-radius: 0; }
   nav button:hover { color: var(--text); }
   nav button.on { color: var(--green); border-bottom-color: var(--green); }
-  nav .nav-gap { flex: 1; }  /* Guide and the radar at the menu's right end */
-  nav a.nav-link { color: var(--dim); font-weight: 700; text-decoration: none; padding: 8px 14px 10px;
-                   border-bottom: 3px solid transparent; white-space: nowrap; }
-  nav a.nav-link:hover { color: var(--text); }
+  nav .nav-gap { flex: 1; }  /* the radar button at the menu's right end */
+  nav a.guide-btn { align-self: center; margin: 0 0 6px 10px; padding: 5px 14px; border: 1px solid var(--green);
+                    border-radius: 8px; color: var(--green); font-weight: 700; text-decoration: none; white-space: nowrap; }
+  nav a.guide-btn:hover { background: var(--green); color: var(--bg); }
   nav a.radar-btn { align-self: center; margin: 0 0 6px 6px; padding: 6px 14px; }
   main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 110px; }
   .banner { padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; }
@@ -289,7 +289,7 @@ PAGE = """<!doctype html>
   }
 </style></head><body>
 <header><div class="bar"><img class="logo" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span class="crumb">Settings</span></div>
-  <nav>%%TABS%%<span class="nav-gap"></span><a class="nav-link" href="/guide" target="_blank">Guide</a><a class="radar-btn" href="/radar">Open radar &rarr;</a></nav></header>
+  <nav>%%TABS%%<a class="guide-btn" href="/guide" target="_blank">Guide</a><span class="nav-gap"></span><a class="radar-btn" href="/radar">Open radar &rarr;</a></nav></header>
 <form method="post" action="/radar_config" id="form">
 <main>
 %%BANNER%%
