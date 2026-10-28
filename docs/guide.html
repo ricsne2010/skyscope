@@ -92,6 +92,7 @@
   <li><a href="#receiver">Your own receiver and GPS</a></li>
   <li><a href="#troubleshooting">Troubleshooting</a></li>
   <li><a href="#reference">Quick reference</a></li>
+  <li><a href="#displays">SkyScope Satellite and Mini</a></li>
   <li><a href="#credits">Credits and data sources</a></li>
 </ol>
 
@@ -233,6 +234,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
   <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
   <tr><td><b>Presets</b></td><td>Named sets of filters: apply, save and delete.</td></tr>
   <tr><td><b>Alerts</b></td><td>Emergency highlighting and the watchlist. See <a href="#alerts">section 10</a>.</td></tr>
+  <tr><td><b>About</b></td><td>SkyScope's version, the addresses of this radar (including the one to give a <a href="#displays">Satellite display</a>), links to this guide and the project pages, data sources and credits.</td></tr>
 </table>
 <p>The page works on phones as well as computers. Anyone on your network can open it; there is no password.</p>
 
@@ -305,7 +307,9 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><th>Address</th><th>What it is</th></tr>
   <tr><td><code>http://&lt;address&gt;:7700/radar</code></td><td>The web radar (also the bare <code>:7700</code> address)</td></tr>
   <tr><td><code>http://&lt;address&gt;:7700/radar_config</code></td><td>The settings page</td></tr>
+  <tr><td><code>http://&lt;address&gt;:7700/radar_config#about</code></td><td>The settings page's About tab</td></tr>
   <tr><td><code>http://&lt;address&gt;:7700/guide</code></td><td>This guide</td></tr>
+  <tr><td><code>http://&lt;address&gt;:7700/api/satellite</code></td><td>The feed SkyScope Satellite displays read</td></tr>
 </table>
 <table>
   <tr><th>Command</th><th>What it does</th></tr>
@@ -321,7 +325,20 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
 </table>
 <p>All settings are stored in <code>settings.json</code> in the SkyScope folder. The <a href="https://github.com/ricsne2010/skyscope#readme">README</a> lists every entry for anyone who prefers to edit it by hand.</p>
 
-<h2 id="credits">14. Credits and data sources</h2>
+<h2 id="displays">14. SkyScope Satellite and Mini</h2>
+<p>Two smaller companions run on an inexpensive 4.3-inch touch display with a built-in ESP32-S3 microcontroller (the Sunton ESP32-8048S043, 800 × 480). Each has its own project page with installation instructions.</p>
+<table>
+  <tr><th></th><th>SkyScope Satellite</th><th>SkyScope Mini</th></tr>
+  <tr><td>What it is</td><td>A second screen for this SkyScope: it shows the same radar, range, filters and map</td><td>A small radar of its own; no Raspberry Pi needed</td></tr>
+  <tr><td>Data</td><td>From this SkyScope over your network</td><td>From adsb.fi over Wi-Fi</td></tr>
+  <tr><td>Map</td><td>Everything this SkyScope shows: runways, airspace, SIDs and STARs</td><td>Runways at major airports</td></tr>
+  <tr><td>Set up from</td><td>This settings page (it follows SkyScope's settings)</td><td>Its own small web page</td></tr>
+  <tr><td>Project page</td><td><a href="https://github.com/ricsne2010/skyscope-satellite">github.com/ricsne2010/skyscope-satellite</a></td><td><a href="https://github.com/ricsne2010/skyscope-mini">github.com/ricsne2010/skyscope-mini</a></td></tr>
+</table>
+<h3>Connecting a Satellite</h3>
+<p>A Satellite looks for <code>skyscope.local</code> on your network unless told otherwise. Either name the SkyScope computer <code>skyscope</code> (on a Raspberry Pi: <code>sudo raspi-config</code> → System Options → Hostname), or type the address shown under <b>Satellite address</b> on the <b>About</b> tab into the Satellite's setup page. SkyScope must be running with the settings page on (port 7700, the default). Several Satellites can follow one SkyScope.</p>
+
+<h2 id="credits">15. Credits and data sources</h2>
 <p>SkyScope grew out of <a href="https://github.com/MatixYo/ESP32-Plane-Radar">ESP32-Plane-Radar</a> by MatixYo (MIT licence), a radar for a small round display on an ESP32 microcontroller.</p>
 <table>
   <tr><th>Data</th><th>Source</th><th>Terms</th></tr>

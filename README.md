@@ -63,15 +63,15 @@ guide is built into the app at `http://<address>:7700/guide` (source:
 
 ## Settings web page
 
-Every option can be changed from a phone or laptop on the same network,
-arranged in tabs: **General** (location, data source), **Display** (scope,
-units, sweep), **Map** (runways, airspace, SIDs/STARs), **Filters**,
-**Presets** and **Alerts**. Changes are kept until you press **Save** in the
-bar at the bottom, which says when there are unsaved changes.
-**`http://<pi-address>:7700/radar_config`**. The address is shown at the bottom of the side
-panel. Changes apply to the screen immediately and are saved. The page has
-the location (typed in, or from GPS — see below), range, units, aircraft symbols, airline
-logos, runways, beyond-range dots, ground traffic and the sweep settings.
+Every option can be changed from a phone or laptop on the same network at
+**`http://<pi-address>:7700/radar_config`** (the address is shown at the bottom
+of the side panel). The page is arranged in tabs: **General** (location, data
+source), **Display** (scope, units, sweep), **Map** (runways, airspace,
+SIDs/STARs), **Filters**, **Presets**, **Alerts** and **About** (version,
+this radar's addresses, links to the guide and the companion displays,
+credits). Changes are kept until you press **Save** in the bar at the bottom,
+which says when there are unsaved changes; saved changes apply to the screen
+immediately.
 
 Tip: name the Pi `skyscope` (Raspberry Pi Imager → hostname) and the page is
 also at `http://skyscope.local:7700/radar_config`. The bare address
@@ -402,6 +402,17 @@ an airline appears, its logo is downloaded from the
 `logos_cache/missing.txt`). To use your own artwork, put a PNG named after the
 ICAO airline code in `logos/` (e.g. `logos/KLM.png`); it takes priority.
 Logos sit on a light tile so dark logos stay readable on the dark screen.
+
+## Companion displays: SkyScope Satellite and Mini
+
+Both run on a 4.3″ ESP32-S3 touch display (Sunton ESP32-8048S043, 800×480):
+
+- **[SkyScope Satellite](https://github.com/ricsne2010/skyscope-satellite)**: a
+  second screen for this SkyScope. It reads `/api/satellite` and shows the same
+  radar, range, filters and map. Point it at `skyscope.local` (name the Pi
+  `skyscope`) or at the address on the settings page's **About** tab.
+- **[SkyScope Mini](https://github.com/ricsne2010/skyscope-mini)**: a small
+  standalone radar that fetches adsb.fi itself; no Pi needed.
 
 ## Credits and data
 

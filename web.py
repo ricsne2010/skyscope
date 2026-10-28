@@ -23,6 +23,7 @@ from filters import (ALT_BANDS, BUILTIN_PRESETS, CLASS_COLORS, CLASSES, PRESET_F
 from overlays import Overlays
 from photos import PhotoLookup
 from settings import MAX_RANGE_PRESETS, Settings
+from version import VERSION
 
 AIRPORT_INDEX = AirportIndex()
 OVERLAYS = Overlays()  # SID/STAR counts for the Map tab (loaded on first use)
@@ -127,7 +128,8 @@ SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_s
              "country_filter": "country_mode=only|hide"}
 UNITS = {"gps_update_s": "s"}
 TABS = [("general", "General"), ("display", "Display"), ("map", "Map"), ("filters", "Filters"),
-        ("presets", "Presets"), ("alerts", "Alerts")]
+        ("presets", "Presets"), ("alerts", "Alerts"), ("about", "About")]
+REPO = "https://github.com/ricsne2010"
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -162,6 +164,21 @@ PAGE = """<!doctype html>
   section.tab.on { display: block; }
   .tab-intro { color: var(--dim); margin: -4px 0 16px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; align-items: start; }
+  .about-head { display: flex; gap: 22px; align-items: center; margin-bottom: 18px; }
+  .about-head img { width: 132px; height: 132px; flex: none; }
+  .about-head h2 { margin: 0; font-size: 1.9rem; color: var(--green); letter-spacing: .05em; }
+  .about-head .sub { color: var(--dim); font-weight: 600; }
+  .about-head p { margin: 8px 0 0; max-width: 640px; }
+  dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+  dl.facts dt { color: var(--dim); font-weight: 600; }
+  dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+  ul.links { list-style: none; padding: 0; margin: 0; }
+  ul.links li { padding: 7px 0; border-top: 1px solid var(--line); }
+  ul.links li:first-child { border-top: 0; }
+  .card p a { color: var(--green); font-weight: 700; }
+  ul.links a { color: var(--green); font-weight: 700; text-decoration: none; }
+  ul.links a:hover { text-decoration: underline; }
+  ul.links span { display: block; color: var(--dim); font-size: .9rem; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 18px; }
   .card.wide { grid-column: 1 / -1; }
   .card h2 { margin: 0 0 4px; font-size: .8rem; letter-spacing: .09em; text-transform: uppercase; color: var(--amber); }
@@ -289,11 +306,13 @@ PAGE = """<!doctype html>
   function showTab(id) {
     for (const b of tabs) b.classList.toggle('on', b.dataset.tab === id);
     for (const s of document.querySelectorAll('section.tab')) s.classList.toggle('on', s.id === 'tab-' + id);
+    bar.hidden = id === 'about';  // nothing to save there
     try { sessionStorage.setItem('radarTab', id); } catch (e) {}
   }
   for (const b of tabs) b.addEventListener('click', () => showTab(b.dataset.tab));
   let startTab = 'general';
   try { startTab = sessionStorage.getItem('radarTab') || startTab; } catch (e) {}
+  if (location.hash.length > 1) startTab = location.hash.slice(1);  // e.g. /radar_config#about
   showTab(document.getElementById('tab-' + startTab) ? startTab : 'general');
 
   // Current value of a field: radio group, checkbox ("on"/""), or input.
@@ -804,8 +823,65 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                  + card("Watchlist", text_box("watchlist", st, placeholder="e.g. N123AB, ENY*, B52")
                         + toggle("watch_notice", st)))
 
+    # --- About -------------------------------------------------------------------------
+    host = socket.gethostname().split(".")[0]
+    address = lan_address()
+    sat_where = f"{host}.local" + (f"  or  {address}" if address else "")
+    centre = {"gps_once": "GPS (read once at start-up)", "gps_live": "GPS (kept up to date)"}.get(
+        st.location_source, st.center_airport or f"{st.lat:.4f}, {st.lon:.4f}")
+    source = "Your SDR receiver (readsb)" if st.data_source == "sdr" else "adsb.fi (internet)"
+    links = "".join(
+        f'<li><a href="{esc(url)}" target="_blank" rel="noopener">{esc(name)}</a><span>{esc(what)}</span></li>'
+        for name, url, what in [
+            ("SkyScope Guide", "/guide", "Setting up, using and installing SkyScope (web page)"),
+            ("Guide as a PDF", "/docs/SkyScope-Guide.pdf", "The same guide, for printing or saving"),
+            ("SkyScope on GitHub", f"{REPO}/skyscope", "Source code, updates and issues"),
+            ("SkyScope Mini", f"{REPO}/skyscope-mini",
+             "A standalone radar for a 4.3-inch ESP32-S3 display, no Pi needed"),
+            ("SkyScope Satellite", f"{REPO}/skyscope-satellite",
+             "A 4.3-inch ESP32-S3 display that mirrors this SkyScope's radar"),
+        ])
+    credits = "".join(f"<li>{c}</li>" for c in [
+        'Aircraft positions: <a href="https://adsb.fi" target="_blank" rel="noopener">adsb.fi</a> '
+        '(open data), or your own SDR receiver through readsb',
+        'Airports and runways: <a href="https://ourairports.com" target="_blank" rel="noopener">OurAirports</a> '
+        '(public domain)',
+        "Airspace, SIDs and STARs: FAA (US public domain)",
+        'Aircraft photos: <a href="https://www.planespotters.net" target="_blank" rel="noopener">Planespotters.net</a>, '
+        "credited on each photo",
+        "Country from the ICAO address: the tar1090 project's table",
+        'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
+        "ESP32-Plane-Radar</a> by MatixYo",
+    ])
+    about = (
+        '<section class="tab" id="tab-about">'
+        '<div class="about-head"><img src="/docs/images/moon-pi-logo.png" alt="Project Moon Pi logo">'
+        f'<div><h2>SKYSCOPE</h2><div class="sub">Version {esc(VERSION)} &middot; A Project Moon Pi project</div>'
+        "<p>A live ADS-B radar scope for a Raspberry Pi and an HDMI screen, or any browser on your network: "
+        "aircraft around you with a sweeping beam, runways, airspace and procedures, filters and alerts.</p>"
+        "</div></div>"
+        '<div class="grid">'
+        + card("This SkyScope",
+               '<dl class="facts">'
+               f"<dt>Version</dt><dd>{esc(VERSION)}</dd>"
+               f"<dt>Centre</dt><dd>{esc(centre)}</dd>"
+               f"<dt>Aircraft data</dt><dd>{esc(source)}</dd>"
+               f"<dt>Radar</dt><dd>http://{esc(host)}.local:{st.web_port}/radar</dd>"
+               f"<dt>Satellite address</dt><dd>{esc(sat_where)} &middot; port {st.web_port}</dd>"
+               "</dl>"
+               '<div class="hint">Enter the Satellite address on a SkyScope Satellite\'s setup page '
+               "to mirror this radar on it.</div>")
+        + card("Guide and projects", f'<ul class="links">{links}</ul>')
+        + card("Data and credits", f'<ul class="links">{credits}</ul>'
+               + '<div class="hint">Not for navigation or air traffic control. ADS-B shows only aircraft that '
+                 "broadcast it, and public feeds can be delayed or incomplete.</div>")
+        + card("Licence", "<p>SkyScope is free software under the MIT licence. "
+               f'See <a href="{REPO}/skyscope/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a>.</p>'
+               "<p>The Project Moon Pi name and logo belong to Project Moon Pi.</p>")
+        + "</div></section>")
+
     nav = "".join(f'<button type="button" data-tab="{tid}">{esc(label)}</button>' for tid, label in TABS)
-    body = general + display + map_tab + filters + presets_tab + alerts
+    body = general + display + map_tab + filters + presets_tab + alerts + about
     bar_class, state_text = "", notice or "All changes saved"
     if banner:
         bar_class, state_text = " error", "Not saved: see the message above"
