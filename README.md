@@ -297,7 +297,7 @@ settings page.
   highlighted, and the card shows its details as "SELECTED" instead of the
   nearest aircraft. Click it again, press **Esc** or the ✕ to clear. Hovering a
   table row briefly highlights that plane on the scope.
-- **Flight route** on the card (Display tab, *Flight routes*): e.g. KPHX →
+- **Flight route** on the card (General tab, *Flight routes*): e.g. KPHX →
   KOAK · Phoenix → Oakland. ADS-B carries no flight plan, so without a key
   routes of airline flights come from free community databases by flight
   number (adsbdb.com, hexdb.io), shown only when they fit where the aircraft

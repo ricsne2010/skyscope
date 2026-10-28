@@ -188,6 +188,7 @@ PAGE = """<!doctype html>
   .field > .label { font-weight: 600; margin-bottom: 6px; }
   .hint { color: var(--dim); font-size: .85rem; margin-top: 6px; }
   .hint a { color: var(--green); font-weight: 600; }
+  .stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   input[type=number], input[type=text], input[type=password], select, textarea {
     width: 100%; padding: 9px 11px; background: var(--field); color: var(--text);
@@ -695,9 +696,24 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
           "Read GPS now</button></div>"
           '<div class="status" id="geo-note" hidden></div>')
     data = choice("data_source", st) + text_box("sdr_location", st)
-    general = tab("general", "Where the radar is centred and where its aircraft data comes from.",
+    flight_routes = (
+        toggle("show_routes", st)
+        + '<div data-when="show_routes=on">'
+        '<div class="hint">ADS-B carries no flight plan. Without a key, routes of airline flights come from '
+        'free community databases by flight number (adsbdb.com, hexdb.io) and show only when they fit where '
+        'the aircraft is. With a FlightAware AeroAPI key, the card shows the filed route of the aircraft on '
+        'it, private IFR flights included.</div>'
+        + secret_box("flightaware_key", st) + choice("flightaware_daily_limit", st)
+        + '<div class="hint">A free Personal key from <a href="https://flightaware.com/commercial/aeroapi/" '
+          'target="_blank" rel="noopener">flightaware.com/aeroapi</a> includes about $5 of lookups a month '
+          '($10 if you feed FlightAware). SkyScope looks up only the aircraft on the card, once per flight, '
+          'and stops at the daily limit. Check FlightAware\'s fee table to set a limit that stays inside '
+          'your allowance.</div></div>')
+    general = tab("general", "Where the radar is centred and where its aircraft and route data come from.",
                   card("Location", location, statuses.get("Location", ""))
-                  + card("Aircraft data", data, statuses.get("Aircraft data", "")))
+                  + '<div class="stack">'  # routes directly under the data source
+                  + card("Aircraft data", data, statuses.get("Aircraft data", ""))
+                  + card("Flight routes", flight_routes, statuses.get("Flight routes", "")) + "</div>")
 
     # --- Display: units, scope, sweep ----------------------------------------------
     units = (choice("distance_unit", st) + choice("speed_unit", st) + choice("altitude_unit", st))
@@ -718,22 +734,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
-    flight_routes = (
-        toggle("show_routes", st)
-        + '<div data-when="show_routes=on">'
-        '<div class="hint">ADS-B carries no flight plan. Without a key, routes of airline flights come from '
-        'free community databases by flight number (adsbdb.com, hexdb.io) and show only when they fit where '
-        'the aircraft is. With a FlightAware AeroAPI key, the card shows the filed route of the aircraft on '
-        'it, private IFR flights included.</div>'
-        + secret_box("flightaware_key", st) + choice("flightaware_daily_limit", st)
-        + '<div class="hint">A free Personal key from <a href="https://flightaware.com/commercial/aeroapi/" '
-          'target="_blank" rel="noopener">flightaware.com/aeroapi</a> includes about $5 of lookups a month '
-          '($10 if you feed FlightAware). SkyScope looks up only the aircraft on the card, once per flight, '
-          'and stops at the daily limit. Check FlightAware\'s fee table to set a limit that stays inside '
-          'your allowance.</div></div>')
     display = tab("display", "How the scope and its labels look.",
-                  card("Scope", scope) + card("Units", units) + card("Radar sweep", sweep)
-                  + card("Flight routes", flight_routes, statuses.get("Flight routes", "")))
+                  card("Scope", scope) + card("Units", units) + card("Radar sweep", sweep))
 
     # --- Map: airports, airspace, SIDs/STARs ----------------------------------------
     type_ticks = ticks("".join(tick(f"runway_types_{v}", label, v in st.runway_types)

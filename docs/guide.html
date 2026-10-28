@@ -245,7 +245,7 @@ sh tools/make_mac_app.sh</code></pre></li>
 <h2 id="settings">7. The settings page</h2>
 <table>
   <tr><th>Tab</th><th>What's on it</th></tr>
-  <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS) and where aircraft data comes from (internet or your own receiver).</td></tr>
+  <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS), where aircraft data comes from (internet or your own receiver), and flight routes (optionally with a FlightAware key).</td></tr>
   <tr><td><b>Display</b></td><td>Range; aircraft symbols (silhouettes or simple triangles); colouring aircraft by kind; airline logos; the aircraft photo; rim dots; aircraft on the ground; units; the sweep.</td></tr>
   <tr><td><b>Map</b></td><td>Airports and runways, extended centrelines, airspace, and SIDs/STARs per airport. See <a href="#map">section 8</a>.</td></tr>
   <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
@@ -301,7 +301,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
 <h3>Sharing with FlightAware (optional)</h3>
 <p>Your receiver can also feed FlightAware with its free <b>PiAware</b> software, installed alongside readsb by following <a href="https://flightaware.com/adsb/piaware/install">FlightAware's instructions</a>. SkyScope keeps reading readsb as before. In return, FlightAware gives feeders a free Enterprise account and doubles the free FlightAware lookup allowance to about $10 a month, which suits SkyScope's <a href="#routes">flight routes</a>.</p>
 <h3 id="routes">Flight routes</h3>
-<p>ADS-B carries no flight plan, so SkyScope finds routes elsewhere and shows them on the card (for example <i>KPHX → KOAK · Phoenix → Oakland</i>). Turn them on or off on the <b>Display</b> tab, card <b>Flight routes</b>.</p>
+<p>ADS-B carries no flight plan, so SkyScope finds routes elsewhere and shows them on the card (for example <i>KPHX → KOAK · Phoenix → Oakland</i>). Turn them on or off on the <b>General</b> tab, card <b>Flight routes</b>, below <b>Aircraft data</b>.</p>
 <ul>
   <li><b>Without a key</b>, airline flights are looked up by flight number in two free community databases, <a href="https://www.adsbdb.com">adsbdb.com</a> and <a href="https://hexdb.io">hexdb.io</a>. Flight numbers get reused and the databases go out of date, so a route shows only when it fits where the aircraft is. Expect routes on a minority of airline flights, and none for private or VFR traffic.</li>
   <li><b>With a FlightAware AeroAPI key</b>, the card shows the actual filed route of the aircraft on it, private IFR flights included. A Personal key from <a href="https://flightaware.com/commercial/aeroapi/">flightaware.com/aeroapi</a> includes about $5 of lookups a month free ($10 if you feed FlightAware). Paste it into the key box and choose a daily limit. SkyScope looks up only the aircraft on the card, once per flight, and stops at the limit. The card's status line shows how many lookups are used today. Check FlightAware's fee table to choose a limit that stays inside your allowance.</li>
