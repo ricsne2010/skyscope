@@ -150,15 +150,19 @@ PAGE = """<!doctype html>
   header img.logo { width: 38px; height: 38px; }
   header h1 { margin: 0; font-size: 1.2rem; color: var(--green); letter-spacing: .05em; }
   header .crumb { color: var(--dim); font-weight: 600; }
-  header a.guide { margin-left: auto; color: var(--dim); font-weight: 700; text-decoration: none; }
-  header a.guide:hover { color: var(--text); }
-  header a.radar { color: var(--bg); background: var(--green); font-weight: 700;
-                   padding: 8px 14px; border-radius: 8px; text-decoration: none; }
+  a.radar-btn { color: var(--bg); background: var(--green); font-weight: 700; white-space: nowrap;
+                padding: 8px 14px; border-radius: 8px; text-decoration: none; }
+  a.radar-btn:hover { filter: brightness(1.1); }
   nav { max-width: 1240px; margin: 0 auto; display: flex; gap: 4px; padding: 10px 24px 0; overflow-x: auto; }
   nav button { background: none; color: var(--dim); font: inherit; font-weight: 700; border: 0;
                border-bottom: 3px solid transparent; padding: 8px 14px 10px; cursor: pointer; border-radius: 0; }
   nav button:hover { color: var(--text); }
   nav button.on { color: var(--green); border-bottom-color: var(--green); }
+  nav .nav-gap { flex: 1; }  /* Guide and the radar at the menu's right end */
+  nav a.nav-link { color: var(--dim); font-weight: 700; text-decoration: none; padding: 8px 14px 10px;
+                   border-bottom: 3px solid transparent; white-space: nowrap; }
+  nav a.nav-link:hover { color: var(--text); }
+  nav a.radar-btn { align-self: center; margin: 0 0 6px 6px; padding: 6px 14px; }
   main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 110px; }
   .banner { padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; }
   .banner.err { background: #64101088; border: 1px solid var(--red); }
@@ -274,7 +278,9 @@ PAGE = """<!doctype html>
   .savebar .state { color: var(--dim); font-weight: 600; }
   .savebar.dirty .state { color: var(--amber); }
   .savebar.error .state { color: var(--red); }
-  .savebar button.save { margin-left: auto; background: #2a3a60; color: var(--text); padding: 10px 26px; }
+  .savebar a.radar-btn { margin-left: auto; padding: 10px 18px; }
+  .savebar button.save { background: #2a3a60; color: var(--text); padding: 10px 26px; }
+  .savebar.about .state, .savebar.about button.save { display: none; }  /* About: nothing to save */
   .savebar.dirty button.save { background: var(--green); color: var(--bg); }
   @media (max-width: 600px) {
     .bar, nav, main, .savebar { padding-left: 14px; padding-right: 14px; }
@@ -282,16 +288,15 @@ PAGE = """<!doctype html>
     table.procs td.name { display: none; }
   }
 </style></head><body>
-<header><div class="bar"><img class="logo" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span class="crumb">Settings</span>
-  <a class="guide" href="/guide" target="_blank">Guide</a>
-  <a class="radar" href="/radar">Open radar &rarr;</a></div>
-  <nav>%%TABS%%</nav></header>
+<header><div class="bar"><img class="logo" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span class="crumb">Settings</span></div>
+  <nav>%%TABS%%<span class="nav-gap"></span><a class="nav-link" href="/guide" target="_blank">Guide</a><a class="radar-btn" href="/radar">Open radar &rarr;</a></nav></header>
 <form method="post" action="/radar_config" id="form">
 <main>
 %%BANNER%%
 %%BODY%%
 </main>
 <div class="savebar%%BARCLASS%%" id="savebar"><span class="state" id="state">%%STATE%%</span>
+  <a class="radar-btn" href="/radar">Open radar &rarr;</a>
   <button type="submit" class="save" name="action" value="save">Save</button></div>
 </form>
 <script>
@@ -310,7 +315,7 @@ PAGE = """<!doctype html>
   function showTab(id) {
     for (const b of tabs) b.classList.toggle('on', b.dataset.tab === id);
     for (const s of document.querySelectorAll('section.tab')) s.classList.toggle('on', s.id === 'tab-' + id);
-    bar.hidden = id === 'about';  // nothing to save there
+    bar.classList.toggle('about', id === 'about');  // nothing to save there; the radar button stays
     try { sessionStorage.setItem('radarTab', id); } catch (e) {}
   }
   for (const b of tabs) b.addEventListener('click', () => showTab(b.dataset.tab));
