@@ -298,6 +298,11 @@ settings page.
   highlighted, and the card shows its details as "SELECTED" instead of the
   nearest aircraft. Click it again, press **Esc** or the ✕ to clear. Hovering a
   table row briefly highlights that plane on the scope.
+- **Flight route** on the card for airline flights (switch it off under
+  *Display*): e.g. KPHX → KOAK · Phoenix → Oakland, from adsbdb.com by flight
+  number. ADS-B carries no flight plan and flight numbers get reused, so a
+  route shows only when it fits where the aircraft is; private and VFR
+  flights have none.
 - **Aircraft photo** beside the card (switch it off under *Display*): only a
   photo of that exact aircraft, from Planespotters.net, credited; clicking it
   opens the original page. Aircraft without one show a plane outline and
@@ -456,6 +461,7 @@ scope design, range presets and colours were the starting point.
 | Country from ICAO address | ICAO Annex 10 Vol III allocation table (via tar1090) | Facts |
 | Airline logos | Downloaded at run time from [Jxck-S/airline-logos](https://github.com/Jxck-S/airline-logos); not stored in this repo | Airlines' trademarks |
 | Aircraft photos | [Planespotters.net](https://www.planespotters.net/) photo API, exact aircraft only; shown from their servers, never stored | Photographers' copyright; shown with credit and link, per Planespotters' API terms |
+| Flight routes | [adsbdb.com](https://www.adsbdb.com/) callsign API: the published route of an airline flight number, shown only when it fits the aircraft's position | Free community data |
 
 | Software | Source | Licence |
 |----------|--------|---------|

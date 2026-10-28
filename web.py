@@ -72,6 +72,7 @@ FIELDS = [
     ("airline_logos", "Airline logos", "choice",
      [("off", "Off"), ("panel", "Panel"), ("all", "Panel + radar")]),
     ("show_photos", "Aircraft photo on the card", "bool", None),
+    ("show_routes", "Flight route on the card (airline flights)", "bool", None),
     ("show_beyond_dots", "Dots for aircraft just outside the range", "bool", None),
     ("show_ground", "Aircraft on the ground", "bool", None),
     ("sweep_enabled", "Radar sweep", "bool", None),
@@ -693,6 +694,10 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + toggle("show_photos", st)
         + '<div class="hint" data-when="show_photos=on">Only photos of the exact aircraft (from '
           'Planespotters.net, credited and linked); aircraft without one show "No image available".</div>'
+        + toggle("show_routes", st)
+        + '<div class="hint" data-when="show_routes=on">From and to airports of airline flights, by flight '
+          'number (adsbdb.com), shown only when the route fits where the aircraft is. Private and VFR '
+          'flights have no published route.</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
@@ -849,6 +854,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         "Airspace, SIDs and STARs: FAA (US public domain)",
         'Aircraft photos: <a href="https://www.planespotters.net" target="_blank" rel="noopener">Planespotters.net</a>, '
         "credited on each photo",
+        'Flight routes: <a href="https://www.adsbdb.com" target="_blank" rel="noopener">adsbdb.com</a> '
+        "(community data, by flight number)",
         "Country from the ICAO address: the tar1090 project's table",
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",

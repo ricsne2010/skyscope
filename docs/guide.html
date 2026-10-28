@@ -225,7 +225,7 @@ sh tools/make_mac_app.sh</code></pre></li>
   <li>Optional <b>dots on the rim</b> show aircraft just outside the range, in their direction.</li>
 </ul>
 <h3>The panel</h3>
-<p>The top shows the centre, the number of aircraft, the data source and how fresh the data is. The <b>card</b> below shows the nearest aircraft, or the one you've selected: callsign, aircraft type and registration, altitude and climb or descent, distance and bearing, and ground speed (plus airspeed when the aircraft reports it). When <a href="https://www.planespotters.net/">Planespotters.net</a> has a photo of that exact aircraft, a thumbnail appears; click it to open the full photo. Otherwise the box shows a plane outline and <i>No image available</i> (or <i>Finding photo…</i> for a moment while it looks). The <b>list</b> shows every aircraft in range, nearest first, with units under each column heading.</p>
+<p>The top shows the centre, the number of aircraft, the data source and how fresh the data is. The <b>card</b> below shows the nearest aircraft, or the one you've selected: callsign, aircraft type and registration, the route of an airline flight (for example <i>KPHX → KOAK · Phoenix → Oakland</i>), altitude and climb or descent, distance and bearing, and ground speed (plus airspeed when the aircraft reports it). When <a href="https://www.planespotters.net/">Planespotters.net</a> has a photo of that exact aircraft, a thumbnail appears; click it to open the full photo. Otherwise the box shows a plane outline and <i>No image available</i> (or <i>Finding photo…</i> for a moment while it looks). The <b>list</b> shows every aircraft in range, nearest first, with units under each column heading.</p>
 <div class="two">
   <figure><img src="images/selected.jpg" alt="The aircraft card with a photo">
     <figcaption>A selected aircraft, with its airline, type, registration and a photo of that exact aircraft.</figcaption></figure>
@@ -313,6 +313,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>"HTTP Error 429: Too Many Requests"</td><td>adsb.fi allows one request per second. Make sure only one copy of SkyScope runs per network address; it recovers by itself.</td></tr>
   <tr><td>The settings page won't open from another device</td><td>Use the address shown at the bottom of the Pi's screen. Both devices must be on the same network. <code>.local</code> names can be slow on some devices; use the numeric address instead.</td></tr>
   <tr><td>An aircraft is in the list but not on the scope</td><td>Aircraft are drawn once they're inside the outer ring; the list shows the same set. Turn on rim dots (Display tab) to see aircraft just beyond the range.</td></tr>
+  <tr><td>No route for an airline flight</td><td>ADS-B carries no flight plan, so routes come from a community database by flight number (adsbdb.com). It doesn't know every flight, and flight numbers get reused, so SkyScope shows a route only when it fits where the aircraft is: better none than a wrong one. Private and VFR flights have no published route. Turn routes off on the Display tab.</td></tr>
   <tr><td>“No image available” for an aircraft</td><td>Photos only appear when Planespotters.net has one of that exact aircraft; many light aircraft and helicopters have none. To hide the photo box altogether, turn off the aircraft photo on the settings page's Display tab.</td></tr>
   <tr><td>No SIDs or STARs appear</td><td>Tick SIDs or STARs for at least one airport on the Map tab, and check the Show switch isn't set to None. Only US airports have this data.</td></tr>
   <tr><td>"Use this computer's location" is missing</td><td>Browsers only share location with the computer running SkyScope (<code>localhost</code>). On a Pi, type the position, pick an airport, or use GPS.</td></tr>
@@ -367,6 +368,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>Country from transponder address</td><td>ICAO address allocations</td><td>Facts</td></tr>
   <tr><td>Airline logos</td><td>Jxck-S/airline-logos, downloaded when first needed</td><td>Airlines' trademarks</td></tr>
   <tr><td>Aircraft photos</td><td>Planespotters.net, shown with the photographer's credit</td><td>Photographers' copyright</td></tr>
+  <tr><td>Flight routes</td><td>adsbdb.com, by flight number</td><td>Free community data</td></tr>
 </table>
 <table>
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>

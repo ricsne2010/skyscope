@@ -44,6 +44,8 @@
   .line { font-size: calc(var(--u) * 28); font-weight: 600; margin-top: calc(var(--u) * 6); white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; }
   .alt { color: var(--blue); }
+  .route { color: rgb(150, 230, 175); }
+  .route .cities { color: var(--dim); font-weight: 500; }
   .logo { display: inline-block; }
   #listwrap { flex: 1; min-height: 0; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; table-layout: fixed; }
@@ -702,6 +704,7 @@ function updatePanel() {
     <div id="card">${logoTag(n.airline)}<div class="body">
       <div class="row"><span class="callsign">${esc(n.callsign)}</span></div>
       <div class="desc">${esc(n.desc || n.type || "Unknown type")}${n.reg && n.reg !== n.callsign ? " · " + esc(n.reg) : ""}</div>
+      ${n.route_codes ? `<div class="line route">${esc(n.route_codes)}${n.route_cities ? ` <span class="cities">· ${esc(n.route_cities)}</span>` : ""}</div>` : ""}
       <div class="line alt">${esc(n.alt_summary)}</div>
       <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
       <div class="line">${esc(n.speed_summary)}</div>

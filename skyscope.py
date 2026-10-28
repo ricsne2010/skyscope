@@ -34,6 +34,7 @@ from filters import (ALT_BANDS, CLASS_COLORS, CLASS_LABELS, CLASSES, SINGLE_COLO
 from gps import GpsReader
 from logos import LogoStore, airline_code
 from photos import fetch_image
+from routes import RouteLookup, route_text
 from web import PHOTOS, SettingsServer, lan_address
 from settings import Settings
 
@@ -54,6 +55,7 @@ TAG_ALT = (90, 200, 255)
 # ATC-style video map: light grey-blue runways, dim extended centrelines.
 RUNWAY = (165, 185, 205)
 CENTERLINE = (70, 110, 135)
+ROUTE_COLOR = (150, 230, 175)  # the card's from -> to line
 RUNWAY_LABEL = (196, 204, 218)  # silver, like the runways: apart from the tags' blue altitudes
 RUNWAY_NUMBER = (120, 140, 165)
 # Airspace (chart convention: B solid blue, C solid magenta, D dashed blue) and
@@ -224,6 +226,7 @@ class SkyScope:
         self.overlays = Overlays()
         # Aircraft photo for the card (shares the web page's lookup and cache).
         self._photo_key = None  # aircraft the photo is for
+        self.routes = RouteLookup()  # airline flights' from/to airports (adsbdb.com)
         self._photo = None  # (pygame Surface or None, credit) once fetched
         self._photo_images: dict[str, pygame.Surface] = {}  # src → full image, in memory
         self._photo_thumb = (None, None, None)  # (image id, size, scaled thumbnail)
@@ -1049,6 +1052,12 @@ class SkyScope:
             desc = f"{desc[:30]}  ·  {ac.reg}"
         self.draw_fit(desc, round(32 * s), TAG_TYPE, (x, y), width)
         y += round(42 * s)
+        route = self.routes.route(ac.callsign, ac.lat, ac.lon, ac.track_deg, ac.alt_ft) if st.show_routes else None
+        if route:
+            codes, cities = route_text(route)
+            line = f"{codes}  ·  {cities}" if cities else codes
+            self.draw_fit(line.replace("→", "»"), round(30 * s), ROUTE_COLOR, (x, y), width)  # the font has no arrow
+            y += round(38 * s)
 
         self.draw_fit(self.altitude_summary(ac), round(30 * s), TAG_ALT, (x, y), width)
         y += round(38 * s)
@@ -1130,6 +1139,7 @@ class SkyScope:
                 "airspeed": st.format_speed(airspeed, unit=False),
                 "speed_summary": self.speed_summary(ac),
                 "class_label": CLASS_LABELS[cls],
+                "route_codes": "", "route_cities": "", "_ac": ac,
                 "in_range": dist <= st.outer_km,  # inside the outer ring (listed and drawn)
                 "color": "#%02x%02x%02x" % color,
                 "emergency": emergency_label(ac) if st.highlight_emergencies else "",
@@ -1137,6 +1147,11 @@ class SkyScope:
             })
         # Emergencies, then watched aircraft, then nearest first.
         rows.sort(key=lambda r: (not r["emergency"], not r["watched"], r["dist_km"]))
+        for r in rows:  # routes in the same order, so the nearest are looked up first
+            ac = r.pop("_ac")
+            route = self.routes.route(ac.callsign, r["lat"], r["lon"], ac.track_deg, ac.alt_ft) if st.show_routes else None
+            if route:
+                r["route_codes"], r["route_cities"] = route_text(route)
         note, note_color = self.location_label()
         return {
             "static_key": self.web_static_key(),
@@ -1262,6 +1277,9 @@ class SkyScope:
                         "alt": self.altitude_summary(ac)[:44],
                         "pos": f"{st.format_distance(dist)} · brg {bearing:03.0f}° · trk {ac.track_deg:03.0f}°",
                         "spd": self.speed_summary(ac)[:44], "hex": ac.hex, "reg": ac.reg}
+                route = self.routes.route(ac.callsign, ac.lat, ac.lon, ac.track_deg, ac.alt_ft) if st.show_routes else None
+                if route:
+                    card["route"] = route_text(route)[0]  # for a future Satellite card line
         age = None if base_time == 0 else round(time.monotonic() - base_time, 1)
         return {
             "v": 1, "map": self.web_static_key(),
