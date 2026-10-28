@@ -692,7 +692,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + choice("airline_logos", st)
         + toggle("show_photos", st)
         + '<div class="hint" data-when="show_photos=on">Only photos of the exact aircraft (from '
-          'Planespotters.net, credited and linked); aircraft without one show no photo.</div>'
+          'Planespotters.net, credited and linked); aircraft without one show "No image available".</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')

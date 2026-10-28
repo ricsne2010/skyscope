@@ -62,6 +62,11 @@
   #photo { flex: none; width: calc(var(--u) * 209); margin: 0; }
   #photo img { display: block; width: 100%; height: calc(var(--u) * 132); object-fit: cover;
     border-radius: calc(var(--u) * 8); border: 1px solid var(--grid); background: #0b1735; }
+  /* No photo (yet): the same box, with a plane outline and a note. */
+  #photo-none { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: calc(var(--u) * 8); height: calc(var(--u) * 132); box-sizing: border-box; border-radius: calc(var(--u) * 8);
+    border: 1px solid var(--grid); background: #0b1735; color: var(--dim); font-size: calc(var(--u) * 17); }
+  #photo-none svg { width: calc(var(--u) * 54); height: calc(var(--u) * 54); fill: #3c5278; }
   #photo figcaption { color: var(--dim); font-size: calc(var(--u) * 14); margin-top: calc(var(--u) * 3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .alert { font-size: calc(var(--u) * 26); font-weight: 700; padding: calc(var(--u) * 8) calc(var(--u) * 12);
@@ -141,7 +146,9 @@
     <div id="alerts"></div>
     <div id="cardrow"><div id="cardwrap"></div>
       <figure id="photo" hidden><a id="photo-link" target="_blank" rel="noopener" title="Open the full photo">
-        <img id="photo-img" alt=""></a><figcaption id="photo-credit"></figcaption></figure></div>
+        <img id="photo-img" alt=""></a>
+        <div id="photo-none" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.8 0 1.3.9 1.3 2v5.2l7.7 4.6v2l-7.7-2.4v4.4l2.2 1.7V21L12 20l-3.5 1v-1.5l2.2-1.7v-4.4L3 15.8v-2l7.7-4.6V4c0-1.1.5-2 1.3-2z"/></svg><span id="photo-note"></span></div>
+        <figcaption id="photo-credit"></figcaption></figure></div>
     <hr id="card-rule" hidden>
     <div id="listwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
     <div id="more"></div>
@@ -733,9 +740,10 @@ function updatePanel() {
   fitRows();
 }
 
-// Aircraft photo under the card: the exact aircraft only (the server asks
+// Aircraft photo beside the card: the exact aircraft only (the server asks
 // Planespotters), looked up once per aircraft and only swapped when the card's
-// aircraft changes. No photo of this airframe: no photo at all.
+// aircraft changes. While looking, or with no photo of this airframe, the box
+// shows a plane outline and a note instead, so the card doesn't jump about.
 const photoCache = {};
 let photoFor = null;
 async function showPhoto(ac) {
@@ -745,19 +753,30 @@ async function showPhoto(ac) {
   photoFor = key;
   if (!ac) { fig.hidden = true; fitRows(); return; }
   if (!(key in photoCache)) {
-    fig.hidden = true;
+    photoPlaceholder("Finding photo…");
     const q = new URLSearchParams({ hex: ac.id || "", reg: ac.reg || "" });
     photoCache[key] = await fetch("/api/photo?" + q).then(r => r.json()).catch(() => ({}));
     if (photoFor !== key) return;  // the card moved on while we waited
   }
   const p = photoCache[key];
-  if (!p || !p.src) { fig.hidden = true; fitRows(); return; }
+  if (!p || !p.src) { photoPlaceholder("No image available"); return; }
+  $("photo-link").hidden = false;
+  $("photo-none").hidden = true;
   $("photo-img").src = p.src;
   $("photo-link").href = p.link || p.src;
   $("photo-credit").textContent = p.credit.replace(/^Photo: /, "© ").replace(" · Planespotters.net", "");
   $("photo-credit").title = p.credit;
   fig.hidden = false;
   $("photo-img").onload = fitRows;
+}
+
+function photoPlaceholder(note) {
+  $("photo-link").hidden = true;
+  $("photo-none").hidden = false;
+  $("photo-note").textContent = note;
+  $("photo-credit").textContent = "\u00a0";  // keeps the caption's line, so nothing shifts
+  $("photo").hidden = false;
+  fitRows();
 }
 
 // Hide table rows that don't fit, and say how many. Rerun on every resize

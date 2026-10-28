@@ -300,7 +300,8 @@ settings page.
   table row briefly highlights that plane on the scope.
 - **Aircraft photo** beside the card (switch it off under *Display*): only a
   photo of that exact aircraft, from Planespotters.net, credited; clicking it
-  opens the original page. Aircraft without one show no photo. The Pi display
+  opens the original page. Aircraft without one show a plane outline and
+  "No image available" in the same box. The Pi display
   shows it too.
 - **R** (or Space): next range; clicking the radar never changes it. **F**: fullscreen.
 - **⚙ Filters** (bottom of the panel) opens a panel to pick any combination of

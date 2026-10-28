@@ -959,7 +959,8 @@ class SkyScope:
 
     def card_photo(self, ac: Aircraft):
         """(Surface, credit) for this exact aircraft once fetched in the
-        background, else None. Only photos of the airframe itself (see photos.py)."""
+        background; None while it's being looked up; "none" when there's no
+        photo of it. Only photos of the airframe itself (see photos.py)."""
         key = ac.hex or ac.reg
         if key != self._photo_key:
             self._photo_key, self._photo = key, None
@@ -981,7 +982,20 @@ class SkyScope:
                         " · Planespotters.net", "") if found else "")
 
             threading.Thread(target=fetch, daemon=True).start()
-        return self._photo if self._photo and self._photo[0] is not None else None
+        if self._photo is None:
+            return None
+        return self._photo if self._photo[0] is not None else "none"
+
+    def draw_photo_placeholder(self, box: pygame.Rect, text: str) -> None:
+        """The photo box with a plane outline and a note, where no photo shows."""
+        s = self.layout.s
+        pygame.draw.rect(self.screen, (11, 23, 53), box, border_radius=round(8 * s))
+        pygame.draw.rect(self.screen, GRID, box, 1, border_radius=round(8 * s))
+        length = 58 * s
+        symbols.draw_silhouette(self.screen, "jet", box.centerx, box.y + round(50 * s), 0,
+                                length / symbols.shape_length_px("jet", 1), (60, 82, 120))
+        img = self.text.render(text, round(19 * s), PANEL_DIM)
+        self.screen.blit(img, (box.centerx - img.get_width() // 2, box.bottom - round(36 * s)))
 
     def draw_fit(self, text, size, color, pos, max_w) -> None:
         """Draw text in max_w pixels: a slightly smaller font if needed, then '...'."""
@@ -1002,8 +1016,13 @@ class SkyScope:
         t.draw(self.screen, f"NEAREST  ·  {label}", round(24 * s), HIGHLIGHT, (x, y))
         y += round(30 * s)
         # Photo of this exact aircraft, as a thumbnail at the card's right.
-        photo = self.card_photo(ac) if st.show_photos else None
-        if photo:
+        photo = self.card_photo(ac) if st.show_photos else False
+        if photo is None or photo == "none":  # looking it up, or none of this airframe
+            pw, ph = round(209 * s), round(132 * s)
+            box = pygame.Rect(right - pw, y + round(26 * s), pw, ph)
+            self.draw_photo_placeholder(box, "Finding photo..." if photo is None else "No image available")
+            right = box.x - round(16 * s)
+        elif photo:
             pw, ph = round(209 * s), round(132 * s)
             img, credit = photo
             if self._photo_thumb[:2] != (id(img), (pw, ph)):  # scale once per photo, not per frame
