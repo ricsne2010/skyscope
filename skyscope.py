@@ -54,7 +54,7 @@ TAG_ALT = (90, 200, 255)
 # ATC-style video map: light grey-blue runways, dim extended centrelines.
 RUNWAY = (165, 185, 205)
 CENTERLINE = (70, 110, 135)
-RUNWAY_LABEL = (110, 210, 230)
+RUNWAY_LABEL = (196, 204, 218)  # silver, like the runways: apart from the tags' blue altitudes
 RUNWAY_NUMBER = (120, 140, 165)
 # Airspace (chart convention: B solid blue, C solid magenta, D dashed blue) and
 # procedure routes (STAR amber, SID teal), dimmed to sit under the traffic.
