@@ -11,7 +11,7 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ![SkyScope centred on Phoenix Sky Harbor](docs/screenshot.png)
 
-- Python 3.10+ and pygame; no other packages.
+- Python 3.10+ and pygame (or pygame-ce, its drop-in community edition); no other packages.
 - Pi + HDMI: a fullscreen pygame display (tested at 1920×1080 and 1280×720).
 - Browser: the same scope at `http://<address>:7700/radar`, from any device
   on your network, or alone on a laptop with `--web-only`.
@@ -30,7 +30,7 @@ guide is built into the app at `http://<address>:7700/guide` (source:
 | | Raspberry Pi | Laptop / desktop |
 |---|---|---|
 | Hardware | Pi 5 (recommended) or Pi 4 (2 GB+), official power supply, 16 GB+ microSD, HDMI display | Any Mac, Windows or Linux computer |
-| Software | Raspberry Pi OS with desktop (64-bit), `python3-pygame`, `git` | Python 3.10+, `pip3 install pygame`, a current browser |
+| Software | Raspberry Pi OS with desktop (64-bit), `python3-pygame`, `git` | Python 3.10+, `pip3 install pygame-ce`, a current browser |
 | Network | Internet for adsb.fi data, logos and photos; port 7700 on your LAN | Same |
 | Optional | RTL-SDR dongle + 1090 MHz antenna (`readsb`); USB GPS (`gpsd`) | |
 
@@ -319,7 +319,9 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-The same code runs anywhere Python 3.10+ and pygame do. Download SkyScope
+The same code runs anywhere Python 3.10+ and pygame do. On a computer, install
+**pygame-ce**, the drop-in community edition of pygame: it has ready-made
+packages for the newest Python versions, which classic pygame often doesn't yet. Download SkyScope
 (`git clone https://github.com/ricsne2010/skyscope.git`, or **Code → Download
 ZIP** and unzip it), then:
 
@@ -327,14 +329,14 @@ ZIP** and unzip it), then:
 then in Terminal, in the SkyScope folder:
 
 ```bash
-python3 -m pip install pygame
+python3 -m pip install pygame-ce
 sh tools/make_mac_app.sh        # a SkyScope icon (radar screen) on your Desktop
 ```
 
 **Windows 10/11:** install Python from [python.org](https://www.python.org/downloads/)
 (tick **Add python.exe to PATH**), then double-click
 **`tools\windows\create-shortcut.bat`** in the SkyScope folder. It installs
-pygame if needed and puts a SkyScope shortcut on the Desktop and in the Start
+pygame-ce if needed and puts a SkyScope shortcut on the Desktop and in the Start
 menu. (If Windows warns about a downloaded file, choose **More info → Run
 anyway**.)
 

@@ -47,14 +47,16 @@ if ([version]$version -lt [version]'3.10') {
 $env:PYGAME_HIDE_SUPPORT_PROMPT = '1'
 & $python -c 'import pygame' 2>$null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host 'Installing pygame (SkyScope needs it)...'
-    & $python -m pip install --user pygame
+    # pygame-ce: the community edition of pygame, a drop-in replacement with
+    # ready-made packages for the newest Python versions.
+    Write-Host 'Installing pygame-ce (SkyScope needs it)...'
+    & $python -m pip install --user --disable-pip-version-check pygame-ce
     & $python -c 'import pygame' 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host ''
-        Write-Host 'pygame could not be installed for this Python.' -ForegroundColor Red
-        Write-Host 'The newest Python versions sometimes have no pygame yet: install Python 3.13'
-        Write-Host 'from python.org and run this again.'
+        Write-Host 'pygame-ce could not be installed for this Python.' -ForegroundColor Red
+        Write-Host 'Check the internet connection and run this again. If it still fails, install'
+        Write-Host 'the previous Python version from python.org and try again.'
         exit 1
     }
 }

@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${1:-$HOME/Desktop}"
 PY="$(command -v python3 || true)"
 [ -n "$PY" ] || { echo "python3 not found: install Python 3.10 or newer from python.org" >&2; exit 1; }
-PYGAME_HIDE_SUPPORT_PROMPT=1 "$PY" -c "import pygame" 2>/dev/null || echo "Note: pygame isn't installed for $PY yet. Run:  $PY -m pip install pygame"
+PYGAME_HIDE_SUPPORT_PROMPT=1 "$PY" -c "import pygame" 2>/dev/null || echo "Note: pygame isn't installed for $PY yet. Run:  $PY -m pip install pygame-ce"
 
 APP="$DEST/SkyScope.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

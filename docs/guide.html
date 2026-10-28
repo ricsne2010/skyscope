@@ -134,7 +134,7 @@
 <h3>Laptop or desktop instead of a Pi</h3>
 <ul>
   <li>macOS, Windows or Linux with <b>Python 3.10 or newer</b>.</li>
-  <li>The <code>pygame</code> package (<code>pip3 install pygame</code>).</li>
+  <li>The <code>pygame-ce</code> package (<code>pip3 install pygame-ce</code>), the community edition of pygame. Classic <code>pygame</code> also works where it's available for your Python version.</li>
   <li>Any current web browser (Chrome, Safari, Firefox, Edge).</li>
 </ul>
 <h3>Network access used</h3>
@@ -182,8 +182,8 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <ol class="steps">
   <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org (open the downloaded installer and follow it).</li>
   <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>, and unzip it somewhere it can stay, such as your Documents folder. (Or <code>git clone https://github.com/ricsne2010/skyscope.git</code>.)</li>
-  <li>Open <b>Terminal</b>, type <code>cd </code> (with a space), drag the SkyScope folder onto the Terminal window, and press Return. Then install pygame and make the desktop icon:
-<pre><code>python3 -m pip install pygame
+  <li>Open <b>Terminal</b>, type <code>cd </code> (with a space), drag the SkyScope folder onto the Terminal window, and press Return. Then install pygame-ce and make the desktop icon:
+<pre><code>python3 -m pip install pygame-ce
 sh tools/make_mac_app.sh</code></pre></li>
   <li>Double-click the new <b>SkyScope</b> icon on your Desktop. The radar opens in your browser after a few seconds. If macOS asks whether Python may accept incoming network connections, choose <b>Allow</b>, so phones and Satellite displays can reach it.</li>
 </ol>
@@ -191,7 +191,7 @@ sh tools/make_mac_app.sh</code></pre></li>
 <ol class="steps">
   <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org. On the installer's first screen, tick <b>Add python.exe to PATH</b>, then choose <b>Install Now</b>.</li>
   <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>. Right-click the ZIP, choose <b>Extract All</b>, and put the folder somewhere it can stay, such as Documents.</li>
-  <li>In the SkyScope folder, open <b>tools</b>, then <b>windows</b>, and double-click <b>create-shortcut.bat</b>. If Windows warns about a file from the internet, choose <b>More info → Run anyway</b>. The window installs pygame if needed and makes the shortcuts. Press a key to close it when it says <i>Done</i>.</li>
+  <li>In the SkyScope folder, open <b>tools</b>, then <b>windows</b>, and double-click <b>create-shortcut.bat</b>. If Windows warns about a file from the internet, choose <b>More info → Run anyway</b>. The window installs pygame-ce if needed and makes the shortcuts. Press a key to close it when it says <i>Done</i>.</li>
   <li>Double-click the new <b>SkyScope</b> icon on your Desktop (it's also in the Start menu). The radar opens in your browser after a few seconds. If Windows Firewall asks about Python, allow it on <b>private networks</b>.</li>
 </ol>
 <h3>Using the icon</h3>
@@ -202,7 +202,7 @@ sh tools/make_mac_app.sh</code></pre></li>
   <li>If it doesn't start, a message says so, and the details are in <code>skyscope.log</code> in the SkyScope folder. If you move the SkyScope folder or reinstall Python, make the icon again (step 3).</li>
 </ul>
 <div class="note"><b>Without the icon:</b> in a terminal, in the SkyScope folder, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>), and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. To use the Pi-style display in a window instead: <code>python3 skyscope.py --window 1280x720</code>. The web radar is sharper on high-resolution (Retina or scaled) laptop screens.</div>
-<div class="note"><b>Newest Python and pygame:</b> a brand-new Python version sometimes has no ready-made pygame for a while. If installing pygame fails, install the previous Python version (for example 3.13) and try again.</div>
+<div class="note"><b>Why pygame-ce?</b> It's the community edition of pygame, a drop-in replacement with ready-made packages for the newest Python versions. Classic pygame often lags behind them, which makes installing it fail on a new Python.</div>
 
 <h2 id="first-setup">5. First-time setup</h2>
 <p>Open the settings page (<code>http://&lt;address&gt;:7700/radar_config</code>). The tabs across the top hold every option; nothing changes until you press <b>Save</b> in the bar at the bottom, which shows "Unsaved changes" whenever there's something to save.</p>

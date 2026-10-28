@@ -50,7 +50,10 @@ def alert(message: str) -> None:
 
 def main() -> int:
     url = f"http://localhost:{port()}/radar"
-    if running(url):
+    # Check on 127.0.0.1: on Windows "localhost" tries IPv6 first and SkyScope
+    # listens on IPv4, so each check would stall for about two seconds.
+    probe = f"http://127.0.0.1:{port()}/radar"
+    if running(probe):
         webbrowser.open(url)
         return 0
     python = Path(sys.executable)  # pythonw.exe on Windows: SkyScope gets no console window either
@@ -65,12 +68,12 @@ def main() -> int:
         subprocess.Popen([str(python), "skyscope.py", "--web-only"], cwd=ROOT, stdout=log,
                          stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, **options)
     # SkyScope opens the radar in the browser itself once it's ready.
-    for _ in range(60):
-        if running(url):
+    for _ in range(90):  # the first start on Windows can be slow (antivirus scans)
+        if running(probe):
             return 0
         time.sleep(0.5)
-    alert(f"SkyScope didn't start. Details are in {LOG}.\n\n"
-          "If it mentions pygame, install it with:  pip install pygame")
+    alert(f"SkyScope didn't start within 45 seconds. Details are in {LOG}.\n\n"
+          "If it mentions pygame, install it with:  pip install pygame-ce")
     return 1
 
 
