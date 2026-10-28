@@ -319,12 +319,33 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-The same code runs anywhere Python 3.10+ and pygame do:
+The same code runs anywhere Python 3.10+ and pygame do. Download SkyScope
+(`git clone https://github.com/ricsne2010/skyscope.git`, or **Code → Download
+ZIP** and unzip it), then:
+
+**Mac:** install Python from [python.org](https://www.python.org/downloads/),
+then in Terminal, in the SkyScope folder:
 
 ```bash
-pip3 install pygame
-cd pi
-python3 skyscope.py --web-only          # radar in your browser (sharpest)
+python3 -m pip install pygame
+sh tools/make_mac_app.sh        # a SkyScope icon (radar screen) on your Desktop
+```
+
+**Windows 10/11:** install Python from [python.org](https://www.python.org/downloads/)
+(tick **Add python.exe to PATH**), then double-click
+**`tools\windows\create-shortcut.bat`** in the SkyScope folder. It installs
+pygame if needed and puts a SkyScope shortcut on the Desktop and in the Start
+menu. (If Windows warns about a downloaded file, choose **More info → Run
+anyway**.)
+
+Clicking the icon starts SkyScope in the background, if it isn't already
+running, and opens the radar in your browser; clicking it again just opens
+the radar. Output goes to `skyscope.log` in the SkyScope folder. To stop
+SkyScope, quit its Python process (Activity Monitor on a Mac, Task Manager on
+Windows). From a terminal instead, on any system:
+
+```bash
+python3 skyscope.py --web-only          # radar in your browser (sharpest); py on Windows
 python3 skyscope.py --window 1280x720   # or a pygame window
 ```
 

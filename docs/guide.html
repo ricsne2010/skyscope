@@ -177,15 +177,32 @@ echo "python3 $HOME/skyscope/skyscope.py &amp;" &gt;&gt; ~/.config/labwc/autosta
 chromium --kiosk http://localhost:7700/radar</code></pre>
 
 <h2 id="install-computer">4. Running on a laptop or desktop</h2>
+<p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the web radar in your browser, and a desktop icon with a radar-screen picture starts it with one click.</p>
+<h3>Mac</h3>
 <ol class="steps">
-  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> if you don't have it, then install pygame:
-<pre><code>pip3 install pygame</code></pre></li>
-  <li>Download SkyScope with <code>git clone https://github.com/ricsne2010/skyscope.git</code>, or use <b>Code → Download ZIP</b> on the GitHub page and unzip it.</li>
-  <li>In a terminal, in the SkyScope folder, run the web radar:
-<pre><code>python3 skyscope.py --web-only</code></pre>
-    Your browser opens <code>http://localhost:7700/radar</code>. Stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal.</li>
+  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org (open the downloaded installer and follow it).</li>
+  <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>, and unzip it somewhere it can stay, such as your Documents folder. (Or <code>git clone https://github.com/ricsne2010/skyscope.git</code>.)</li>
+  <li>Open <b>Terminal</b>, type <code>cd </code> (with a space), drag the SkyScope folder onto the Terminal window, and press Return. Then install pygame and make the desktop icon:
+<pre><code>python3 -m pip install pygame
+sh tools/make_mac_app.sh</code></pre></li>
+  <li>Double-click the new <b>SkyScope</b> icon on your Desktop. The radar opens in your browser after a few seconds. If macOS asks whether Python may accept incoming network connections, choose <b>Allow</b>, so phones and Satellite displays can reach it.</li>
 </ol>
-<p>The web radar is the sharpest choice on laptops with high-resolution (Retina or scaled) screens. To use the Pi-style display in a window instead: <code>python3 skyscope.py --window 1280x720</code>.</p>
+<h3>Windows 10 or 11</h3>
+<ol class="steps">
+  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org. On the installer's first screen, tick <b>Add python.exe to PATH</b>, then choose <b>Install Now</b>.</li>
+  <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>. Right-click the ZIP, choose <b>Extract All</b>, and put the folder somewhere it can stay, such as Documents.</li>
+  <li>In the SkyScope folder, open <b>tools</b>, then <b>windows</b>, and double-click <b>create-shortcut.bat</b>. If Windows warns about a file from the internet, choose <b>More info → Run anyway</b>. The window installs pygame if needed and makes the shortcuts. Press a key to close it when it says <i>Done</i>.</li>
+  <li>Double-click the new <b>SkyScope</b> icon on your Desktop (it's also in the Start menu). The radar opens in your browser after a few seconds. If Windows Firewall asks about Python, allow it on <b>private networks</b>.</li>
+</ol>
+<h3>Using the icon</h3>
+<ul>
+  <li>Click it to start SkyScope. It runs in the background, with no window of its own, and opens the radar. Clicking it while SkyScope is running just opens the radar again.</li>
+  <li>After restarting the computer, click it again. SkyScope keeps all your settings.</li>
+  <li>To stop SkyScope, quit its <b>Python</b> process in Activity Monitor (Mac) or Task Manager (Windows).</li>
+  <li>If it doesn't start, a message says so, and the details are in <code>skyscope.log</code> in the SkyScope folder. If you move the SkyScope folder or reinstall Python, make the icon again (step 3).</li>
+</ul>
+<div class="note"><b>Without the icon:</b> in a terminal, in the SkyScope folder, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>), and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. To use the Pi-style display in a window instead: <code>python3 skyscope.py --window 1280x720</code>. The web radar is sharper on high-resolution (Retina or scaled) laptop screens.</div>
+<div class="note"><b>Newest Python and pygame:</b> a brand-new Python version sometimes has no ready-made pygame for a while. If installing pygame fails, install the previous Python version (for example 3.13) and try again.</div>
 
 <h2 id="first-setup">5. First-time setup</h2>
 <p>Open the settings page (<code>http://&lt;address&gt;:7700/radar_config</code>). The tabs across the top hold every option; nothing changes until you press <b>Save</b> in the bar at the bottom, which shows "Unsaved changes" whenever there's something to save.</p>
