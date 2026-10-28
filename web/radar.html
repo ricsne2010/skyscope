@@ -118,6 +118,7 @@
     font: inherit; padding: 1px 4px; max-width: 40%; }
   #more { color: var(--dim); font-size: calc(var(--u) * 22); font-weight: 600; margin-top: calc(var(--u) * 6); }
   footer { margin-top: calc(var(--u) * 12); font-size: calc(var(--u) * 22); color: var(--dim); font-weight: 600; }
+  footer .foot-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* its own last line, unbroken */
   footer a, footer button { color: var(--green); background: none; border: 0; font: inherit; cursor: pointer; padding: 0; text-decoration: none; }
   /* Portrait / narrow windows: scope on top, panel underneath. */
   @media (max-aspect-ratio: 3/2) {
@@ -166,7 +167,7 @@
     </div>
     <footer><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
       · <a href="/radar_config">Settings</a> · <a href="/guide" target="_blank">Guide</a> · <button id="fs">Fullscreen (F)</button>
-      · Click a plane or row to select · R: next range</footer>
+      <div class="foot-hint">Click a plane or row to select · R: next range</div></footer>
   </div>
 </div>
 <script>
