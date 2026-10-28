@@ -899,6 +899,7 @@ class SettingsServer:
         self.statuses = statuses  # () → {group title: status line}
         self.radar = radar  # SkyScope app: data for the browser display at /radar
         self._pending: queue.Queue[tuple[dict, threading.Event]] = queue.Queue()
+        self.stop_requested = threading.Event()  # set by /api/shutdown (the Stop SkyScope icon)
 
     def start(self) -> bool:
         server_ref = self
@@ -1001,6 +1002,17 @@ class SettingsServer:
 
             def do_POST(self):
                 path = self.path.split("?")[0]
+                if path == "/api/shutdown":
+                    # Only from this computer, and only with the launcher's header:
+                    # a web page can't send a custom header to another site
+                    # without permission SkyScope never gives.
+                    local = self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+                    if not local or self.headers.get("X-SkyScope") != "stop":
+                        self.send_error(403)
+                        return
+                    self._send_json({"ok": True})
+                    server_ref.stop_requested.set()
+                    return
                 if path == "/api/next-range" and server_ref.radar is not None:
                     done = threading.Event()
                     server_ref._pending.put((server_ref.radar.web_next_range(), done))

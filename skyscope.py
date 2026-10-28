@@ -1430,12 +1430,14 @@ def run_web_only(settings: Settings) -> int:
     print(f"Radar: {url}   (Ctrl+C to stop)")
     webbrowser.open(url)
     try:
-        while True:
+        while not web.stop_requested.is_set():
             web.apply_pending(app.apply_changes)
             app.update_location()
             time.sleep(0.05)
     except KeyboardInterrupt:
-        return 0
+        pass
+    print("SkyScope stopped")
+    return 0
 
 
 def parse_size(text: str) -> tuple[int, int]:
@@ -1494,6 +1496,8 @@ def main() -> int:
 
         if web:
             web.apply_pending(app.apply_changes)
+            if web.stop_requested.is_set():  # the Stop SkyScope icon
+                running = False
         app.update_location()
         app.render()
         pygame.display.flip()

@@ -2,9 +2,10 @@
 """Click-to-start launcher for SkyScope on a Mac, Windows or Linux desktop.
 
 Starts SkyScope's web radar in the background if it isn't already running,
-then shows the radar in the browser. Used by the desktop shortcuts that
-tools/make_mac_app.sh and tools/windows/create-shortcut.bat make; it can also
-be run directly:  python3 tools/launch.py
+then shows the radar in the browser. With --stop, stops it instead. Used by
+the SkyScope and Stop SkyScope icons that tools/make_mac_app.sh and
+tools/windows/create-shortcut.bat make; it can also be run directly:
+    python3 tools/launch.py          python3 tools/launch.py --stop
 
 Output goes to skyscope.log in the SkyScope folder. On Windows, run it with
 pythonw.exe so no console window appears.
@@ -48,7 +49,59 @@ def alert(message: str) -> None:
         print(message, file=sys.stderr)
 
 
+def notify(message: str) -> None:
+    """A short, friendly confirmation."""
+    if sys.platform == "darwin":
+        subprocess.run(["osascript", "-e", f'display notification {json.dumps(message)} with title "SkyScope"'],
+                       check=False)
+    elif sys.platform == "win32":
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, message, "SkyScope", 0x40)
+    else:
+        print(message)
+
+
+def kill_processes() -> bool:
+    """Last resort: end any running skyscope.py (an older SkyScope without
+    the shutdown request, or one that's stuck)."""
+    if sys.platform == "win32":
+        ps = ("$p = Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*skyscope.py*' }; "
+              "$p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; if ($p) { exit 0 } else { exit 1 }")
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=0x08000000, check=False)
+    else:
+        r = subprocess.run(["pkill", "-f", "[Pp]ython.* skyscope\\.py"], check=False)  # not an editor with the file open
+    return r.returncode == 0
+
+
+def stop() -> int:
+    probe = f"http://127.0.0.1:{port()}/radar"
+    if not running(probe):
+        notify("SkyScope isn't running.")
+        return 0
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port()}/api/shutdown", data=b"", method="POST",
+                                     headers={"X-SkyScope": "stop"})
+        urllib.request.urlopen(req, timeout=3).close()
+    except OSError:
+        pass  # older SkyScope: no shutdown request; handled below
+    for _ in range(20):
+        time.sleep(0.25)
+        if not running(probe):
+            notify("SkyScope stopped.")
+            return 0
+    if kill_processes():
+        time.sleep(1)
+        if not running(probe):
+            notify("SkyScope stopped.")
+            return 0
+    alert("SkyScope didn't stop. Quit its Python process in "
+          + ("Task Manager." if sys.platform == "win32" else "Activity Monitor."))
+    return 1
+
+
 def main() -> int:
+    if "--stop" in sys.argv[1:]:
+        return stop()
     url = f"http://localhost:{port()}/radar"
     # Check on 127.0.0.1: on Windows "localhost" tries IPv6 first and SkyScope
     # listens on IPv4, so each check would stall for about two seconds.

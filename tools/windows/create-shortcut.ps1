@@ -1,6 +1,6 @@
-# Makes SkyScope shortcuts, with the radar-screen icon, on the Desktop and in
-# the Start menu. Clicking one starts SkyScope in the background (if it isn't
-# running) and opens the radar in your browser. Run it through
+# Makes SkyScope and Stop SkyScope shortcuts, with radar-screen icons, on the
+# Desktop and in the Start menu. SkyScope starts SkyScope in the background (if
+# it isn't running) and opens the radar in your browser; Stop SkyScope stops it. Run it through
 # create-shortcut.bat (double-click), or:
 #   powershell -ExecutionPolicy Bypass -File tools\windows\create-shortcut.ps1
 # Run it again if you move the SkyScope folder or reinstall Python.
@@ -67,17 +67,26 @@ if (-not (Test-Path $pythonw)) { $pythonw = $python }
 
 $shell = New-Object -ComObject WScript.Shell
 $places = @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))
+$launcher = '"' + (Join-Path $root 'tools\launch.py') + '"'
+$shortcuts = @(
+    @{ Name = 'SkyScope'; Args = $launcher; Icon = 'skyscope.ico'; Text = 'Start SkyScope and open the radar' },
+    @{ Name = 'Stop SkyScope'; Args = "$launcher --stop"; Icon = 'skyscope-stop.ico'; Text = 'Stop SkyScope' }
+)
 foreach ($dir in $places) {
-    $link = $shell.CreateShortcut((Join-Path $dir 'SkyScope.lnk'))
-    $link.TargetPath = $pythonw
-    $link.Arguments = '"' + (Join-Path $root 'tools\launch.py') + '"'
-    $link.WorkingDirectory = $root
-    $link.IconLocation = (Join-Path $root 'tools\launcher\skyscope.ico') + ',0'
-    $link.Description = 'Start SkyScope and open the radar'
-    $link.Save()
-    Write-Host "Made $(Join-Path $dir 'SkyScope.lnk')"
+    foreach ($s in $shortcuts) {
+        $file = Join-Path $dir ($s.Name + '.lnk')
+        $link = $shell.CreateShortcut($file)
+        $link.TargetPath = $pythonw
+        $link.Arguments = $s.Args
+        $link.WorkingDirectory = $root
+        $link.IconLocation = (Join-Path $root ('tools\launcher\' + $s.Icon)) + ',0'
+        $link.Description = $s.Text
+        $link.Save()
+        Write-Host "Made $file"
+    }
 }
 Write-Host ''
-Write-Host 'Done. Double-click SkyScope on the Desktop (or find it in the Start menu).' -ForegroundColor Green
+Write-Host 'Done. Double-click SkyScope on the Desktop (or find it in the Start menu);' -ForegroundColor Green
+Write-Host 'Stop SkyScope stops it.' -ForegroundColor Green
 Write-Host 'The first time, Windows may ask whether Python can use the network: allow it'
 Write-Host 'on private networks so phones and Satellites can reach SkyScope.'
