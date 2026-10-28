@@ -133,6 +133,7 @@ PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkyScope settings</title>
+<link rel="icon" href="/docs/images/moon-pi-logo-128.png">
 <style>
   :root { --bg: #040a1c; --card: #0a1530; --field: #071028; --line: #1d2f55; --text: #e8ecf2;
           --dim: #8a9abb; --green: #46ff78; --amber: #ffc800; --red: #ff5a5a; --hover: #13284a; }
@@ -142,6 +143,7 @@ PAGE = """<!doctype html>
   header { position: sticky; top: 0; z-index: 5; background: rgba(4, 10, 28, .94); backdrop-filter: blur(8px);
            border-bottom: 1px solid var(--line); }
   .bar { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 14px; padding: 12px 24px 0; }
+  header img.logo { width: 38px; height: 38px; }
   header h1 { margin: 0; font-size: 1.2rem; color: var(--green); letter-spacing: .05em; }
   header .crumb { color: var(--dim); font-weight: 600; }
   header a.guide { margin-left: auto; color: var(--dim); font-weight: 700; text-decoration: none; }
@@ -259,7 +261,7 @@ PAGE = """<!doctype html>
     table.procs td.name { display: none; }
   }
 </style></head><body>
-<header><div class="bar"><h1>SKYSCOPE</h1><span class="crumb">Settings</span>
+<header><div class="bar"><img class="logo" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span class="crumb">Settings</span>
   <a class="guide" href="/guide" target="_blank">Guide</a>
   <a class="radar" href="/radar">Open radar &rarr;</a></div>
   <nav>%%TABS%%</nav></header>
@@ -877,6 +879,12 @@ class SettingsServer:
                             self._send_json(found[:12])
                         else:
                             self._send_json(AIRPORT_INDEX.search(q))
+                        return
+                    if path == "/api/satellite":  # SkyScope Satellite displays (ESP32)
+                        self._send_json(radar.web_satellite())
+                        return
+                    if path == "/api/satellite/map":
+                        self._send_json(radar.web_satellite_map())
                         return
                     if path == "/api/static":
                         self._send_json(radar.web_static())

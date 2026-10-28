@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkyScope</title>
+<link rel="icon" href="/docs/images/moon-pi-logo-128.png">
 <style>
   :root {
     --bg: #040a1c; --panel: #071028; --grid: rgb(16, 100, 32); --label: #ffffff;
@@ -27,6 +28,7 @@
   .row .right { margin-left: auto; }
   .row > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .row > .right { flex: none; }
+  img.brand { width: calc(var(--u) * 52); height: calc(var(--u) * 52); align-self: center; margin-right: calc(var(--u) * 4); }
   h1 { margin: 0; color: var(--green); font-size: calc(var(--u) * 50); letter-spacing: .03em; }
   #clock { font-size: calc(var(--u) * 50); font-weight: 700; font-variant-numeric: tabular-nums; }
   .small { font-size: calc(var(--u) * 26); color: var(--dim); font-weight: 600; margin-top: calc(var(--u) * 6); }
@@ -132,7 +134,7 @@
 <div id="app">
   <div id="scope" title="Click a plane to select it · R: next range"><canvas id="cv"></canvas></div>
   <div id="panel">
-    <div class="row"><h1>SKYSCOPE</h1><span id="clock" class="right"></span></div>
+    <div class="row"><img class="brand" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span id="clock" class="right"></span></div>
     <div class="row small"><span id="loc"></span><span id="locnote"></span><span id="utc" class="right"></span></div>
     <div class="row status"><span id="status">Connecting…</span><span id="range" class="right" style="color:var(--green)"></span></div>
     <hr>

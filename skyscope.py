@@ -1179,6 +1179,147 @@ class SkyScope:
             changes["hidden_alt_bands"] = [b for b in req["hidden_alt_bands"] if b in known]
         return changes
 
+    # --- SkyScope Satellite feed (/api/satellite, /api/satellite/map) --------------
+    # Compact data for small ESP32 displays that mirror this radar. Positions are
+    # relative to the outer ring: x right, y down, the ring at radius 1.0.
+
+    SAT_KINDS = {None: 0, "jet": 1, "heavy": 2, "bizjet": 3, "turboprop": 4, "light": 5, "glider": 6, "heli": 7}
+    SAT_MAX_AIRCRAFT = 250  # a satellite's memory budget; nearest and alerts kept first
+
+    def _ring_xy(self, lat: float, lon: float) -> tuple[float, float]:
+        dx, dy = self.offset_km(lat, lon)
+        return dx / self.settings.outer_km, -dy / self.settings.outer_km
+
+    def web_satellite(self) -> dict:
+        st = self.settings
+        planes, base_time, error = self.feed.snapshot()
+        rows = []
+        for ac in self.visible_planes(planes):
+            lat, lon = self.extrapolate(ac, base_time)
+            x, y = self._ring_xy(lat, lon)
+            r = math.hypot(x, y)
+            emergency = bool(emergency_label(ac)) and st.highlight_emergencies
+            watched = is_watched(ac, self._watch)
+            if r > 1.0 and not (st.show_beyond_dots or emergency or watched):
+                continue
+            cls = self.filter.aircraft_class(ac)
+            color = CLASS_COLORS[cls] if st.color_by_kind else SINGLE_COLOR
+            # Velocity in ring units per second, for smooth motion between polls.
+            v = ac.gs_knots * 1.852 / 3600.0 / st.outer_km
+            t = ac.track_deg * DEG
+            flags = (1 if emergency else 0) | (2 if watched else 0) | (8 if r > 1.0 else 0)
+            rows.append([r, [
+                (ac.hex or ac.callsign)[:8], round(x, 4), round(y, 4),
+                round(v * math.sin(t), 6), round(-v * math.cos(t), 6), round(ac.nose_deg), round(ac.track_deg),
+                self.SAT_KINDS.get(self.symbol_kind(ac), 1), (color[0] << 16) | (color[1] << 8) | color[2],
+                ac.callsign[:8], ac.type[:4], st.format_altitude(ac.alt_ft, ac.on_ground, unit=False),
+                flags, emergency_label(ac) if emergency else ""]])
+        rows.sort(key=lambda r: (not r[1][12] & 3, r[0]))  # alerts first, then nearest
+        rows = rows[:self.SAT_MAX_AIRCRAFT]
+        inside = [r for r in rows if r[0] <= 1.0]
+        nearest = min(inside, key=lambda r: r[0]) if inside else None
+        if nearest:
+            nearest[1][12] |= 4
+        card = None
+        listing = []
+        by_id = {(ac.hex or ac.callsign)[:8]: ac for ac in planes}
+        for r, row in sorted(rows, key=lambda r: (not r[1][12] & 3, r[0])):
+            if r > 1.0 and not row[12] & 3:
+                continue
+            ac = by_id.get(row[0])
+            if ac is None:
+                continue
+            dist = r * st.outer_km
+            bearing = math.degrees(math.atan2(row[1], -row[2])) % 360.0
+            if len(listing) < 14:
+                listing.append([ac.callsign[:8], ac.type[:4], st.format_altitude(ac.alt_ft, ac.on_ground, unit=False),
+                                st.format_distance(dist, unit=False), f"{bearing:03.0f}",
+                                st.format_speed(ac.gs_kt, unit=False), row[12]])
+            if row is (nearest[1] if nearest else None):
+                desc = ac.desc or ac.type or "Unknown type"
+                if ac.reg and ac.reg != ac.callsign:
+                    desc = f"{desc[:26]} · {ac.reg}"
+                card = {"call": ac.callsign, "desc": desc[:40], "cls": CLASS_LABELS[self.filter.aircraft_class(ac)],
+                        "alt": self.altitude_summary(ac)[:44],
+                        "pos": f"{st.format_distance(dist)} · brg {bearing:03.0f}° · trk {ac.track_deg:03.0f}°",
+                        "spd": self.speed_summary(ac)[:44], "hex": ac.hex, "reg": ac.reg}
+        age = None if base_time == 0 else round(time.monotonic() - base_time, 1)
+        return {
+            "v": 1, "map": self.web_static_key(),
+            "range": st.range_label(), "rings": [[round(f, 4), label] for f, label in st.rings()],
+            "sweep": [st.sweep_enabled, st.sweep_period_s, st.sweep_trail_deg],
+            "loc": self.location_text()[:48], "count": self.count_text(), "src": self.feed.source_label(),
+            "age": age, "err": (error or "")[:60],
+            "units": [st.altitude_symbol, st.distance_symbol, st.speed_symbol],
+            "ac": [row for _, row in rows], "card": card, "list": listing,
+        }
+
+    def web_satellite_map(self) -> dict:
+        """The map as clipped segments in ring units, with style codes:
+        1 runway, 2 centreline/ticks, 3/4/5 airspace B/C/D, 6 SID, 7 STAR.
+        Labels: [style, x, y, text] with 8 airport, 9 fix, 10 airspace shelf."""
+        st = self.settings
+        lines, labels = [], []
+        budget = [6000]  # points: keeps the JSON small for an ESP32
+
+        def seg(style, p0, p1):
+            clipped = clip_segment_to_circle(p0, p1, (0.0, 0.0), 1.0)
+            if clipped and budget[0] > 0:
+                (x0, y0), (x1, y1) = clipped
+                lines.append([style, round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)])
+                budget[0] -= 2
+
+        def inside(x, y, margin=0.0):
+            return math.hypot(x, y) <= 1.0 - margin
+
+        ov = self.overlay_features()
+        for shape in ov["airspace"]:
+            style = {"B": 3, "C": 4, "D": 5}[shape["class"]]
+            for ring in shape["rings"]:
+                pts = [self._ring_xy(lat, lon) for lon, lat in ring]
+                for a, b in zip(pts, pts[1:] + pts[:1]):
+                    seg(style, a, b)
+            if shape["rings"] and st.outer_km <= (80 if shape["class"] in "BC" else 40):
+                lon, lat, _ = max((centroid(r) for r in shape["rings"]), key=lambda c: c[2])
+                x, y = self._ring_xy(lat, lon)
+                if inside(x, y, 0.05):
+                    labels.append([10 + 0, round(x, 4), round(y, 4), f"{shape['ceiling']}/{shape['floor']}"])
+        fixes = set()
+        for proc in ov["procedures"]:
+            style = 7 if proc["kind"] == "STAR" else 6
+            for line in proc["lines"]:
+                pts = [self._ring_xy(p[0], p[1]) for p in line]
+                for a, b in zip(pts, pts[1:]):
+                    seg(style, a, b)
+                if st.outer_km <= 100:
+                    for (lat, lon, fix), (x, y) in zip(line, pts):
+                        if fix not in fixes and not fix.startswith("RW") and inside(x, y, 0.03):
+                            fixes.add(fix)
+                            labels.append([9, round(x, 4), round(y, 4), fix])
+        if st.show_runways:
+            feats = self.map_features()
+            nm = 1.852 / st.outer_km
+            for rw in feats["runways"]:
+                a = self._ring_xy(rw["ends"][0], rw["ends"][1])
+                b = self._ring_xy(rw["ends"][2], rw["ends"][3])
+                seg(1, a, b)
+                length = math.hypot(b[0] - a[0], b[1] - a[1])
+                if not rw["centerline"] or length == 0:
+                    continue
+                ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+                for (ex, ey), sx, sy in ((a, -ux, -uy), (b, ux, uy)):
+                    far = feats["centerline_nm"] * nm
+                    seg(2, (ex, ey), (ex + sx * far, ey + sy * far))
+                    if nm >= 0.012:  # ticks only when miles are far enough apart
+                        for n in range(1, feats["centerline_nm"] + 1):
+                            px, py, h = ex + sx * nm * n, ey + sy * nm * n, (0.012 if n % 5 == 0 else 0.006)
+                            seg(2, (px - uy * h, py + ux * h), (px + uy * h, py - ux * h))
+            for ap in feats["airports"]:
+                x, y = self._ring_xy(ap["lat"], ap["lon"])
+                if ap["label"] and 0.03 < math.hypot(x, y) < 0.97:
+                    labels.append([8, round(x, 4), round(y, 4), ap["ident"]])
+        return {"v": 1, "key": self.web_static_key(), "lines": lines, "labels": labels[:150]}
+
     def web_next_range(self) -> dict:
         """Change set for a tap on the browser scope."""
         return {"range_index": (self.settings.range_index + 1) % len(self.settings.range_presets())}

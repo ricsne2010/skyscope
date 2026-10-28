@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkyScope Guide</title>
+<link rel="icon" href="images/moon-pi-logo-128.png">
 <style>
   :root { --ink: #16202e; --dim: #5a677a; --line: #d9dfe8; --accent: #0f8f4f; --soft: #f3f6fa; --warn: #fff6dc; --warn-line: #e8c96a; }
   * { box-sizing: border-box; }
@@ -33,6 +34,8 @@
   .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
                          background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
   .cover { text-align: left; padding: 24px 0 8px; }
+  .cover .brand { display: flex; align-items: center; gap: 18px; }
+  .cover .brand img { width: 108px; height: 108px; flex: none; }
   .cover .tag { color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: .85rem; }
   .cover p.lede { font-size: 1.2rem; color: var(--dim); margin: .6em 0 1.4em; }
   .toc { columns: 2; column-gap: 32px; padding-left: 1.2em; }
@@ -64,8 +67,9 @@
 <main>
 
 <section class="cover">
-  <div class="tag">User guide</div>
-  <h1>SkyScope</h1>
+  <div class="brand"><img src="images/moon-pi-logo.png" alt="Project Moon Pi logo"><div>
+    <div class="tag">A Project Moon Pi project · User guide</div>
+    <h1>SkyScope</h1></div></div>
   <p class="lede">A live aircraft radar styled after an air-traffic-control display, for a Raspberry Pi on a TV or monitor, or any web browser.</p>
   <figure><img src="images/radar.jpg" alt="SkyScope centred on Phoenix Sky Harbor at 25 miles, with airspace, runways and arrival routes">
     <figcaption>SkyScope centred on Phoenix Sky Harbor at 25 miles: Class B airspace, runways with extended centrelines, arrival routes (amber), aircraft coloured by kind, and the information panel.</figcaption></figure>
@@ -330,7 +334,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>Aircraft photos</td><td>Planespotters.net, shown with the photographer's credit</td><td>Photographers' copyright</td></tr>
 </table>
 <div class="warn"><b>Not for navigation.</b> Aircraft positions may be delayed, incomplete or wrong, and map layers are simplified. Never use SkyScope for flight planning or navigation.</div>
-<p class="meta">SkyScope is free software under the MIT licence. Source: <a href="https://github.com/ricsne2010/skyscope">github.com/ricsne2010/skyscope</a>.</p>
+<p class="meta"><img src="images/moon-pi-logo-128.png" alt="" style="width:40px;height:40px;vertical-align:middle;margin-right:8px">SkyScope is a Project Moon Pi project and free software under the MIT licence. Source: <a href="https://github.com/ricsne2010/skyscope">github.com/ricsne2010/skyscope</a>.</p>
 
 </main>
 </body>

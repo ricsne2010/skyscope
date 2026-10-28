@@ -1,4 +1,8 @@
+<p align="center"><img src="docs/images/moon-pi-logo.png" alt="Project Moon Pi" width="140"></p>
+
 # SkyScope
+
+*A Project Moon Pi project.*
 
 A live ADS-B radar scope styled after an ATC display: aircraft from the
 internet (adsb.fi) or your own SDR receiver, drawn over runways, airspace and
