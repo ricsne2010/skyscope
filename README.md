@@ -97,12 +97,15 @@ e.g. "35 of 134 aircraft (filtered)".
   from each aircraft's 24-bit ICAO address (allocation table from ICAO Annex
   10, in `data/icao_countries.json`), so it works even without a registration.
 - **Altitude blocks** (barometric altitude; also an **Altitude** dropdown on
-  the radar page with All / each block / Below FL180 / Above 10,000 ft): *10,000 ft and below*, *10,001 ft
-  to FL180*, *FL180 to FL600*; untick a block to hide it. Aircraft on the
+  the radar page with All / each block / Below FL180 / Above the low block):
+  *10,000 ft AGL and below*, *from there to FL180*, *FL180 to FL600*; untick a
+  block to hide it. The low block counts from the ground at the radar's centre
+  (in Denver it reaches about 15,200 ft MSL); the elevation comes from the GPS
+  or Open-Meteo's free elevation service, or you enter it (General tab). Aircraft on the
   ground count as the lowest block; aircraft with no altitude are hidden while
   any block is off.
 - **Presets**: built in are *Everything*, *Airliners only*, *GA & helicopters,
-  10,000 ft and below*, *Helicopters* and *Military*. Set the filters you
+  10,000 ft AGL and below*, *Helicopters* and *Military*. Set the filters you
   want and **Save preset** under your own name; **Apply** or **Delete** them on
   the settings page, or switch presets from the picker at the bottom of the
   radar page. The panel shows the active preset beside the range.
@@ -246,6 +249,8 @@ first run). The web page and keys edit it for you; by hand you can also set:
 | `runway_types` / `runway_centerlines` | `["L","M","S"]` / true | Airports shown (major/regional/small); ATC-style centrelines |
 | `center_airport` | `""` | ICAO code the scope is centred on |
 | `hidden_alt_bands` | `[]` | Altitude blocks to hide: `low`, `mid`, `high` |
+| `elevation_source` | `"auto"` | Ground elevation for the low block: `"auto"` (GPS, else looked up) or `"manual"` |
+| `ground_elevation_ft` | `0` | The elevation used when `elevation_source` is `"manual"` |
 | `filter_presets` | `{}` | Your saved presets: name → filter values |
 | `highlight_emergencies` | true | Flash and banner 7500/7600/7700 |
 | `watchlist` / `watch_notice` | `""` / true | Watched aircraft; banner when in range |
@@ -466,6 +471,7 @@ scope design, range presets and colours were the starting point.
 | Aircraft photos | [Planespotters.net](https://www.planespotters.net/) photo API, exact aircraft only; shown from their servers, never stored | Photographers' copyright; shown with credit and link, per Planespotters' API terms |
 | Flight routes | [adsbdb.com](https://www.adsbdb.com/) and [hexdb.io](https://hexdb.io/) callsign APIs: the published route of an airline flight number, shown only when it fits the aircraft's position | Free community data |
 | Filed flight routes (optional) | [FlightAware AeroAPI](https://flightaware.com/commercial/aeroapi/), with your own key | FlightAware's AeroAPI terms |
+| Ground elevation | [Open-Meteo](https://open-meteo.com/) elevation API (Copernicus DEM GLO-90), looked up once per place | CC BY 4.0 |
 
 | Software | Source | Licence |
 |----------|--------|---------|

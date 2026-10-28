@@ -25,15 +25,45 @@ CLASS_LABELS = dict(CLASSES)
 
 # Altitude blocks (barometric altitude, feet). FL180 is where US Class A
 # airspace starts; ADS-B traffic above FL600 is practically never seen.
-ALT_BANDS = [
+ALT_BANDS = [  # ids, with their sea-level labels (alt_bands() gives today's)
     ("low", "10,000 ft and below"),
     ("mid", "10,001 ft to FL180"),
     ("high", "FL180 to FL600"),
 ]
 
+# The low band reaches 10,000 ft above the ground at the radar's centre, not
+# above the sea: helicopters and light aircraft over Denver fly well above
+# 10,000 ft MSL. The app keeps the elevation current (set_ground_elevation).
+LOW_AGL_FT = 10000
+_ground_ft = 0.0
+
+
+def set_ground_elevation(feet: float) -> None:
+    global _ground_ft
+    _ground_ft = max(0.0, float(feet or 0.0))
+
+
+def ground_elevation() -> float:
+    return _ground_ft
+
+
+def low_band_top() -> int:
+    """Top of the low band, ft MSL: ground + 10,000 ft (to 100 ft), below FL180."""
+    return int(min(17900, round((_ground_ft + LOW_AGL_FT) / 100.0) * 100))
+
+
+def alt_bands() -> list[tuple[str, str]]:
+    """The bands with labels for the current ground elevation."""
+    top = low_band_top()
+    if top == LOW_AGL_FT:
+        return ALT_BANDS
+    return [("low", f"{top:,} ft and below (10,000 ft AGL)"),
+            ("mid", f"{top + 1:,} ft to FL180"),
+            ("high", "FL180 to FL600")]
+
 
 def altitude_band(alt_ft: int) -> str:
-    if alt_ft <= 10000:
+    if alt_ft <= low_band_top():
         return "low"
     if alt_ft < 18000:
         return "mid"
@@ -195,7 +225,7 @@ _NONE = {"hidden_classes": [], "type_mode": "off", "type_filter": "",
 BUILTIN_PRESETS = {
     "Everything": dict(_NONE),
     "Airliners only": {**_NONE, "hidden_classes": [c for c in _ALL if c != "airliner"]},
-    "GA & helicopters, 10,000 ft and below": {
+    "GA & helicopters, 10,000 ft AGL and below": {
         **_NONE, "hidden_classes": [c for c in _ALL if c not in ("ga", "helicopter")],
         "hidden_alt_bands": ["mid", "high"]},
     "Helicopters": {**_NONE, "hidden_classes": [c for c in _ALL if c != "helicopter"]},

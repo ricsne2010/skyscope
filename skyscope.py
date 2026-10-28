@@ -28,9 +28,10 @@ import symbols
 import airports
 from overlays import Overlays, centroid
 from adsb import AdsbFeed, Aircraft
+from elevation import ElevationLookup
 from filters import (ALT_BANDS, CLASS_COLORS, CLASS_LABELS, CLASSES, SINGLE_COLOR, WATCH_COLOR,
-                     AircraftFilter, all_presets, emergency_label, is_watched, matching_preset,
-                     watch_patterns)
+                     AircraftFilter, all_presets, alt_bands, emergency_label, ground_elevation,
+                     is_watched, low_band_top, matching_preset, set_ground_elevation, watch_patterns)
 from gps import GpsReader
 from logos import LogoStore, airline_code
 from photos import fetch_image
@@ -226,6 +227,7 @@ class SkyScope:
         self.overlays = Overlays()
         # Aircraft photo for the card (shares the web page's lookup and cache).
         self._photo_key = None  # aircraft the photo is for
+        self.elevation = ElevationLookup()  # ground elevation, for the low altitude band
         self.routes = RouteLookup(AIRPORT_INDEX)  # community routes (adsbdb.com, hexdb.io)
         self.flightaware = FlightAware(  # filed routes, with the user's own key
             lambda: (self.settings.flightaware_key, int(self.settings.flightaware_daily_limit or 30)),
@@ -267,11 +269,29 @@ class SkyScope:
             return None
         return fix
 
+    def ground_elevation_ft(self) -> tuple[float, str]:
+        """(feet above sea level at the centre, where it came from)."""
+        st = self.settings
+        if st.elevation_source == "manual":
+            return st.ground_elevation_ft, "entered"
+        if st.location_source != "manual":
+            fix = self.gps_fix()
+            if fix is not None and fix.alt_m is not None:
+                return fix.alt_m * 3.28084, "GPS"
+        feet = self.elevation.get(st.lat, st.lon)
+        return (feet, "looked up") if feet is not None else (0.0, "not known yet: sea level for now")
+
+    def elevation_status(self) -> str:
+        feet, source = self.ground_elevation_ft()
+        return (f"Ground elevation {feet:,.0f} ft ({source}). The low altitude block is "
+                f"{low_band_top():,} ft and below (10,000 ft above the ground).")
+
     def update_location(self) -> None:
         """Move the radar centre to the GPS position, per location_source:
         gps_once takes one fix (at start-up, or on "Read GPS now"); gps_live
         re-centres every gps_update_s seconds once it has moved past jitter."""
         st = self.settings
+        set_ground_elevation(self.ground_elevation_ft()[0])  # the low band follows the ground
         if st.location_source == "manual":
             return
         fix = self.gps_fix()
@@ -321,7 +341,7 @@ class SkyScope:
     def web_statuses(self) -> dict[str, str]:
         """Status lines for the settings page, by section."""
         return {"Location": self.location_status(), "Aircraft data": self.feed.sdr_status(),
-                "Flight routes": self.flightaware.status()}
+                "Flight routes": self.flightaware.status(), "Elevation": self.elevation_status()}
 
     def update_query(self) -> None:
         s = self.settings
@@ -1171,7 +1191,7 @@ class SkyScope:
                 "altitude_choice": self.altitude_choice(), "procedure_mode": st.procedure_mode,
                 "hidden_classes": st.hidden_classes, "hidden_alt_bands": st.hidden_alt_bands,
                 "classes": [{"id": c, "label": label} for c, label in CLASSES],
-                "alt_bands": [{"id": b, "label": label} for b, label in ALT_BANDS],
+                "alt_bands": [{"id": b, "label": label} for b, label in alt_bands()],
                 "has_procedures": bool(st.procedure_airports),
                 "distance_symbol": st.distance_symbol, "speed_symbol": st.speed_symbol,
                 "altitude_symbol": st.altitude_symbol, "show_beyond_dots": st.show_beyond_dots,

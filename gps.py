@@ -20,6 +20,7 @@ class Fix:
     lon: float
     mode: int  # 2 = 2D fix, 3 = 3D fix
     when: float  # time.monotonic() when received
+    alt_m: float | None = None  # metres above sea level (3D fixes only)
 
 
 class GpsReader:
@@ -79,7 +80,9 @@ class GpsReader:
             return
         cls = msg.get("class")
         if cls == "TPV" and msg.get("mode", 0) >= 2 and "lat" in msg and "lon" in msg:
-            fix = Fix(float(msg["lat"]), float(msg["lon"]), int(msg["mode"]), time.monotonic())
+            alt = msg.get("altMSL", msg.get("alt")) if msg.get("mode") == 3 else None
+            fix = Fix(float(msg["lat"]), float(msg["lon"]), int(msg["mode"]), time.monotonic(),
+                      float(alt) if isinstance(alt, (int, float)) else None)
             with self._lock:
                 self._fix = fix
         elif cls == "SKY":

@@ -50,6 +50,8 @@ class Settings:
     lon: float = 4.9041
     center_airport: str = ""  # ICAO ident when centred on an airport (manual source)
     gps_update_s: float = 30.0
+    elevation_source: str = "auto"  # ground elevation: "auto" (GPS, else looked up) or "manual"
+    ground_elevation_ft: float = 0.0  # used when elevation_source is "manual"
     range_index: int = 1  # index into RANGE_PRESETS[distance_unit]
     distance_unit: str = "km"  # km, mi or nm
     speed_unit: str = "kt"  # kt, kmh or mph

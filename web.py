@@ -19,7 +19,7 @@ from urllib.parse import parse_qs
 
 from airports import AirportIndex
 from filters import (ALT_BANDS, BUILTIN_PRESETS, CLASS_COLORS, CLASSES, PRESET_FIELDS,
-                     AircraftFilter, all_presets, matching_preset, preset_changes)
+                     AircraftFilter, all_presets, alt_bands, matching_preset, preset_changes)
 from overlays import Overlays
 from photos import PhotoLookup
 from settings import MAX_RANGE_PRESETS, Settings
@@ -56,6 +56,8 @@ FIELDS = [
     ("lat", "Latitude", "float", (-90.0, 90.0)),
     ("lon", "Longitude", "float", (-180.0, 180.0)),
     ("gps_update_s", "Update every", "float", (5.0, 3600.0)),
+    ("elevation_source", "Ground elevation", "choice", [("auto", "Automatic"), ("manual", "Enter it")]),
+    ("ground_elevation_ft", "Elevation (ft above sea level)", "float", (-1500.0, 18000.0)),
     ("center_airport", "Centre on an airport", "airport", None),
     ("data_source", "Aircraft data from", "choice",
      [("internet", "Internet (adsb.fi)"), ("sdr", "SDR receiver")]),
@@ -123,6 +125,7 @@ CHOICE_HINTS = {
 }
 # Fields shown only while another field has a given value.
 SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_source=sdr",
+             "ground_elevation_ft": "elevation_source=manual",
              "sweep_period_s": "sweep_enabled=on",
              "sweep_trail_deg": "sweep_enabled=on", "runway_types": "show_runways=on",
              "runway_centerlines": "show_runways=on",
@@ -700,6 +703,11 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + f'<div data-when="location_source=manual">{airport}</div>'
         + f'<div class="row2">{number("lat", st)}{number("lon", st)}</div>'
         + number("gps_update_s", st)
+        + choice("elevation_source", st) + number("ground_elevation_ft", st)
+        + '<div class="hint">For the "10,000 ft and below" altitude block, which counts from the '
+          'ground: over Denver it reaches about 15,200 ft. Automatic uses the GPS altitude, or looks '
+          'the centre up (Open-Meteo).</div>'
+        + (f'<div class="hint">{esc(statuses.get("Elevation", ""))}</div>' if statuses.get("Elevation") else "")
         + '<div class="buttons"><button class="secondary" type="button" id="geo" hidden>'
           "Use this computer's location</button>"
           '<button class="secondary" type="submit" formaction="/radar_config/gps-now">'
@@ -802,7 +810,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
              swatch=f"rgb{CLASS_COLORS[cid]}" if st.color_by_kind else "")
         for cid, label in CLASSES))
     bands = ticks("".join(tick(f"band_{bid}", label, bid not in st.hidden_alt_bands)
-                          for bid, label in ALT_BANDS))
+                          for bid, label in alt_bands()))
     order = sorted(COUNTRY_NAMES, key=lambda c: (c not in st.country_filter, c))
     countries = "".join(tick("country", c, c in st.country_filter, value=c, extra_class="sm country")
                         for c in order)
@@ -832,7 +840,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         f'<option value="{esc(n)}"{" selected" if n == active else ""}>{esc(n)}'
         f'{"" if n in BUILTIN_PRESETS else " (yours)"}</option>' for n in presets)
     labels = dict(CLASSES)
-    bands_l = dict(ALT_BANDS)
+    bands_l = dict(alt_bands())
 
     def summary(v: dict) -> str:
         shown = [labels[c] for c, _ in CLASSES if c not in v.get("hidden_classes", [])]
@@ -902,6 +910,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         'number); filed routes from <a href="https://flightaware.com/commercial/aeroapi/" target="_blank" '
         'rel="noopener">FlightAware AeroAPI</a> with your own key',
         "Country from the ICAO address: the tar1090 project's table",
+        'Ground elevation: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> '
+        "(Copernicus DEM GLO-90, CC BY 4.0)",
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",
         'Drawn with <a href="https://www.pygame.org" target="_blank" rel="noopener">pygame</a> (LGPL) in Python',

@@ -271,14 +271,14 @@ sh tools/make_mac_app.sh</code></pre></li>
   <figcaption>The Filters tab. Tick what you want to see.</figcaption></figure>
 <ul>
   <li><b>Kinds of aircraft:</b> airliners, business jets, general aviation, helicopters, military, and other/unknown. A light aircraft flying a flight school's callsign counts as general aviation.</li>
-  <li><b>Altitude:</b> 10,000 ft and below; 10,001 ft to FL180; FL180 to FL600.</li>
+  <li><b>Altitude:</b> 10,000 ft above the ground and below; from there to FL180; FL180 to FL600. The lowest block counts from the ground at the radar's centre, because helicopters and light aircraft fly over high country well above 10,000 ft MSL: in Denver (about 5,200 ft) it reaches 15,200 ft, at sea level 10,000 ft. The ground elevation is found automatically (from the GPS, or looked up for the centre) or entered by hand on the <b>General</b> tab, which shows the value in use.</li>
   <li><b>Aircraft types:</b> show only, or hide, a list of type codes such as <code>B738, A32*, C172</code> (<code>*</code> matches anything).</li>
   <li><b>Airlines:</b> show only, or hide, by the three-letter code at the start of the callsign, such as <code>AAL, SWA, UAL</code>.</li>
   <li><b>Country of registration:</b> worked out from each aircraft's transponder address, so it works even when the registration is unknown.</li>
 </ul>
 <p>While any filter is on, the panel says, for example, "35 of 134 aircraft (filtered)". Emergencies and watched aircraft are always shown.</p>
 <h3>Presets</h3>
-<p>Built-in presets: <i>Everything</i>, <i>Airliners only</i>, <i>GA &amp; helicopters, 10,000 ft and below</i>, <i>Helicopters</i> and <i>Military</i>. To make your own, set the filters you want, then on the <b>Presets</b> tab type a name and press <b>Save as preset</b>. Apply presets on the Presets tab or from the web radar's Filters panel.</p>
+<p>Built-in presets: <i>Everything</i>, <i>Airliners only</i>, <i>GA &amp; helicopters, 10,000 ft AGL and below</i>, <i>Helicopters</i> and <i>Military</i>. To make your own, set the filters you want, then on the <b>Presets</b> tab type a name and press <b>Save as preset</b>. Apply presets on the Presets tab or from the web radar's Filters panel.</p>
 <figure><img src="images/settings-presets.jpg" alt="The Presets tab of the settings page">
   <figcaption>The Presets tab lists every preset with a summary of what it shows.</figcaption></figure>
 
@@ -379,6 +379,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>Aircraft photos</td><td>Planespotters.net, shown with the photographer's credit</td><td>Photographers' copyright</td></tr>
   <tr><td>Flight routes</td><td>adsbdb.com and hexdb.io, by flight number</td><td>Free community data</td></tr>
   <tr><td>Filed flight routes (optional)</td><td>FlightAware AeroAPI, with your own key</td><td>FlightAware's AeroAPI terms</td></tr>
+  <tr><td>Ground elevation</td><td>Open-Meteo elevation API (Copernicus DEM GLO-90)</td><td>CC BY 4.0</td></tr>
 </table>
 <table>
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>
