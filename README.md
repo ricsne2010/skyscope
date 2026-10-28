@@ -13,6 +13,23 @@ in any web browser (sharp on Retina and high-DPI screens).
   on your network, or alone on a laptop with `--web-only`.
 - Settings page at `http://<address>:7700/radar_config`.
 
+## Documentation
+
+**[SkyScope Guide (PDF)](docs/SkyScope-Guide.pdf)**: requirements, step-by-step
+Raspberry Pi installation, setup, every feature, and troubleshooting. The same
+guide is built into the app at `http://<address>:7700/guide` (source:
+[docs/guide.html](docs/guide.html); rebuild the PDF with
+`sh tools/build_guide_pdf.sh`).
+
+## Requirements (summary)
+
+| | Raspberry Pi | Laptop / desktop |
+|---|---|---|
+| Hardware | Pi 5 (recommended) or Pi 4 (2 GB+), official power supply, 16 GB+ microSD, HDMI display | Any Mac, Windows or Linux computer |
+| Software | Raspberry Pi OS with desktop (64-bit), `python3-pygame`, `git` | Python 3.10+, `pip3 install pygame`, a current browser |
+| Network | Internet for adsb.fi data, logos and photos; port 7700 on your LAN | Same |
+| Optional | RTL-SDR dongle + 1090 MHz antenna (`readsb`); USB GPS (`gpsd`) | |
+
 - **Radar scope** on the left, full screen height: range rings, ATC-style runways, aircraft
   symbols, speed lines, labels, and dots for traffic just beyond the range
 - **Radar sweep**: a rotating beam with a fading green trail
@@ -244,19 +261,24 @@ first run). The web page and keys edit it for you; by hand you can also set:
 
 ## Install on the Pi
 
-Raspberry Pi OS (Bookworm) with the desktop. A Pi 4 or Pi 5 is recommended.
+Full steps, with screenshots, are in the [guide](docs/SkyScope-Guide.pdf).
+In short, on Raspberry Pi OS with the desktop (set the hostname to `skyscope`
+in Raspberry Pi Imager):
 
 ```bash
-sudo apt install python3-pygame
+sudo apt update && sudo apt install -y python3-pygame git
 git clone https://github.com/ricsne2010/skyscope.git ~/skyscope
 python3 ~/skyscope/skyscope.py
+
+# start on boot
+mkdir -p ~/.config/autostart
+sed "s#/home/pi#$HOME#" ~/skyscope/skyscope.desktop > ~/.config/autostart/skyscope.desktop
 ```
 
-**Start on boot:** copy `skyscope.desktop` into `~/.config/autostart/`
-(edit the path in it if your user isn't `pi`).
-
-If frames stutter at 1080p on a Pi 4, set the Pi's display to 1280×720
-(Screen Configuration) or lower `fps` in `settings.json`.
+Then open `http://skyscope.local:7700/radar_config` from any device on your
+network. Update later with `cd ~/skyscope && git pull`. If frames stutter on a
+Pi 4, use filters or a shorter range, set the display to 1280×720, or lower
+`fps` in `settings.json`.
 
 ## Browser display (sharp on any screen)
 

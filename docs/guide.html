@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyScope Guide</title>
+<style>
+  :root { --ink: #16202e; --dim: #5a677a; --line: #d9dfe8; --accent: #0f8f4f; --soft: #f3f6fa; --warn: #fff6dc; --warn-line: #e8c96a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1, h2, h3 { line-height: 1.25; }
+  h1 { font-size: 2.6rem; margin: 0; letter-spacing: .01em; }
+  h2 { font-size: 1.55rem; margin: 2.4em 0 .6em; padding-bottom: .3em; border-bottom: 2px solid var(--line); }
+  h3 { font-size: 1.15rem; margin: 1.8em 0 .4em; }
+  p, li { max-width: 72ch; }
+  a { color: var(--accent); }
+  code, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+  code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: #fff; }
+  pre { background: #0d1626; color: #e8ecf2; padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-size: .88rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: .8em 0 1.2em; font-size: .95rem; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { background: var(--soft); font-weight: 700; }
+  figure { margin: 1.2em 0 1.6em; }
+  figure img { display: block; max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  figcaption { color: var(--dim); font-size: .9rem; margin-top: 6px; }
+  .note { background: var(--soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 1em 0; }
+  .warn { background: var(--warn); border-left: 4px solid var(--warn-line); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 1em 0; }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 44px; margin: 0 0 1.1em; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+                         background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
+  .cover { text-align: left; padding: 24px 0 8px; }
+  .cover .tag { color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: .85rem; }
+  .cover p.lede { font-size: 1.2rem; color: var(--dim); margin: .6em 0 1.4em; }
+  .toc { columns: 2; column-gap: 32px; padding-left: 1.2em; }
+  .toc li { break-inside: avoid; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .meta { color: var(--dim); font-size: .9rem; }
+  @media (max-width: 640px) { .two { grid-template-columns: 1fr; } .toc { columns: 1; } h1 { font-size: 2rem; } }
+  /* Printing / PDF */
+  @page { size: Letter; margin: 16mm 15mm 18mm; }
+  @media print {
+    body { font-size: 11pt; }
+    main { max-width: none; padding: 0; }
+    a { color: var(--ink); text-decoration: none; }
+    h2 { break-before: page; margin-top: 0; }
+    h2.keep { break-before: auto; margin-top: 1.6em; }
+    h2, h3 { break-after: avoid; }
+    figure, pre, table, .note, .warn, .steps > li { break-inside: avoid; }
+    .no-print { display: none; }
+    /* Screenshots can't split across pages, so keep them compact on paper. */
+    figure img { max-height: 92mm; width: auto; max-width: 100%; margin: 0 auto; }
+    .cover figure img { max-height: 82mm; }
+    .two figure img { max-height: 60mm; }
+    .cover .lede { margin-bottom: .8em; }
+    .toc { font-size: 10.5pt; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<section class="cover">
+  <div class="tag">User guide</div>
+  <h1>SkyScope</h1>
+  <p class="lede">A live aircraft radar styled after an air-traffic-control display, for a Raspberry Pi on a TV or monitor, or any web browser.</p>
+  <figure><img src="images/radar.jpg" alt="SkyScope centred on Phoenix Sky Harbor at 25 miles, with airspace, runways and arrival routes">
+    <figcaption>SkyScope centred on Phoenix Sky Harbor at 25 miles: Class B airspace, runways with extended centrelines, arrival routes (amber), aircraft coloured by kind, and the information panel.</figcaption></figure>
+  <p class="meta">Project: <a href="https://github.com/ricsne2010/skyscope">github.com/ricsne2010/skyscope</a> · Licence: MIT · Not for navigation.
+    <span class="no-print"> · <a href="SkyScope-Guide.pdf">Download this guide as a PDF</a></span></p>
+</section>
+
+<h2 class="keep">Contents</h2>
+<ol class="toc">
+  <li><a href="#what">What SkyScope does</a></li>
+  <li><a href="#requirements">Requirements</a></li>
+  <li><a href="#install-pi">Installing on a Raspberry Pi</a></li>
+  <li><a href="#install-computer">Running on a laptop or desktop</a></li>
+  <li><a href="#first-setup">First-time setup</a></li>
+  <li><a href="#radar">Using the radar</a></li>
+  <li><a href="#settings">The settings page</a></li>
+  <li><a href="#map">The ATC map</a></li>
+  <li><a href="#filters">Filters and presets</a></li>
+  <li><a href="#alerts">Alerts and the watchlist</a></li>
+  <li><a href="#receiver">Your own receiver and GPS</a></li>
+  <li><a href="#troubleshooting">Troubleshooting</a></li>
+  <li><a href="#reference">Quick reference</a></li>
+  <li><a href="#credits">Credits and data sources</a></li>
+</ol>
+
+<h2 id="what">1. What SkyScope does</h2>
+<p>SkyScope shows the aircraft around a location you choose, live, on a radar scope. Each aircraft is drawn at its position with a symbol shaped like the aircraft (airliner, business jet, light aircraft, helicopter…), a line showing where it will be in a minute, and a label with its callsign, type and altitude. A side panel lists every aircraft in range with its altitude, distance, bearing and speed, and a card shows details and a photo of the nearest or selected aircraft.</p>
+<p>Underneath the traffic you can show an air-traffic-control style map: airports and runways with extended centrelines, US Class B, C and D airspace, and the published departure (SID) and arrival (STAR) routes for airports you pick.</p>
+<h3>Two ways to display it</h3>
+<table>
+  <tr><th>Display</th><th>Best for</th><th>How</th></tr>
+  <tr><td><b>Pi display</b></td><td>A Raspberry Pi connected to a TV or monitor, running full screen by itself.</td><td><code>python3 skyscope.py</code></td></tr>
+  <tr><td><b>Web radar</b></td><td>Any computer, tablet or phone on your network, or a laptop on its own. Sharp on high-resolution screens; extra features such as clicking aircraft and the filter panel.</td><td>Open <code>http://&lt;address&gt;:7700/radar</code>, or run <code>python3 skyscope.py --web-only</code> on a laptop.</td></tr>
+</table>
+<p>Both run at the same time: a Pi can drive the TV while anyone on the network opens the web radar. Everything is configured from a <b>settings web page</b> at <code>http://&lt;address&gt;:7700/radar_config</code>, so the Pi needs no keyboard once it's set up.</p>
+<h3>Where the aircraft data comes from</h3>
+<ul>
+  <li><b>Internet (default):</b> the free <a href="https://adsb.fi/">adsb.fi</a> service, which pools reports from thousands of volunteer receivers. Needs an internet connection.</li>
+  <li><b>Your own receiver (optional):</b> a USB radio receiver on the Pi picks up aircraft signals directly, with no internet needed. See <a href="#receiver">section 11</a>.</li>
+</ul>
+<div class="warn"><b>Not for navigation.</b> SkyScope is for watching traffic. Positions can be delayed or missing, and map layers are approximations.</div>
+
+<h2 id="requirements">2. Requirements</h2>
+<h3>Raspberry Pi setup</h3>
+<table>
+  <tr><th>Item</th><th>Needed</th><th>Notes</th></tr>
+  <tr><td>Raspberry Pi</td><td>Pi 5 (recommended) or Pi 4 with 2 GB+ memory</td><td>Older models may work but will be slow at long ranges.</td></tr>
+  <tr><td>Power supply</td><td>Official supply for your model</td><td>Pi 5: 27 W USB-C. Pi 4: 15 W USB-C.</td></tr>
+  <tr><td>microSD card</td><td>16 GB or larger</td><td>Class A1 or better.</td></tr>
+  <tr><td>Display</td><td>Any HDMI TV or monitor</td><td>Widescreen (16:9) is ideal; other shapes work too. A micro-HDMI cable for Pi 4/5.</td></tr>
+  <tr><td>Network</td><td>Wi-Fi or Ethernet</td><td>Required for internet data, airline logos and photos.</td></tr>
+  <tr><td>Keyboard and mouse</td><td>For installation only</td><td>Afterwards everything is done from the settings page.</td></tr>
+  <tr><td>Software</td><td>Raspberry Pi OS with desktop (64-bit)</td><td>Includes Python 3. SkyScope also needs <code>pygame</code> and <code>git</code> (installed below).</td></tr>
+</table>
+<h3>Optional extras</h3>
+<table>
+  <tr><th>Item</th><th>What it adds</th></tr>
+  <tr><td>USB SDR receiver (RTL-SDR) and a 1090 MHz antenna</td><td>Receive aircraft yourself, with no internet. A dongle with a built-in 1090 MHz filter and amplifier (sold for ADS-B) works best. Uses the free <code>readsb</code> software.</td></tr>
+  <tr><td>USB GPS receiver</td><td>Centres the radar on the Pi's own position, once or continuously (for a mobile setup). Uses the standard <code>gpsd</code> service.</td></tr>
+</table>
+<h3>Laptop or desktop instead of a Pi</h3>
+<ul>
+  <li>macOS, Windows or Linux with <b>Python 3.10 or newer</b>.</li>
+  <li>The <code>pygame</code> package (<code>pip3 install pygame</code>).</li>
+  <li>Any current web browser (Chrome, Safari, Firefox, Edge).</li>
+</ul>
+<h3>Network access used</h3>
+<p>SkyScope serves its pages on <b>TCP port 7700</b> on your local network. It connects out (HTTPS) to <code>opendata.adsb.fi</code> for aircraft, <code>api.planespotters.net</code> for photos, and <code>raw.githubusercontent.com</code> for airline logos.</p>
+
+<h2 id="install-pi">3. Installing on a Raspberry Pi</h2>
+<ol class="steps">
+  <li><b>Prepare the SD card.</b> On another computer, install <a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a>. Choose your Pi model, <b>Raspberry Pi OS (64-bit)</b> (the version <i>with</i> desktop), and your SD card. When asked to customise settings, set:
+    <ul>
+      <li><b>Hostname:</b> <code>skyscope</code> (so the settings page is at <code>http://skyscope.local:7700</code>)</li>
+      <li><b>Username and password</b> of your choice</li>
+      <li><b>Wi-Fi</b> network and password (skip if using Ethernet), and your time zone</li>
+    </ul>
+    Write the card, put it in the Pi, connect the display, keyboard and mouse, and power on.</li>
+  <li><b>Open a terminal</b> on the Pi (the black icon in the top bar) and bring the system up to date:
+<pre><code>sudo apt update
+sudo apt full-upgrade -y</code></pre></li>
+  <li><b>Install what SkyScope needs:</b>
+<pre><code>sudo apt install -y python3-pygame git</code></pre></li>
+  <li><b>Download SkyScope</b> into your home folder:
+<pre><code>git clone https://github.com/ricsne2010/skyscope.git ~/skyscope</code></pre></li>
+  <li><b>Start it:</b>
+<pre><code>python3 ~/skyscope/skyscope.py</code></pre>
+    The radar fills the screen. Press <kbd>Q</kbd> to quit. The first start creates <code>~/skyscope/settings.json</code>, which holds your settings.</li>
+  <li><b>Start it automatically when the Pi boots.</b> This copies the included launcher into your autostart folder, pointing it at your home folder:
+<pre><code>mkdir -p ~/.config/autostart
+sed "s#/home/pi#$HOME#" ~/skyscope/skyscope.desktop &gt; ~/.config/autostart/skyscope.desktop</code></pre>
+    Restart the Pi (<code>sudo reboot</code>); SkyScope should open full screen after the desktop appears.
+    <div class="note">If it doesn't start on its own, add it to the desktop's own autostart list instead:
+<pre><code>mkdir -p ~/.config/labwc
+echo "python3 $HOME/skyscope/skyscope.py &amp;" &gt;&gt; ~/.config/labwc/autostart</code></pre></div></li>
+  <li><b>Set it up from another device.</b> On a phone or computer on the same network, open <code>http://skyscope.local:7700/radar_config</code> (or <code>http://&lt;pi-address&gt;:7700/radar_config</code>; the address is shown at the bottom of the Pi's screen) and continue with <a href="#first-setup">first-time setup</a>.</li>
+</ol>
+<h3>Updating</h3>
+<pre><code>cd ~/skyscope &amp;&amp; git pull</code></pre>
+<p>Then restart SkyScope (or the Pi). Your <code>settings.json</code> is kept.</p>
+<h3>If the Pi struggles</h3>
+<p>Very long ranges (150 miles and beyond) near busy areas can mean 500+ aircraft. If the Pi display becomes jerky: use filters to show fewer aircraft, choose a shorter range, set the Pi's screen to 1280×720 (Screen Configuration in the Pi menu), or lower <code>fps</code> in <code>settings.json</code>. Another option is to show the web radar full screen in the Pi's browser instead of the Pi display:</p>
+<pre><code>python3 ~/skyscope/skyscope.py --web-only &amp;
+chromium --kiosk http://localhost:7700/radar</code></pre>
+
+<h2 id="install-computer">4. Running on a laptop or desktop</h2>
+<ol class="steps">
+  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> if you don't have it, then install pygame:
+<pre><code>pip3 install pygame</code></pre></li>
+  <li>Download SkyScope with <code>git clone https://github.com/ricsne2010/skyscope.git</code>, or use <b>Code → Download ZIP</b> on the GitHub page and unzip it.</li>
+  <li>In a terminal, in the SkyScope folder, run the web radar:
+<pre><code>python3 skyscope.py --web-only</code></pre>
+    Your browser opens <code>http://localhost:7700/radar</code>. Stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal.</li>
+</ol>
+<p>The web radar is the sharpest choice on laptops with high-resolution (Retina or scaled) screens. To use the Pi-style display in a window instead: <code>python3 skyscope.py --window 1280x720</code>.</p>
+
+<h2 id="first-setup">5. First-time setup</h2>
+<p>Open the settings page (<code>http://&lt;address&gt;:7700/radar_config</code>). The tabs across the top hold every option; nothing changes until you press <b>Save</b> in the bar at the bottom, which shows "Unsaved changes" whenever there's something to save.</p>
+<figure><img src="images/settings-general.jpg" alt="The General tab of the settings page">
+  <figcaption>The General tab: where the radar is centred, and where its aircraft data comes from.</figcaption></figure>
+<ol class="steps">
+  <li><b>Choose the centre.</b> On the <b>General</b> tab, with <b>Manual</b> selected, either search for an airport (by code or name, such as <code>KDVT</code>, <code>PHX</code> or <code>Heathrow</code>) and pick it, or type a latitude and longitude. On a laptop, <b>Use this computer's location</b> fills them in for you.</li>
+  <li><b>Pick your units</b> on the <b>Display</b> tab: distance (km, statute miles or nautical miles), speed and altitude.</li>
+  <li><b>Pick a range</b> on the Display tab: the distance from the centre to the outer ring.</li>
+  <li>Press <b>Save</b>, then <b>Open radar</b> (top right) to see the result.</li>
+</ol>
+
+<h2 id="radar">6. Using the radar</h2>
+<h3>The scope</h3>
+<ul>
+  <li><b>Range rings</b> are labelled with their distances along the east line. The range is the distance to the outer ring.</li>
+  <li><b>Aircraft</b> are drawn with a shape for their kind and a line showing where they'll be in about a minute. Labels give callsign, type and altitude; in busy areas some labels are left off to keep things readable (every aircraft is still in the list).</li>
+  <li>The <b>yellow circle</b> marks the nearest aircraft. <b>Gold rings</b> mark watched aircraft and a <b>flashing red</b> symbol marks an emergency (see <a href="#alerts">section 10</a>).</li>
+  <li>The green <b>sweep</b> is decorative; its speed and trail can be changed or switched off.</li>
+  <li>Optional <b>dots on the rim</b> show aircraft just outside the range, in their direction.</li>
+</ul>
+<h3>The panel</h3>
+<p>The top shows the centre, the number of aircraft, the data source and how fresh the data is. The <b>card</b> below shows the nearest aircraft, or the one you've selected: callsign, aircraft type and registration, altitude and climb or descent, distance and bearing, and ground speed (plus airspeed when the aircraft reports it). When <a href="https://www.planespotters.net/">Planespotters.net</a> has a photo of that exact aircraft, a thumbnail appears; click it to open the full photo. The <b>list</b> shows every aircraft in range, nearest first, with units under each column heading.</p>
+<div class="two">
+  <figure><img src="images/selected.jpg" alt="The aircraft card with a photo">
+    <figcaption>A selected aircraft, with its airline, type, registration and a photo of that exact aircraft.</figcaption></figure>
+  <figure><img src="images/filters-panel.jpg" alt="The filter panel on the web radar">
+    <figcaption>The web radar's Filters panel: kinds of aircraft, altitude blocks, presets and SIDs/STARs.</figcaption></figure>
+</div>
+<h3>On the web radar</h3>
+<ul>
+  <li><b>Click an aircraft</b> (its symbol or label) or a <b>row in the list</b> to select it. Brackets mark it on the scope and the card shows its details. Click it again, or press <kbd>Esc</kbd>, to clear the selection. Hovering over a row highlights that aircraft on the scope.</li>
+  <li><b>⚙ Filters</b> at the bottom of the panel opens a panel to choose kinds of aircraft, altitude blocks, a preset and the SIDs/STARs switch. Changes apply at once.</li>
+  <li><kbd>R</kbd> or <kbd>Space</kbd>: next range. <kbd>F</kbd>: full screen. Clicking empty space never changes the range.</li>
+  <li><b>Settings</b> and <b>Guide</b> links at the bottom open the settings page and this guide.</li>
+</ul>
+<h3>On the Pi display</h3>
+<p>With a keyboard attached: <kbd>R</kbd>/<kbd>Space</kbd>/<kbd>→</kbd> next range, <kbd>←</kbd> previous range, <kbd>U</kbd> distance units, <kbd>W</kbd> runways, <kbd>S</kbd> sweep, <kbd>A</kbd> symbol style, <kbd>L</kbd> logos, <kbd>D</kbd> rim dots, <kbd>G</kbd> aircraft on the ground, <kbd>F</kbd> full screen, <kbd>Q</kbd> quit. Everything else is on the settings page.</p>
+
+<h2 id="settings">7. The settings page</h2>
+<table>
+  <tr><th>Tab</th><th>What's on it</th></tr>
+  <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS) and where aircraft data comes from (internet or your own receiver).</td></tr>
+  <tr><td><b>Display</b></td><td>Range; aircraft symbols (silhouettes or simple triangles); colouring aircraft by kind; airline logos; the aircraft photo; rim dots; aircraft on the ground; units; the sweep.</td></tr>
+  <tr><td><b>Map</b></td><td>Airports and runways, extended centrelines, airspace, and SIDs/STARs per airport. See <a href="#map">section 8</a>.</td></tr>
+  <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
+  <tr><td><b>Presets</b></td><td>Named sets of filters: apply, save and delete.</td></tr>
+  <tr><td><b>Alerts</b></td><td>Emergency highlighting and the watchlist. See <a href="#alerts">section 10</a>.</td></tr>
+</table>
+<p>The page works on phones as well as computers. Anyone on your network can open it; there is no password.</p>
+
+<h2 id="map">8. The ATC map</h2>
+<figure><img src="images/settings-map.jpg" alt="The Map tab of the settings page">
+  <figcaption>The Map tab: airport types, centrelines, airspace, and SIDs/STARs chosen per airport.</figcaption></figure>
+<h3>Airports and runways</h3>
+<p>Runways are drawn to scale. Runways of 5,000 ft or more get <b>extended centrelines</b> reaching 10 nautical miles out, with a tick every mile and a longer tick every five, as on an approach-control display. Runway numbers appear at the ends when zoomed in. Choose which airports appear: <b>Major</b>, <b>Regional</b> and <b>Small (paved)</b>, each on or off. Airport data covers the whole world.</p>
+<h3>Airspace (US)</h3>
+<p>Class B (solid blue), Class C (solid magenta) and Class D (dashed blue) outlines from the FAA. When zoomed in, each shelf is labelled with its ceiling over its floor in hundreds of feet: <code>90/30</code> means from 3,000 to 9,000 feet.</p>
+<h3>SIDs and STARs (US)</h3>
+<p>The Map tab lists every airport with published departure (SID) and arrival (STAR) routes within reach of the scope, larger airports first, with how many each has. Tick <b>SIDs</b>, <b>STARs</b> or both for each airport you want; use <b>Add another airport</b> for one further away. Departures are drawn in teal and arrivals in amber, with the waypoints (△) named. The <b>Show</b> switch (also in the web radar's Filters panel) hides them all, or shows only SIDs or only STARs, without losing your choices.</p>
+<div class="note">Parts of some routes are flown on a heading with no fixed track ("climb on heading 078, expect vectors"). Those parts can't be drawn, so a route may start or end away from the runway.</div>
+
+<h2 id="filters">9. Filters and presets</h2>
+<figure><img src="images/settings-filters.jpg" alt="The Filters tab of the settings page">
+  <figcaption>The Filters tab. Tick what you want to see.</figcaption></figure>
+<ul>
+  <li><b>Kinds of aircraft:</b> airliners, business jets, general aviation, helicopters, military, and other/unknown. A light aircraft flying a flight school's callsign counts as general aviation.</li>
+  <li><b>Altitude:</b> 10,000 ft and below; 10,001 ft to FL180; FL180 to FL600.</li>
+  <li><b>Aircraft types:</b> show only, or hide, a list of type codes such as <code>B738, A32*, C172</code> (<code>*</code> matches anything).</li>
+  <li><b>Airlines:</b> show only, or hide, by the three-letter code at the start of the callsign, such as <code>AAL, SWA, UAL</code>.</li>
+  <li><b>Country of registration:</b> worked out from each aircraft's transponder address, so it works even when the registration is unknown.</li>
+</ul>
+<p>While any filter is on, the panel says, for example, "35 of 134 aircraft (filtered)". Emergencies and watched aircraft are always shown.</p>
+<h3>Presets</h3>
+<p>Built-in presets: <i>Everything</i>, <i>Airliners only</i>, <i>GA &amp; helicopters, 10,000 ft and below</i>, <i>Helicopters</i> and <i>Military</i>. To make your own, set the filters you want, then on the <b>Presets</b> tab type a name and press <b>Save as preset</b>. Apply presets on the Presets tab or from the web radar's Filters panel.</p>
+<figure><img src="images/settings-presets.jpg" alt="The Presets tab of the settings page">
+  <figcaption>The Presets tab lists every preset with a summary of what it shows.</figcaption></figure>
+
+<h2 id="alerts">10. Alerts and the watchlist</h2>
+<ul>
+  <li><b>Emergencies:</b> aircraft squawking 7700 (emergency), 7600 (radio failure) or 7500 (hijack), or reporting an emergency status, flash red with a pulsing ring, are labelled first, move to the top of the list and get a red banner in the panel.</li>
+  <li><b>Watchlist</b> (Alerts tab): callsigns, registrations, transponder addresses or type codes, with <code>*</code> wildcards, for example <code>N123AB, ENY*, B52</code>. Matching aircraft get a gold ring and a ★ in the list, are labelled first, and optionally get a gold banner while in range.</li>
+</ul>
+
+<h2 id="receiver">11. Your own receiver and GPS</h2>
+<h3>Receiving aircraft yourself</h3>
+<ol class="steps">
+  <li>Plug an RTL-SDR dongle with a 1090 MHz antenna into the Pi. Place the antenna as high as possible with a clear view of the sky.</li>
+  <li>Install <code>readsb</code>, the decoding software, and tell it your location:
+<pre><code>sudo bash -c "$(wget -O - https://github.com/wiedehopf/adsb-scripts/raw/master/readsb-install.sh)"
+sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pre></li>
+  <li>On the settings page's <b>General</b> tab, set <b>Aircraft data from</b> to <b>SDR receiver</b> and save. With the location left at <code>auto</code>, SkyScope finds readsb (or dump1090/PiAware) by itself; the status line says which it's reading.</li>
+</ol>
+<p>Range now depends on your antenna and its view of the sky. Aircraft types and names may be blank for some aircraft unless readsb's aircraft database is enabled.</p>
+<h3>Centring on a GPS position</h3>
+<ol class="steps">
+  <li>Plug in a USB GPS receiver and install the GPS service:
+<pre><code>sudo apt install -y gpsd</code></pre>
+    USB receivers are usually detected automatically. For a GPS add-on board on the serial port, set <code>DEVICES="/dev/serial0"</code> in <code>/etc/default/gpsd</code> and run <code>sudo systemctl restart gpsd</code>.</li>
+  <li>On the <b>General</b> tab, choose <b>GPS once</b> (reads the position when SkyScope starts: for a fixed installation) or <b>GPS live</b> (keeps re-centring every few seconds as you move), and save. The status line shows the fix and number of satellites.</li>
+</ol>
+
+<h2 id="troubleshooting">12. Troubleshooting</h2>
+<table>
+  <tr><th>Problem</th><th>What to try</th></tr>
+  <tr><td>The panel says "No data" or "Waiting for data"</td><td>Check the Pi's internet connection. With an SDR receiver, read the status line on the General tab: it says whether readsb was found and whether its data is current.</td></tr>
+  <tr><td>"HTTP Error 429: Too Many Requests"</td><td>adsb.fi allows one request per second. Make sure only one copy of SkyScope runs per network address; it recovers by itself.</td></tr>
+  <tr><td>The settings page won't open from another device</td><td>Use the address shown at the bottom of the Pi's screen. Both devices must be on the same network. <code>.local</code> names can be slow on some devices; use the numeric address instead.</td></tr>
+  <tr><td>An aircraft is in the list but not on the scope</td><td>Aircraft are drawn once they're inside the outer ring; the list shows the same set. Turn on rim dots (Display tab) to see aircraft just beyond the range.</td></tr>
+  <tr><td>No photo for an aircraft</td><td>Photos only appear when Planespotters.net has one of that exact aircraft; many light aircraft and helicopters have none.</td></tr>
+  <tr><td>No SIDs or STARs appear</td><td>Tick SIDs or STARs for at least one airport on the Map tab, and check the Show switch isn't set to None. Only US airports have this data.</td></tr>
+  <tr><td>"Use this computer's location" is missing</td><td>Browsers only share location with the computer running SkyScope (<code>localhost</code>). On a Pi, type the position, pick an airport, or use GPS.</td></tr>
+  <tr><td>The Pi display is jerky</td><td>See <a href="#install-pi">If the Pi struggles</a> in section 3.</td></tr>
+</table>
+
+<h2 id="reference">13. Quick reference</h2>
+<table>
+  <tr><th>Address</th><th>What it is</th></tr>
+  <tr><td><code>http://&lt;address&gt;:7700/radar</code></td><td>The web radar (also the bare <code>:7700</code> address)</td></tr>
+  <tr><td><code>http://&lt;address&gt;:7700/radar_config</code></td><td>The settings page</td></tr>
+  <tr><td><code>http://&lt;address&gt;:7700/guide</code></td><td>This guide</td></tr>
+</table>
+<table>
+  <tr><th>Command</th><th>What it does</th></tr>
+  <tr><td><code>python3 skyscope.py</code></td><td>Pi display, full screen</td></tr>
+  <tr><td><code>python3 skyscope.py --window 1280x720</code></td><td>Pi display in a window</td></tr>
+  <tr><td><code>python3 skyscope.py --web-only</code></td><td>Web radar only, and opens it in the browser</td></tr>
+</table>
+<table>
+  <tr><th>Ranges</th><th>Choices (distance to the outer ring)</th></tr>
+  <tr><td>Statute miles</td><td>2, 5, 10, 15, 25, 50, 75, 100, 150, 200, 250</td></tr>
+  <tr><td>Kilometres</td><td>5, 10, 15, 25, 50, 100, 150, 200, 300, 400</td></tr>
+  <tr><td>Nautical miles</td><td>2, 5, 10, 20, 40, 60, 80, 100, 150, 200</td></tr>
+</table>
+<p>All settings are stored in <code>settings.json</code> in the SkyScope folder. The <a href="https://github.com/ricsne2010/skyscope#readme">README</a> lists every entry for anyone who prefers to edit it by hand.</p>
+
+<h2 id="credits">14. Credits and data sources</h2>
+<p>SkyScope grew out of <a href="https://github.com/MatixYo/ESP32-Plane-Radar">ESP32-Plane-Radar</a> by MatixYo (MIT licence), a radar for a small round display on an ESP32 microcontroller.</p>
+<table>
+  <tr><th>Data</th><th>Source</th><th>Terms</th></tr>
+  <tr><td>Live aircraft</td><td>adsb.fi open data, or your own receiver</td><td>adsb.fi's terms (one request per second)</td></tr>
+  <tr><td>Airports and runways</td><td>OurAirports</td><td>Public domain</td></tr>
+  <tr><td>US airspace</td><td>FAA Class Airspace data</td><td>Public domain</td></tr>
+  <tr><td>US SIDs and STARs</td><td>FAA CIFP (updated every 28 days)</td><td>Public domain</td></tr>
+  <tr><td>Country from transponder address</td><td>ICAO address allocations</td><td>Facts</td></tr>
+  <tr><td>Airline logos</td><td>Jxck-S/airline-logos, downloaded when first needed</td><td>Airlines' trademarks</td></tr>
+  <tr><td>Aircraft photos</td><td>Planespotters.net, shown with the photographer's credit</td><td>Photographers' copyright</td></tr>
+</table>
+<div class="warn"><b>Not for navigation.</b> Aircraft positions may be delayed, incomplete or wrong, and map layers are simplified. Never use SkyScope for flight planning or navigation.</div>
+<p class="meta">SkyScope is free software under the MIT licence. Source: <a href="https://github.com/ricsne2010/skyscope">github.com/ricsne2010/skyscope</a>.</p>
+
+</main>
+</body>
+</html>

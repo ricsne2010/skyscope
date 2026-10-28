@@ -32,6 +32,10 @@ COUNTRY_NAMES = AircraftFilter().countries
 FILTER_MODES = [("off", "Off"), ("only", "Show only"), ("hide", "Hide")]
 
 RADAR_PAGE = Path(__file__).resolve().parent / "web" / "radar.html"
+DOCS_DIR = Path(__file__).resolve().parent / "docs"
+# The guide and its images/PDF: only these file types, only inside docs/.
+DOCS_PATH_RE = re.compile(r"^/docs/((?:images/)?[A-Za-z0-9._-]+\.(html|jpg|png|pdf))$")
+DOCS_TYPES = {"html": "text/html; charset=utf-8", "jpg": "image/jpeg", "png": "image/png", "pdf": "application/pdf"}
 CONFIG_PATH = "/radar_config"
 GPS_NOW_PATH = "/radar_config/gps-now"
 LOGO_PATH_RE = re.compile(r"^/logo/([A-Z]{3})\.png$")
@@ -140,7 +144,9 @@ PAGE = """<!doctype html>
   .bar { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 14px; padding: 12px 24px 0; }
   header h1 { margin: 0; font-size: 1.2rem; color: var(--green); letter-spacing: .05em; }
   header .crumb { color: var(--dim); font-weight: 600; }
-  header a.radar { margin-left: auto; color: var(--bg); background: var(--green); font-weight: 700;
+  header a.guide { margin-left: auto; color: var(--dim); font-weight: 700; text-decoration: none; }
+  header a.guide:hover { color: var(--text); }
+  header a.radar { color: var(--bg); background: var(--green); font-weight: 700;
                    padding: 8px 14px; border-radius: 8px; text-decoration: none; }
   nav { max-width: 1240px; margin: 0 auto; display: flex; gap: 4px; padding: 10px 24px 0; overflow-x: auto; }
   nav button { background: none; color: var(--dim); font: inherit; font-weight: 700; border: 0;
@@ -254,6 +260,7 @@ PAGE = """<!doctype html>
   }
 </style></head><body>
 <header><div class="bar"><h1>SKYSCOPE</h1><span class="crumb">Settings</span>
+  <a class="guide" href="/guide" target="_blank">Guide</a>
   <a class="radar" href="/radar">Open radar &rarr;</a></div>
   <nav>%%TABS%%</nav></header>
 <form method="post" action="/radar_config" id="form">
@@ -882,6 +889,19 @@ class SettingsServer:
                         else:
                             self._send_bytes(logo.read_bytes(), "image/png", "max-age=86400")
                         return
+                if path == "/guide":
+                    self.send_response(302)
+                    self.send_header("Location", "/docs/guide.html")
+                    self.end_headers()
+                    return
+                m = DOCS_PATH_RE.match(path)
+                if m and ".." not in m.group(1):
+                    doc = DOCS_DIR / m.group(1)
+                    if doc.is_file():
+                        self._send_bytes(doc.read_bytes(), DOCS_TYPES[m.group(2)], "max-age=300")
+                    else:
+                        self.send_error(404)
+                    return
                 if path == "/":
                     self.send_response(302)
                     self.send_header("Location", "/radar" if radar is not None else CONFIG_PATH)
