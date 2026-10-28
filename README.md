@@ -149,6 +149,11 @@ sudo bash -c "$(wget -O - https://github.com/wiedehopf/adsb-scripts/raw/master/r
 sudo readsb-set-location <your-lat> <your-lon>
 ```
 
+Your receiver can also feed FlightAware with its free PiAware software
+([install guide](https://flightaware.com/adsb/piaware/install)); SkyScope keeps
+reading readsb. Feeders get a free FlightAware account and a larger free
+AeroAPI allowance for flight routes.
+
 Note: with a local receiver, the aircraft type and full name come from the
 decoder's aircraft database. If that isn't enabled, those fields may be
 blank for some aircraft. Airline logos already downloaded keep working
@@ -292,11 +297,15 @@ settings page.
   highlighted, and the card shows its details as "SELECTED" instead of the
   nearest aircraft. Click it again, press **Esc** or the ✕ to clear. Hovering a
   table row briefly highlights that plane on the scope.
-- **Flight route** on the card for airline flights (switch it off under
-  *Display*): e.g. KPHX → KOAK · Phoenix → Oakland, from adsbdb.com by flight
-  number. ADS-B carries no flight plan and flight numbers get reused, so a
-  route shows only when it fits where the aircraft is; private and VFR
-  flights have none.
+- **Flight route** on the card (Display tab, *Flight routes*): e.g. KPHX →
+  KOAK · Phoenix → Oakland. ADS-B carries no flight plan, so without a key
+  routes of airline flights come from free community databases by flight
+  number (adsbdb.com, hexdb.io), shown only when they fit where the aircraft
+  is. With an optional **FlightAware AeroAPI** key (free Personal tier: about
+  $5 of lookups a month, $10 if you feed FlightAware), the card shows the
+  filed route of the aircraft on it, private IFR flights included; SkyScope
+  looks up only that aircraft, once per flight, within a daily limit. The key
+  stays in `settings.json` and is never shown or sent to the browser.
 - **Aircraft photo** beside the card (switch it off under *Display*): only a
   photo of that exact aircraft, from Planespotters.net, credited; clicking it
   opens the original page. Aircraft without one show a plane outline and
@@ -455,7 +464,8 @@ scope design, range presets and colours were the starting point.
 | Country from ICAO address | ICAO Annex 10 Vol III allocation table (via tar1090) | Facts |
 | Airline logos | Downloaded at run time from [Jxck-S/airline-logos](https://github.com/Jxck-S/airline-logos); not stored in this repo | Airlines' trademarks |
 | Aircraft photos | [Planespotters.net](https://www.planespotters.net/) photo API, exact aircraft only; shown from their servers, never stored | Photographers' copyright; shown with credit and link, per Planespotters' API terms |
-| Flight routes | [adsbdb.com](https://www.adsbdb.com/) callsign API: the published route of an airline flight number, shown only when it fits the aircraft's position | Free community data |
+| Flight routes | [adsbdb.com](https://www.adsbdb.com/) and [hexdb.io](https://hexdb.io/) callsign APIs: the published route of an airline flight number, shown only when it fits the aircraft's position | Free community data |
+| Filed flight routes (optional) | [FlightAware AeroAPI](https://flightaware.com/commercial/aeroapi/), with your own key | FlightAware's AeroAPI terms |
 
 | Software | Source | Licence |
 |----------|--------|---------|

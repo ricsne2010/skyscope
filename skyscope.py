@@ -34,9 +34,9 @@ from filters import (ALT_BANDS, CLASS_COLORS, CLASS_LABELS, CLASSES, SINGLE_COLO
 from gps import GpsReader
 from logos import LogoStore, airline_code
 from photos import fetch_image
-from routes import RouteLookup, route_text
-from web import PHOTOS, SettingsServer, lan_address
-from settings import Settings
+from routes import FlightAware, RouteLookup, route_text
+from web import AIRPORT_INDEX, PHOTOS, SettingsServer, lan_address
+from settings import SETTINGS_PATH, Settings
 
 HERE = Path(__file__).resolve().parent
 
@@ -226,7 +226,10 @@ class SkyScope:
         self.overlays = Overlays()
         # Aircraft photo for the card (shares the web page's lookup and cache).
         self._photo_key = None  # aircraft the photo is for
-        self.routes = RouteLookup()  # airline flights' from/to airports (adsbdb.com)
+        self.routes = RouteLookup(AIRPORT_INDEX)  # community routes (adsbdb.com, hexdb.io)
+        self.flightaware = FlightAware(  # filed routes, with the user's own key
+            lambda: (self.settings.flightaware_key, int(self.settings.flightaware_daily_limit or 30)),
+            SETTINGS_PATH.parent / "flightaware_usage.json")
         self._photo = None  # (pygame Surface or None, credit) once fetched
         self._photo_images: dict[str, pygame.Surface] = {}  # src → full image, in memory
         self._photo_thumb = (None, None, None)  # (image id, size, scaled thumbnail)
@@ -317,7 +320,8 @@ class SkyScope:
 
     def web_statuses(self) -> dict[str, str]:
         """Status lines for the settings page, by section."""
-        return {"Location": self.location_status(), "Aircraft data": self.feed.sdr_status()}
+        return {"Location": self.location_status(), "Aircraft data": self.feed.sdr_status(),
+                "Flight routes": self.flightaware.status()}
 
     def update_query(self) -> None:
         s = self.settings
@@ -1042,7 +1046,7 @@ class SkyScope:
             desc = f"{desc[:30]}  ·  {ac.reg}"
         self.draw_fit(desc, round(32 * s), TAG_TYPE, (x, y), width)
         y += round(42 * s)
-        route = self.routes.route(ac.callsign, ac.lat, ac.lon, ac.track_deg, ac.alt_ft) if st.show_routes else None
+        route = self.card_route(ac, ac.lat, ac.lon)
         if route:
             codes, cities = route_text(route)
             line = f"{codes}  ·  {cities}" if cities else codes
@@ -1057,6 +1061,26 @@ class SkyScope:
         y += round(38 * s)
         self.draw_fit(self.speed_summary(ac), round(30 * s), LABEL, (x, y), width)
         return y + round(38 * s)
+
+    def card_route(self, ac: Aircraft, lat: float, lon: float) -> dict | None:
+        """The card's route: FlightAware's filed plan when there's a key, else a
+        community route that fits where the aircraft is."""
+        if not self.settings.show_routes:
+            return None
+        filed = self.flightaware.filed(ac.callsign, ac.reg)
+        if isinstance(filed, dict):
+            return filed
+        return self.routes.route(ac.callsign, lat, lon, ac.track_deg, ac.alt_ft)
+
+    def web_route(self, callsign: str, registration: str) -> dict:
+        """/api/route: the filed route of the browser card's aircraft."""
+        filed = self.flightaware.filed(callsign, registration) if self.settings.show_routes else None
+        if filed == "pending":
+            return {"pending": True}
+        if isinstance(filed, dict):
+            codes, cities = route_text(filed)
+            return {"codes": codes, "cities": cities}
+        return {}
 
     def altitude_summary(self, ac: Aircraft) -> str:
         st = self.settings
@@ -1151,6 +1175,7 @@ class SkyScope:
                 "has_procedures": bool(st.procedure_airports),
                 "distance_symbol": st.distance_symbol, "speed_symbol": st.speed_symbol,
                 "altitude_symbol": st.altitude_symbol, "show_beyond_dots": st.show_beyond_dots,
+                "flightaware": st.show_routes and self.flightaware.enabled(),
                 "sweep_enabled": st.sweep_enabled, "sweep_period_s": st.sweep_period_s,
                 "sweep_trail_deg": st.sweep_trail_deg, "airline_logos": st.airline_logos,
                 "aircraft_symbol": st.aircraft_symbol,
@@ -1255,7 +1280,7 @@ class SkyScope:
                         "alt": self.altitude_summary(ac)[:44],
                         "pos": f"{st.format_distance(dist)} · brg {bearing:03.0f}° · trk {ac.track_deg:03.0f}°",
                         "spd": self.speed_summary(ac)[:44], "hex": ac.hex, "reg": ac.reg}
-                route = self.routes.route(ac.callsign, ac.lat, ac.lon, ac.track_deg, ac.alt_ft) if st.show_routes else None
+                route = self.card_route(ac, ac.lat, ac.lon)
                 if route:
                     card["route"] = route_text(route)[0]  # for a future Satellite card line
         age = None if base_time == 0 else round(time.monotonic() - base_time, 1)

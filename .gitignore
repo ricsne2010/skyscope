@@ -4,3 +4,4 @@ logos/
 logos_cache/
 .DS_Store
 skyscope.log
+flightaware_usage.json

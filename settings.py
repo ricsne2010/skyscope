@@ -77,6 +77,8 @@ class Settings:
     color_by_kind: bool = False  # colour symbols by class (airliner, GA, ...)
     show_photos: bool = True  # aircraft photo on the browser display's card
     show_routes: bool = True  # an airline flight's route (from -> to) on the card
+    flightaware_key: str = ""  # optional AeroAPI key: filed routes for the card's aircraft
+    flightaware_daily_limit: str = "30"  # most FlightAware lookups a day (stay in the free allowance)
     highlight_emergencies: bool = True  # flash 7500/7600/7700 and emergency status
     # Watchlist: callsigns, registrations, ICAO hex addresses or type codes
     # (wildcards allowed). Matches are highlighted and shown despite filters.

@@ -298,6 +298,15 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <li>On the settings page's <b>General</b> tab, set <b>Aircraft data from</b> to <b>SDR receiver</b> and save. With the location left at <code>auto</code>, SkyScope finds readsb (or dump1090/PiAware) by itself; the status line says which it's reading.</li>
 </ol>
 <p>Range now depends on your antenna and its view of the sky. Aircraft types and names may be blank for some aircraft unless readsb's aircraft database is enabled.</p>
+<h3>Sharing with FlightAware (optional)</h3>
+<p>Your receiver can also feed FlightAware with its free <b>PiAware</b> software, installed alongside readsb by following <a href="https://flightaware.com/adsb/piaware/install">FlightAware's instructions</a>. SkyScope keeps reading readsb as before. In return, FlightAware gives feeders a free Enterprise account and doubles the free FlightAware lookup allowance to about $10 a month, which suits SkyScope's <a href="#routes">flight routes</a>.</p>
+<h3 id="routes">Flight routes</h3>
+<p>ADS-B carries no flight plan, so SkyScope finds routes elsewhere and shows them on the card (for example <i>KPHX → KOAK · Phoenix → Oakland</i>). Turn them on or off on the <b>Display</b> tab, card <b>Flight routes</b>.</p>
+<ul>
+  <li><b>Without a key</b>, airline flights are looked up by flight number in two free community databases, <a href="https://www.adsbdb.com">adsbdb.com</a> and <a href="https://hexdb.io">hexdb.io</a>. Flight numbers get reused and the databases go out of date, so a route shows only when it fits where the aircraft is. Expect routes on a minority of airline flights, and none for private or VFR traffic.</li>
+  <li><b>With a FlightAware AeroAPI key</b>, the card shows the actual filed route of the aircraft on it, private IFR flights included. A Personal key from <a href="https://flightaware.com/commercial/aeroapi/">flightaware.com/aeroapi</a> includes about $5 of lookups a month free ($10 if you feed FlightAware). Paste it into the key box and choose a daily limit. SkyScope looks up only the aircraft on the card, once per flight, and stops at the limit. The card's status line shows how many lookups are used today. Check FlightAware's fee table to choose a limit that stays inside your allowance.</li>
+</ul>
+<p>The key is kept in <code>settings.json</code> on this computer. It is never shown on the settings page or sent to the radar page.</p>
 <h3>Centring on a GPS position</h3>
 <ol class="steps">
   <li>Plug in a USB GPS receiver and install the GPS service:
@@ -313,7 +322,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>"HTTP Error 429: Too Many Requests"</td><td>adsb.fi allows one request per second. Make sure only one copy of SkyScope runs per network address; it recovers by itself.</td></tr>
   <tr><td>The settings page won't open from another device</td><td>Use the address shown at the bottom of the Pi's screen. Both devices must be on the same network. <code>.local</code> names can be slow on some devices; use the numeric address instead.</td></tr>
   <tr><td>An aircraft is in the list but not on the scope</td><td>Aircraft are drawn once they're inside the outer ring; the list shows the same set. Turn on rim dots (Display tab) to see aircraft just beyond the range.</td></tr>
-  <tr><td>No route for an airline flight</td><td>ADS-B carries no flight plan, so routes come from a community database by flight number (adsbdb.com). It doesn't know every flight, and flight numbers get reused, so SkyScope shows a route only when it fits where the aircraft is: better none than a wrong one. Private and VFR flights have no published route. Turn routes off on the Display tab.</td></tr>
+  <tr><td>No route for a flight</td><td>Without a FlightAware key, routes come from community databases by flight number, which don't know every flight; SkyScope shows one only when it fits where the aircraft is. A FlightAware key gives the filed route of the card's aircraft. See <a href="#routes">Flight routes</a>.</td></tr>
   <tr><td>“No image available” for an aircraft</td><td>Photos only appear when Planespotters.net has one of that exact aircraft; many light aircraft and helicopters have none. To hide the photo box altogether, turn off the aircraft photo on the settings page's Display tab.</td></tr>
   <tr><td>No SIDs or STARs appear</td><td>Tick SIDs or STARs for at least one airport on the Map tab, and check the Show switch isn't set to None. Only US airports have this data.</td></tr>
   <tr><td>"Use this computer's location" is missing</td><td>Browsers only share location with the computer running SkyScope (<code>localhost</code>). On a Pi, type the position, pick an airport, or use GPS.</td></tr>
@@ -368,7 +377,8 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>Country from transponder address</td><td>ICAO address allocations</td><td>Facts</td></tr>
   <tr><td>Airline logos</td><td>Jxck-S/airline-logos, downloaded when first needed</td><td>Airlines' trademarks</td></tr>
   <tr><td>Aircraft photos</td><td>Planespotters.net, shown with the photographer's credit</td><td>Photographers' copyright</td></tr>
-  <tr><td>Flight routes</td><td>adsbdb.com, by flight number</td><td>Free community data</td></tr>
+  <tr><td>Flight routes</td><td>adsbdb.com and hexdb.io, by flight number</td><td>Free community data</td></tr>
+  <tr><td>Filed flight routes (optional)</td><td>FlightAware AeroAPI, with your own key</td><td>FlightAware's AeroAPI terms</td></tr>
 </table>
 <table>
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>

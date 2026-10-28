@@ -70,7 +70,10 @@ FIELDS = [
     ("airline_logos", "Airline logos", "choice",
      [("off", "Off"), ("panel", "Panel"), ("all", "Panel + radar")]),
     ("show_photos", "Aircraft photo on the card", "bool", None),
-    ("show_routes", "Flight route on the card (airline flights)", "bool", None),
+    ("show_routes", "Flight route on the card", "bool", None),
+    ("flightaware_key", "FlightAware AeroAPI key (optional)", "secret", 80),
+    ("flightaware_daily_limit", "FlightAware lookups per day, at most", "choice",
+     [("10", "10"), ("30", "30"), ("60", "60"), ("100", "100")]),
     ("show_beyond_dots", "Dots for aircraft just outside the range", "bool", None),
     ("show_ground", "Aircraft on the ground", "bool", None),
     ("sweep_enabled", "Radar sweep", "bool", None),
@@ -184,8 +187,9 @@ PAGE = """<!doctype html>
   .field { margin-top: 14px; }
   .field > .label { font-weight: 600; margin-bottom: 6px; }
   .hint { color: var(--dim); font-size: .85rem; margin-top: 6px; }
+  .hint a { color: var(--green); font-weight: 600; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  input[type=number], input[type=text], select, textarea {
+  input[type=number], input[type=text], input[type=password], select, textarea {
     width: 100%; padding: 9px 11px; background: var(--field); color: var(--text);
     border: 1px solid var(--line); border-radius: 8px; font: inherit; }
   textarea { min-height: 84px; resize: vertical; text-transform: uppercase; }
@@ -488,6 +492,15 @@ def parse_form(form: dict[str, list[str]]) -> tuple[dict, list[str]]:
                 errors.append(f"{label}: enter \"auto\" or a path/URL")
                 continue
             changes[name] = raw
+        elif kind == "secret":
+            # Never shown back: a blank box keeps the saved key; "remove" clears it.
+            if f"{name}_clear" in form:
+                changes[name] = ""
+            elif raw:
+                if len(raw) > extra or not re.fullmatch(r"[A-Za-z0-9_-]+", raw):
+                    errors.append(f"{label}: that doesn't look like a key (letters and digits)")
+                    continue
+                changes[name] = raw
         elif kind == "multi":
             changes[name] = [v for v, _ in extra if f"{name}_{v}" in form]
         elif kind == "procedures":
@@ -618,6 +631,17 @@ def choice(name: str, st: Settings, options=None) -> str:
     return field(name, seg(name, options or BY_NAME[name][3], getattr(st, name)))
 
 
+def secret_box(name: str, st: Settings) -> str:
+    """A password-style box that never shows the saved value."""
+    saved = bool(getattr(st, name))
+    box = (f'<input type="password" name="{name}" maxlength="{BY_NAME[name][3]}" autocomplete="off" '
+           f'spellcheck="false" placeholder="{"Saved: leave blank to keep it" if saved else "Paste your key"}">')
+    if saved:
+        box += (f'<label class="tick"><input type="checkbox" name="{name}_clear">'
+                'Remove the saved key</label>')
+    return field(name, box)
+
+
 def card(title: str, body: str, status: str = "", wide: bool = False) -> str:
     status_html = f'<div class="status">{esc(status)}</div>' if status else ""
     return (f'<section class="card{" wide" if wide else ""}"><h2>{esc(title)}</h2>'
@@ -691,15 +715,25 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + toggle("show_photos", st)
         + '<div class="hint" data-when="show_photos=on">Only photos of the exact aircraft (from '
           'Planespotters.net, credited and linked); aircraft without one show "No image available".</div>'
-        + toggle("show_routes", st)
-        + '<div class="hint" data-when="show_routes=on">From and to airports of airline flights, by flight '
-          'number (adsbdb.com), shown only when the route fits where the aircraft is. Private and VFR '
-          'flights have no published route.</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
              + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
+    flight_routes = (
+        toggle("show_routes", st)
+        + '<div data-when="show_routes=on">'
+        '<div class="hint">ADS-B carries no flight plan. Without a key, routes of airline flights come from '
+        'free community databases by flight number (adsbdb.com, hexdb.io) and show only when they fit where '
+        'the aircraft is. With a FlightAware AeroAPI key, the card shows the filed route of the aircraft on '
+        'it, private IFR flights included.</div>'
+        + secret_box("flightaware_key", st) + choice("flightaware_daily_limit", st)
+        + '<div class="hint">A free Personal key from <a href="https://flightaware.com/commercial/aeroapi/" '
+          'target="_blank" rel="noopener">flightaware.com/aeroapi</a> includes about $5 of lookups a month '
+          '($10 if you feed FlightAware). SkyScope looks up only the aircraft on the card, once per flight, '
+          'and stops at the daily limit. Check FlightAware\'s fee table to set a limit that stays inside '
+          'your allowance.</div></div>')
     display = tab("display", "How the scope and its labels look.",
-                  card("Scope", scope) + card("Units", units) + card("Radar sweep", sweep))
+                  card("Scope", scope) + card("Units", units) + card("Radar sweep", sweep)
+                  + card("Flight routes", flight_routes, statuses.get("Flight routes", "")))
 
     # --- Map: airports, airspace, SIDs/STARs ----------------------------------------
     type_ticks = ticks("".join(tick(f"runway_types_{v}", label, v in st.runway_types)
@@ -851,8 +885,10 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         "Airspace, SIDs and STARs: FAA (US public domain)",
         'Aircraft photos: <a href="https://www.planespotters.net" target="_blank" rel="noopener">Planespotters.net</a>, '
         "credited on each photo",
-        'Flight routes: <a href="https://www.adsbdb.com" target="_blank" rel="noopener">adsbdb.com</a> '
-        "(community data, by flight number)",
+        'Flight routes: <a href="https://www.adsbdb.com" target="_blank" rel="noopener">adsbdb.com</a> and '
+        '<a href="https://hexdb.io" target="_blank" rel="noopener">hexdb.io</a> (community data, by flight '
+        'number); filed routes from <a href="https://flightaware.com/commercial/aeroapi/" target="_blank" '
+        'rel="noopener">FlightAware AeroAPI</a> with your own key',
         "Country from the ICAO address: the tar1090 project's table",
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",
@@ -943,6 +979,10 @@ class SettingsServer:
                         return
                     if path == "/api/state":
                         self._send_json(radar.web_state())
+                        return
+                    if path == "/api/route":
+                        a = {k: v[0][:20] for k, v in parse_qs(self.path.partition("?")[2]).items()}
+                        self._send_json(radar.web_route(a.get("cs", ""), a.get("reg", "")))
                         return
                     if path == "/api/photo":
                         a = {k: v[0][:60] for k, v in parse_qs(self.path.partition("?")[2]).items()}

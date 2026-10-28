@@ -708,11 +708,12 @@ function updatePanel() {
   if (selectedId && !selected) selectedId = null;  // it left the area or was filtered out
   const n = selected || list.reduce((best, a) => (!best || a.dist_km < best.dist_km ? a : best), null);
   showPhoto(st.show_photos ? n : null);
+  const rt = (n && filedRoute(st, n)) || (n && n.route_codes ? { codes: n.route_codes, cities: n.route_cities } : null);
   $("cardwrap").innerHTML = n ? `<div class="eyebrow ${selected ? "sel" : ""}">${selected ? "SELECTED" : "NEAREST"} · ${esc(n.class_label.toUpperCase())}${selected ? '<button class="clear" id="clear-sel" title="Clear selection (Esc)">✕</button>' : ""}</div>
     <div id="card">${logoTag(n.airline)}<div class="body">
       <div class="row"><span class="callsign">${esc(n.callsign)}</span></div>
       <div class="desc">${esc(n.desc || n.type || "Unknown type")}${n.reg && n.reg !== n.callsign ? " · " + esc(n.reg) : ""}</div>
-      ${n.route_codes ? `<div class="line route">${esc(n.route_codes)}${n.route_cities ? ` <span class="cities">· ${esc(n.route_cities)}</span>` : ""}</div>` : ""}
+      ${rt ? `<div class="line route">${esc(rt.codes)}${rt.cities ? ` <span class="cities">· ${esc(rt.cities)}</span>` : ""}</div>` : ""}
       <div class="line alt">${esc(n.alt_summary)}</div>
       <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
       <div class="line">${esc(n.speed_summary)}</div>
@@ -795,6 +796,22 @@ function hideOverflow(rows, limit) {
   let hidden = 0;
   for (const r of rows) if (r.getBoundingClientRect().bottom > limit) { r.style.display = "none"; hidden++; }
   return hidden;
+}
+
+// The filed route (FlightAware, with a key) of the card's aircraft: asked for
+// once per flight; until it arrives, the community route shows instead.
+const filedRoutes = {};
+function filedRoute(st, n) {
+  if (!st.flightaware || !n.callsign) return null;
+  const key = n.callsign, have = filedRoutes[key];
+  if (have === undefined || (have.pending && Date.now() - have.at > 3000)) {
+    filedRoutes[key] = { pending: true, at: Date.now() };
+    fetch("/api/route?" + new URLSearchParams({ cs: n.callsign, reg: n.reg || "" }))
+      .then(r => r.json())
+      .then(j => { filedRoutes[key] = j.pending ? { pending: true, at: Date.now() } : j; })
+      .catch(() => { delete filedRoutes[key]; });
+  }
+  return have && have.codes ? have : null;
 }
 
 // A card line too long for its space first gets a slightly smaller font
