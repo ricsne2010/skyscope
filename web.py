@@ -286,6 +286,11 @@ PAGE = """<!doctype html>
     .bar, nav, main, .savebar { padding-left: 14px; padding-right: 14px; }
     .grid { grid-template-columns: 1fr; }
     table.procs td.name { display: none; }
+    /* Phones: the menu wraps onto a second line instead of scrolling sideways. */
+    nav { flex-wrap: wrap; overflow-x: visible; row-gap: 4px; padding-top: 6px; }
+    nav button { padding: 8px 10px 9px; }
+    nav .nav-gap { display: none; }
+    nav a.guide-btn, nav a.radar-btn { margin: 4px 0 6px 6px; }
   }
 </style></head><body>
 <header><div class="bar"><img class="logo" src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi"><h1>SKYSCOPE</h1><span class="crumb">Settings</span></div>
