@@ -394,8 +394,9 @@ logo, version and credit) while the first aircraft load; any key skips it, and
 Runways are drawn like an ATC video map: true length (and true width when
 zoomed in), **extended centrelines** 10 nm out from each end of runways
 5,000 ft and longer with a tick every nautical mile (longer every 5), runway
-numbers at the thresholds when zoomed in, and airport codes (thinned out at
-long ranges; overlapping codes are left off). On the settings page's **Map** tab:
+numbers at the thresholds when zoomed in, and the code of every airport shown,
+at any range (biggest airports and longest runways first; a code that would
+overlap another is left off, so crowded areas keep the busier fields). On the settings page's **Map** tab:
 **Airports shown**: *Major*, *Regional* and *Small (paved)*, each on or off,
 and **Extended centrelines** on/off.
 

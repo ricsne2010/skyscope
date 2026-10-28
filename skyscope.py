@@ -585,7 +585,8 @@ class SkyScope:
         """Airport codes: bigger airports first; one that would overlap another
         (or a ring label) is left off. The centre airport is named in the panel."""
         L, R = self.layout, self.layout.grid_r
-        for ap in sorted((a for a in feats["airports"] if a["label"]), key=lambda a: "LMS".index(a["type"])):
+        for ap in sorted((a for a in feats["airports"] if a["label"]),
+                         key=lambda a: ("LMS".index(a["type"]), -a.get("rwy_ft", 0))):
             x, y = self.to_screen(ap["lat"], ap["lon"])
             dx, dy = x - L.cx, y - L.cy
             d = math.hypot(dx, dy)
@@ -1374,7 +1375,8 @@ class SkyScope:
                         for n in range(1, feats["centerline_nm"] + 1):
                             px, py, h = ex + sx * nm * n, ey + sy * nm * n, (0.012 if n % 5 == 0 else 0.006)
                             seg(2, (px - uy * h, py + ux * h), (px + uy * h, py - ux * h))
-            for ap in feats["airports"]:
+            # Biggest first, so the Satellite's 150-label budget keeps the busier fields.
+            for ap in sorted(feats["airports"], key=lambda a: ("LMS".index(a["type"]), -a.get("rwy_ft", 0))):
                 x, y = self._ring_xy(ap["lat"], ap["lon"])
                 if ap["label"] and 0.03 < math.hypot(x, y) < 0.97:
                     labels.append([8, round(x, 4), round(y, 4), ap["ident"]])

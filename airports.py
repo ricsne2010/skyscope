@@ -98,15 +98,9 @@ def map_features(data: dict, lat: float, lon: float, radius_km: float, outer_km:
                             "le": le_id, "he": he_id,
                             "centerline": centerlines and length_ft >= CENTERLINE_MIN_FT})
             longest[idx] = max(longest.get(idx, 0), length_ft)
-    # Airport codes: large always; medium ones, and any with a 5,000 ft+ runway
-    # (many busy GA fields are "small" in the data), up to ~120 km ranges;
-    # the rest up to ~50 km.
-    def labelled(i, ap):
-        if ap["type"] == "L":
-            return True
-        if ap["type"] == "M" or longest.get(i, 0) >= CENTERLINE_MIN_FT:
-            return outer_km <= 120
-        return outer_km <= 50
+    # Every airport drawn gets its code; the displays place them biggest first
+    # (type, then longest runway) and leave off any that would overlap, so
+    # crowded areas thin out to the busier fields by themselves.
     airports = [{"ident": ap["ident"], "lat": ap["lat"], "lon": ap["lon"], "type": ap["type"],
-                 "label": labelled(i, ap)} for i, ap in near.items()]
+                 "rwy_ft": longest.get(i, 0), "label": True} for i, ap in near.items()]
     return {"airports": airports, "runways": runways, "centerline_nm": CENTERLINE_NM}

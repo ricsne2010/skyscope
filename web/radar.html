@@ -322,7 +322,8 @@ function drawRunways(g) {
   // (or the ring labels) is left off. The centre airport is named in the panel.
   g.font = `700 ${Math.max(11, 26 * s)}px ${FONT}`; g.fillStyle = C.runwayLabel;
   const rank = { L: 0, M: 1, S: 2 };
-  for (const ap of staticData.airports.filter(a => a.label).sort((a, b) => rank[a.type] - rank[b.type])) {
+  for (const ap of staticData.airports.filter(a => a.label)
+         .sort((a, b) => rank[a.type] - rank[b.type] || (b.rwy_ft || 0) - (a.rwy_ft || 0))) {
     let [x, y] = toXY(ap.lat, ap.lon);
     const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy);
     if (d > grid + 20 * s || d < 12 * s) continue;  // off the scope, or the centre airport
