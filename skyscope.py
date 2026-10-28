@@ -905,7 +905,7 @@ class SkyScope:
         footer_h = round(140 * s if st.color_by_kind else 110 * s)
         rows_fit = max(0, (L.h - footer_h - y) // row_h)
         for dist, bearing, ac in listing[:rows_fit]:
-            airspeed = ac.ias_kt if st.airspeed_type == "ias" else ac.tas_kt
+            airspeed = ac.tas_kt
             sty = self.styles.get(id(ac), {})
             call_color = ERROR if sty.get("emergency") else WATCH_COLOR if sty.get("watched") else LABEL
             cells = [(ac.callsign, call_color), (ac.type or "—", TAG_TYPE),
@@ -1077,16 +1077,14 @@ class SkyScope:
         return alt
 
     def speed_summary(self, ac: Aircraft) -> str:
-        """Ground speed, plus whichever airspeeds the aircraft reports."""
+        """Ground speed, plus true airspeed when the aircraft reports it."""
         st = self.settings
         speeds = [f"GS {st.format_speed(ac.gs_kt)}"]
         if st.show_airspeed:
             if ac.tas_kt is not None:
                 speeds.append(f"TAS {st.format_speed(ac.tas_kt)}")
-            if ac.ias_kt is not None:
-                speeds.append(f"IAS {st.format_speed(ac.ias_kt)}")
             if len(speeds) == 1:
-                speeds.append("no airspeed reported")
+                speeds.append("TAS not reported")
         return "  ·  ".join(speeds)
 
     # --- browser display (/radar) -------------------------------------------
@@ -1120,7 +1118,7 @@ class SkyScope:
             lat, lon = self.extrapolate(ac, base_time)
             dx, dy = self.offset_km(lat, lon)
             dist = math.hypot(dx, dy)
-            airspeed = ac.ias_kt if st.airspeed_type == "ias" else ac.tas_kt
+            airspeed = ac.tas_kt
             cls = self.filter.aircraft_class(ac)
             color = CLASS_COLORS[cls] if st.color_by_kind else SINGLE_COLOR
             rows.append({

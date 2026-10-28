@@ -63,8 +63,7 @@ FIELDS = [
     ("distance_unit", "Distance", "choice", [("km", "km"), ("mi", "mi"), ("nm", "nm")]),
     ("speed_unit", "Speed", "choice", [("kt", "kt"), ("kmh", "km/h"), ("mph", "mph")]),
     ("altitude_unit", "Altitude", "choice", [("ft", "ft"), ("m", "m")]),
-    ("show_airspeed", "Show airspeed beside ground speed", "bool", None),
-    ("airspeed_type", "Airspeed column", "choice", [("tas", "True (TAS)"), ("ias", "Indicated (IAS)")]),
+    ("show_airspeed", "Show true airspeed (TAS) beside ground speed", "bool", None),
     ("range_index", "Range", "choice", [(str(i), str(i)) for i in range(MAX_RANGE_PRESETS)]),
     ("aircraft_symbol", "Aircraft symbols", "choice",
      [("silhouette", "Silhouettes"), ("triangle", "Triangles")]),
@@ -122,7 +121,7 @@ CHOICE_HINTS = {
 }
 # Fields shown only while another field has a given value.
 SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_source=sdr",
-             "airspeed_type": "show_airspeed=on", "sweep_period_s": "sweep_enabled=on",
+             "sweep_period_s": "sweep_enabled=on",
              "sweep_trail_deg": "sweep_enabled=on", "runway_types": "show_runways=on",
              "runway_centerlines": "show_runways=on",
              "type_filter": "type_mode=only|hide", "operator_filter": "operator_mode=only|hide",
@@ -679,7 +678,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
 
     # --- Display: units, scope, sweep ----------------------------------------------
     units = (choice("distance_unit", st) + choice("speed_unit", st) + choice("altitude_unit", st)
-             + toggle("show_airspeed", st) + choice("airspeed_type", st))
+             + toggle("show_airspeed", st))
     ranges = [(str(i), f"{v:g}") for i, v in enumerate(st.range_presets())]
     legend = "".join(
         f'<span><i class="swatch" style="background:rgb{CLASS_COLORS[cid]}"></i>{esc(label)}</span>'

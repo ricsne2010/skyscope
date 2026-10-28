@@ -49,8 +49,8 @@ guide is built into the app at `http://<address>:7700/guide` (source:
   the table)
 - **Units of your choice**: distance km / mi / nm, speed kt / km/h / mph,
   altitude ft / m. Every figure is labelled with its unit.
-- **Ground speed and airspeed**: GS plus TAS or IAS in the table; the Nearest
-  card shows every speed the aircraft reports. Airspeeds come from Mode S
+- **Ground speed and true airspeed**: GS plus TAS in the table and on the
+  Nearest card. True airspeed comes from Mode S
   "enhanced surveillance" replies, which are common for airliners in Europe
   and rare for light aircraft and in the US, so expect "—" for many aircraft.
 - **Info panel** on the right: clock (local + UTC), aircraft count, a "Nearest"
@@ -237,7 +237,6 @@ first run). The web page and keys edit it for you; by hand you can also set:
 | `speed_unit` | `"kt"` | `"kt"`, `"kmh"` or `"mph"` |
 | `altitude_unit` | `"ft"` | `"ft"` or `"m"` (climb rate then in m/s) |
 | `show_airspeed` | true | Airspeed alongside ground speed |
-| `airspeed_type` | `"tas"` | Table column: `"tas"` (true) or `"ias"` (indicated) |
 | `hidden_classes` | `[]` | Kinds to hide: `airliner`, `bizjet`, `ga`, `helicopter`, `military`, `other` |
 | `type_mode` / `type_filter` | `"off"` / `""` | `"only"` or `"hide"`; codes like `"B738, A32*"` |
 | `operator_mode` / `operator_filter` | `"off"` / `""` | `"only"` or `"hide"`; codes like `"AAL, SWA"` |
