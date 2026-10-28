@@ -1018,12 +1018,12 @@ class SkyScope:
         # Photo of this exact aircraft, as a thumbnail at the card's right.
         photo = self.card_photo(ac) if st.show_photos else False
         if photo is None or photo == "none":  # looking it up, or none of this airframe
-            pw, ph = round(209 * s), round(132 * s)
+            pw, ph = round(240 * s), round(151 * s)
             box = pygame.Rect(right - pw, y + round(26 * s), pw, ph)
             self.draw_photo_placeholder(box, "Finding photo..." if photo is None else "No image available")
             right = box.x - round(16 * s)
         elif photo:
-            pw, ph = round(209 * s), round(132 * s)
+            pw, ph = round(240 * s), round(151 * s)
             img, credit = photo
             if self._photo_thumb[:2] != (id(img), (pw, ph)):  # scale once per photo, not per frame
                 k = max(pw / img.get_width(), ph / img.get_height())  # cover the box, then crop

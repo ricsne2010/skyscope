@@ -59,13 +59,14 @@
   #cardrow { display: flex; gap: calc(var(--u) * 16); align-items: flex-end; }
   #cardwrap { flex: 1; min-width: 0; }
   #cardwrap .desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #photo { flex: none; width: calc(var(--u) * 209); margin: 0; }
-  #photo img { display: block; width: 100%; height: calc(var(--u) * 132); object-fit: cover;
+  #photo { flex: none; width: calc(var(--u) * 240); margin: 0; }
+  #photo img { display: block; width: 100%; height: calc(var(--u) * 151); object-fit: cover;
     border-radius: calc(var(--u) * 8); border: 1px solid var(--grid); background: #0b1735; }
   /* No photo (yet): the same box, with a plane outline and a note. */
   #photo-none { display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: calc(var(--u) * 8); height: calc(var(--u) * 132); box-sizing: border-box; border-radius: calc(var(--u) * 8);
+    gap: calc(var(--u) * 8); height: calc(var(--u) * 151); box-sizing: border-box; border-radius: calc(var(--u) * 8);
     border: 1px solid var(--grid); background: #0b1735; color: var(--dim); font-size: calc(var(--u) * 17); }
+  #photo-none[hidden] { display: none; }  /* display: flex above would otherwise beat [hidden] */
   #photo-none svg { width: calc(var(--u) * 54); height: calc(var(--u) * 54); fill: #3c5278; }
   #photo figcaption { color: var(--dim); font-size: calc(var(--u) * 14); margin-top: calc(var(--u) * 3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -705,6 +706,7 @@ function updatePanel() {
       <div class="line">${esc(n.dist_long)} · bearing ${String(Math.round(n.bearing)).padStart(3, "0")}° · track ${String(Math.round(n.track)).padStart(3, "0")}°</div>
       <div class="line">${esc(n.speed_summary)}</div>
     </div></div>` : "";
+  fitCard();
   $("card-rule").hidden = !n;
 
   const logos = st.airline_logos !== "off";
@@ -787,6 +789,17 @@ function hideOverflow(rows, limit) {
   return hidden;
 }
 
+// A card line too long for its space first gets a slightly smaller font
+// (down to 78%, as on the Pi display), and only then an ellipsis.
+function fitCard() {
+  for (const el of document.querySelectorAll("#cardwrap .desc, #cardwrap .line")) {
+    el.style.fontSize = "";
+    if (el.scrollWidth <= el.clientWidth) continue;
+    const base = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = `${base * Math.max(0.78, (el.clientWidth / el.scrollWidth) * 0.99)}px`;
+  }
+}
+
 function fitRows() {
   const wrap = $("listwrap"), rows = $("tbody").rows;
   for (const r of rows) r.style.display = "";
@@ -855,7 +868,7 @@ function toggleFullscreen() {
   else document.documentElement.requestFullscreen?.();
 }
 
-window.addEventListener("resize", () => { if (state) fitRows(); });
+window.addEventListener("resize", () => { if (state) { fitCard(); fitRows(); } });
 document.addEventListener("fullscreenchange", () => { if (state) fitRows(); });
 function select(id) {
   selectedId = id && id !== selectedId ? id : null;  // clicking the selection again clears it
