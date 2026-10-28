@@ -2,7 +2,7 @@
 
 # SkyScope
 
-*A Project Moon Pi project.*
+**Designed and Created by Project Moon Pi**
 
 A live ADS-B radar scope styled after an ATC display: aircraft from the
 internet (adsb.fi) or your own SDR receiver, drawn over runways, airspace and
@@ -452,6 +452,11 @@ scope design, range presets and colours were the starting point.
 | Country from ICAO address | ICAO Annex 10 Vol III allocation table (via tar1090) | Facts |
 | Airline logos | Downloaded at run time from [Jxck-S/airline-logos](https://github.com/Jxck-S/airline-logos); not stored in this repo | Airlines' trademarks |
 | Aircraft photos | [Planespotters.net](https://www.planespotters.net/) photo API, exact aircraft only; shown from their servers, never stored | Photographers' copyright; shown with credit and link, per Planespotters' API terms |
+
+| Software | Source | Licence |
+|----------|--------|---------|
+| Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
+| Built with | [Claude Code](https://claude.com/claude-code) (Anthropic): designed, written and tested with Claude | |
 
 **Not for navigation.** Map layers are approximations for watching traffic;
 procedure routes skip legs flown on a heading, and arcs are drawn as chords.

@@ -852,11 +852,13 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         "Country from the ICAO address: the tar1090 project's table",
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",
+        'Drawn with <a href="https://www.pygame.org" target="_blank" rel="noopener">pygame</a> (LGPL) in Python',
+        'Built with <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a> (Anthropic)',
     ])
     about = (
         '<section class="tab" id="tab-about">'
         '<div class="about-head"><img src="/docs/images/moon-pi-logo.png" alt="Project Moon Pi logo">'
-        f'<div><h2>SKYSCOPE</h2><div class="sub">Version {esc(VERSION)} &middot; A Project Moon Pi project</div>'
+        f'<div><h2>SKYSCOPE</h2><div class="sub">Version {esc(VERSION)} &middot; Designed and Created by Project Moon Pi</div>'
         "<p>A live ADS-B radar scope for a Raspberry Pi and an HDMI screen, or any browser on your network: "
         "aircraft around you with a sweeping beam, runways, airspace and procedures, filters and alerts.</p>"
         "</div></div>"
