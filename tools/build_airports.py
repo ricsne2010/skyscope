@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Build the Pi app's airport data from OurAirports (public domain).
 
-Writes two files in pi/data/:
+Writes two files in data/:
   airports.json       runway map: large, medium and paved small airports, with
                       runway ends, widths and numbers (for drawing the scope)
   airport_index.json  every open large/medium/small airport worldwide, for the
                       "centre on an airport" search on the settings page
 
-    python3 pi/tools/build_airports.py              # downloads the latest CSVs
-    python3 pi/tools/build_airports.py --csv DIR    # or uses airports.csv/runways.csv in DIR
+    python3 tools/build_airports.py              # downloads the latest CSVs
+    python3 tools/build_airports.py --csv DIR    # or uses airports.csv/runways.csv in DIR
 """
 
 import argparse

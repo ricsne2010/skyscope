@@ -159,6 +159,7 @@ class RouteLookup:
             with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
                 data = json.load(resp)
         except urllib.error.HTTPError as exc:
+            exc.close()  # an error answer holds its connection open until closed
             return [] if exc.code == 404 else False  # 404: no route for this callsign
         except (OSError, ValueError):
             return False
@@ -177,6 +178,7 @@ class RouteLookup:
             with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
                 data = json.load(resp)
         except urllib.error.HTTPError as exc:
+            exc.close()  # an error answer holds its connection open until closed
             return [] if exc.code == 404 else False
         except (OSError, ValueError):
             return False
@@ -288,6 +290,7 @@ class FlightAware:
             with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
                 data = json.load(resp)
         except urllib.error.HTTPError as exc:
+            exc.close()  # an error answer holds its connection open until closed
             if exc.code in (401, 403):
                 self._bad_key = key
                 self._error = "FlightAware didn't accept the key: check it on the settings page."
