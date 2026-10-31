@@ -178,12 +178,9 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 
 <h2 id="install-computer">4. Installing on a Mac or Windows PC</h2>
 <p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the radar in your browser. An installer sets it up as a background program with <b>Start SkyScope</b> and <b>Stop SkyScope</b> icons, the same way as the US Train Tracker.</p>
-<h3>Step 1: Install Python (once)</h3>
-<ul>
-  <li><b>Mac:</b> go to <a href="https://www.python.org/downloads/">python.org/downloads</a>, click <b>Download Python 3.x</b>, open the downloaded <code>.pkg</code> and click through it.</li>
-  <li><b>Windows:</b> the same download. On the installer's first screen, tick <b>Add python.exe to PATH</b>, then click <b>Install Now</b>.</li>
-</ul>
-<p>SkyScope needs Python 3.10 or newer. If it's already installed, skip this: the installer checks.</p>
+<h3>Step 1: Python (the installer sees to it)</h3>
+<p>SkyScope runs on Python 3.10 or newer. If the computer doesn't have it, SkyScope's installer offers to download it from python.org and install it: click <b>Install Python</b> (Mac; it asks for your Mac password) or <b>Yes</b> (Windows; installed for you only, no password). It checks the download is signed by the Python Software Foundation first.</p>
+<p>To install Python yourself instead: <a href="https://www.python.org/downloads/">python.org/downloads</a>, then on a Mac open the downloaded <code>.pkg</code> and click through it; on Windows tick <b>Add python.exe to PATH</b> on the installer's first screen, then click <b>Install Now</b>.</p>
 <h3>Step 2: Download SkyScope</h3>
 <p>From the <a href="https://github.com/ricsne2010/skyscope/releases/latest">latest release</a>, download <b>SkyScope-for-Mac.zip</b> or <b>SkyScope-for-Windows.zip</b>, and unzip it. (Windows: right-click the ZIP, then <b>Extract All…</b>.) The folder has a <b>READ ME FIRST</b> note and this guide.</p>
 <h3>Step 3: Run the installer</h3>
@@ -195,17 +192,19 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
       <li><b>Phones too, or this computer only?</b> Choose <b>Phones too</b> if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, click <b>Yes</b> if it asks to allow changes: that opens the firewall for them, on home (private) networks only.</li>
       <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you click Start SkyScope.</li>
     </ul></li>
-  <li>It installs SkyScope (about a minute), starts it and opens the radar. If the Mac asks whether Python may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
+  <li>It installs SkyScope (about a minute), starts it and opens the radar. If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
 </ol>
 <h3>Using it</h3>
 <ul>
   <li><b>Start SkyScope</b> (Desktop, and Applications → SkyScope or the Start menu) starts it if it isn't running and opens the radar.</li>
   <li><b>Stop SkyScope</b> shuts it down; the radar stops until you start it again.</li>
+  <li><b>Is it running?</b> Look for SkyScope's radar icon. On a Mac it's in the <b>menu bar</b> at the top of the screen, black or white like the icons beside it, and faint if SkyScope stops answering. On Windows it's green, <b>by the clock</b> (new icons start under the <b>^</b> there; drag it onto the taskbar to keep it in sight), and grey if SkyScope stops answering. It's there while SkyScope runs and goes away when SkyScope stops. Click it for a menu: the version, when it started and how many aircraft are in range, then <b>Open the radar</b>, <b>Settings</b> and <b>Stop SkyScope</b>. (On Windows, a plain click opens the radar; right-click for the menu.)</li>
+  <li>Activity Monitor (Mac) and Task Manager (Windows) list it as <b>SkyScope</b>. Start SkyScope says so if it's already running, and Stop SkyScope if it wasn't.</li>
   <li><b>To update</b>, download a newer release and run its installer: your settings, FlightAware key and logo cache are kept.</li>
   <li><b>Uninstall SkyScope</b> (Applications → SkyScope, or the Start menu) removes it and its settings.</li>
   <li>If it won't start, a message says so. Its messages are in <code>~/Library/Logs/SkyScope.log</code> on a Mac, or <code>%LOCALAPPDATA%\SkyScope\skyscope.log</code> on Windows.</li>
 </ul>
-<div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\SkyScope</code>, with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions).</div>
+<div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\SkyScope</code>, with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions; pystray and Pillow for the icon).</div>
 <div class="note"><b>Running from the source instead</b> (for developers): in a SkyScope folder from GitHub, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>) after <code>python3 -m pip install pygame-ce</code>, and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. <code>sh tools/make_mac_app.sh</code> or <code>tools\windows\create-shortcut.bat</code> makes desktop icons for that copy. <code>python3 skyscope.py --window 1280x720</code> shows the Pi-style display in a window.</div>
 
 <h2 id="first-setup">5. First-time setup</h2>
@@ -388,6 +387,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
 <table>
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>
   <tr><td>Language and display</td><td>Python, pygame (or pygame-ce)</td><td>PSF; LGPL 2.1</td></tr>
+  <tr><td>Menu bar / taskbar icon (installed copies)</td><td>pystray, Pillow, and PyObjC on a Mac</td><td>LGPL 3; MIT-CMU; MIT</td></tr>
   <tr><td>Built with</td><td>Claude Code (Anthropic): designed, written and tested with Claude</td><td></td></tr>
 </table>
 <div class="warn"><b>Not for navigation.</b> Aircraft positions may be delayed, incomplete or wrong, and map layers are simplified. Never use SkyScope for flight planning or navigation.</div>

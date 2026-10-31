@@ -17,6 +17,7 @@ import io
 import threading
 import json
 import math
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -210,6 +211,7 @@ class SkyScope:
         self.screen = screen
         self.settings = settings
         self.feed = feed
+        self.started = time.time()  # for the menu bar / taskbar icon's "since"
         self.text = TextCache()
         self.logos = LogoStore()
         self.filter = AircraftFilter()
@@ -1137,6 +1139,16 @@ class SkyScope:
                        for k, (polys, length) in symbols.SHAPES.items()},
         }
 
+    def web_status(self) -> dict:
+        """A small summary for SkyScope's menu bar / taskbar icon (tray.py)."""
+        from version import VERSION
+        planes, base_time, _error = self.feed.snapshot()
+        n = 0
+        for ac in self.visible_planes(planes):
+            dx, dy = self.offset_km(*self.extrapolate(ac, base_time))
+            n += math.hypot(dx, dy) <= self.settings.outer_km
+        return {"version": VERSION, "since": self.started, "aircraft": n}
+
     def web_state(self) -> dict:
         """Settings, status and aircraft (positions as of now), for one poll."""
         st = self.settings
@@ -1456,8 +1468,27 @@ class SkyScope:
         self.invalidate()
 
 
-def run_web_only(settings: Settings, host: str = "0.0.0.0", open_browser: bool = True) -> int:
+def start_tray(port: int):
+    """SkyScope's menu bar / taskbar icon (tray.py), in a process of its own;
+    it goes away by itself when this one ends. None if it can't start."""
+    import os
+    import subprocess
+    try:
+        err = sys.stderr if sys.stderr is not None and sys.stderr.fileno() >= 0 else subprocess.DEVNULL
+    except (AttributeError, OSError, ValueError):
+        err = subprocess.DEVNULL
+    try:
+        return subprocess.Popen([sys.executable, str(Path(__file__).resolve().parent / "tray.py"),
+                                 "--port", str(port), "--parent", str(os.getpid())],
+                                stdin=subprocess.DEVNULL, stdout=err, stderr=err)
+    except OSError as exc:
+        print(f"SkyScope's menu bar icon didn't start: {exc}")
+        return None
+
+
+def run_web_only(settings: Settings, host: str = "0.0.0.0", open_browser: bool = True, tray: bool = False) -> int:
     """Data, GPS and web server only; the browser draws the radar."""
+    import signal
     import webbrowser
     if not settings.web_port:
         print("web_port is 0 in settings.json; nothing to serve")
@@ -1473,6 +1504,9 @@ def run_web_only(settings: Settings, host: str = "0.0.0.0", open_browser: bool =
     print(f"Radar: {url}   (Ctrl+C to stop)")
     if open_browser:
         webbrowser.open(url)
+    # a stop from the service manager (macOS's launchctl) ends it as tidily as Ctrl+C
+    signal.signal(signal.SIGTERM, lambda *_: web.stop_requested.set())
+    icon = start_tray(settings.web_port) if tray else None
     try:
         while not web.stop_requested.is_set():
             web.apply_pending(app.apply_changes)
@@ -1480,6 +1514,8 @@ def run_web_only(settings: Settings, host: str = "0.0.0.0", open_browser: bool =
             time.sleep(0.05)
     except KeyboardInterrupt:
         pass
+    if icon is not None and icon.poll() is None:
+        icon.terminate()
     print("SkyScope stopped")
     return 0
 
@@ -1561,11 +1597,14 @@ def main() -> int:
     ap.add_argument("--host", default="0.0.0.0",
                     help="where the web pages listen: 0.0.0.0 (default) for phones and Satellite "
                          "displays on your network too, 127.0.0.1 for this computer only")
+    ap.add_argument("--tray", action="store_true",
+                    help="with --web-only: show SkyScope's icon in the Mac menu bar or the Windows taskbar "
+                         "while it runs (needs pystray and Pillow)")
     args = ap.parse_args()
 
     settings = Settings.load()
     if args.web_only:
-        return run_web_only(settings, args.host, not args.no_browser)
+        return run_web_only(settings, args.host, not args.no_browser, args.tray)
     pygame.init()
     pygame.display.set_caption("SkyScope")
     if args.window:

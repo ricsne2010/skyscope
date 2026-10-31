@@ -3,9 +3,10 @@
 #
 # It installs the program in ~/Library/Application Support/SkyScope, sets it up as a background service, and
 # puts Start SkyScope and Stop SkyScope on your Desktop and in Applications › SkyScope.
-# Needs Python 3.10 or newer from python.org. Designed and Created by Project Moon Pi.
+# Needs Python 3.10 or newer from python.org, and offers to install it if it isn't there.
+# Designed and Created by Project Moon Pi.
 #
-# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no
+# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no SS_PYTHON=yes|no
 SRC="$(cd "$(dirname "$0")" && pwd)"
 . "$SRC/installer/mac/common.sh"
 set -e
@@ -27,8 +28,28 @@ find_python() {
   return 1
 }
 
+# Python from python.org (the version SkyScope's packages were tested with; move it on when a newer one has
+# been tried). It's Apple-signed by the Python Software Foundation; installing it needs your Mac password.
+PY_VERSION=3.15.2
+install_python() {
+  local dir pkg mm
+  mm=${PY_VERSION%.*}
+  dir=$(mktemp -d) && pkg="$dir/python-$PY_VERSION-macos11.pkg" || return 1
+  echo "Downloading Python $PY_VERSION from python.org…" >&2
+  curl -fsSL -o "$pkg" "https://www.python.org/ftp/python/$PY_VERSION/python-$PY_VERSION-macos11.pkg" || { rm -rf "$dir"; return 1; }
+  if ! pkgutil --check-signature "$pkg" | grep -q "Developer ID Installer: Python Software Foundation"; then
+    echo "The download isn't signed by the Python Software Foundation." >&2; rm -rf "$dir"; return 1
+  fi
+  echo "Installing Python $PY_VERSION (your Mac asks for your password)…" >&2
+  # then its certificates, so Python can check websites' HTTPS certificates
+  osascript -e "do shell script \"installer -pkg '$pkg' -target / && '/Applications/Python $mm/Install Certificates.command'\" with prompt \"Install SkyScope wants to install Python $PY_VERSION from python.org.\" with administrator privileges" >/dev/null || { rm -rf "$dir"; return 1; }
+  rm -rf "$dir"
+  "/Library/Frameworks/Python.framework/Versions/$mm/bin/python$mm" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null &&
+    echo "/Library/Frameworks/Python.framework/Versions/$mm/bin/python$mm"
+}
+
 echo "SkyScope installer - Designed and Created by Project Moon Pi"
-PY=$(find_python) || {
+PY=$(find_python) || { [ "${SS_PYTHON:-$(ask "SkyScope needs Python, which isn't on this Mac yet.\n\nDownload and install Python $PY_VERSION from python.org now? It's about 80 MB, and your Mac asks for your password to install it." "No" "Install Python")}" = yes ] && PY=$(install_python | tail -1) && [ -n "$PY" ]; } || {
   echo "SkyScope needs Python 3.10 or newer: install it from https://www.python.org/downloads/ and run this again."
   osascript -e 'display dialog "SkyScope needs Python 3.10 or newer.\n\nClick Download to get it from python.org, install it, then double-click Install SkyScope again." buttons {"Cancel", "Download"} default button "Download" with title "Install SkyScope"' \
     -e 'if button returned of result is "Download" then open location "https://www.python.org/downloads/"' >/dev/null 2>&1 || true
@@ -46,6 +67,22 @@ mkdir -p "$APPDIR" "$APPS" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 [ -x "$APPDIR/venv/bin/python" ] || "$PY" -m venv "$APPDIR/venv"
 "$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pip
 "$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pygame-ce
+# pystray and Pillow (with PyObjC) put SkyScope's icon in the menu bar; without them it runs without the icon
+"$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pystray pillow ||
+  echo "(Couldn't install pystray and Pillow: SkyScope will run without its menu bar icon.)"
+
+# venv/bin/SkyScope: Python under SkyScope's own name, so Activity Monitor shows "SkyScope". It's a copy of
+# Python's own program, signed again for its new place (its signature belongs to Python.app); plain python if not.
+EXE="$APPDIR/venv/bin/python"
+REAL=$("$EXE" -c 'import os, sys; p = os.path.join(sys.base_prefix, "Resources/Python.app/Contents/MacOS/Python"); print(p if os.path.exists(p) else os.path.realpath(sys._base_executable))')
+if cp "$REAL" "$APPDIR/venv/bin/SkyScope.new" && codesign --force -s - "$APPDIR/venv/bin/SkyScope.new" 2>/dev/null &&
+   PYGAME_HIDE_SUPPORT_PROMPT=1 "$APPDIR/venv/bin/SkyScope.new" -c 'import sys, pygame; sys.exit(sys.prefix == sys.base_prefix)' 2>/dev/null; then
+  mv -f "$APPDIR/venv/bin/SkyScope.new" "$APPDIR/venv/bin/SkyScope"
+  EXE="$APPDIR/venv/bin/SkyScope"
+else
+  rm -f "$APPDIR/venv/bin/SkyScope.new"
+  echo "(Activity Monitor will show SkyScope as Python.)"
+fi
 
 # the program: replaced on every install; your settings, logo cache and FlightAware count stay
 ( cd "$APPDIR" && rm -rf web data docs ./*.py )
@@ -69,9 +106,9 @@ cat > "$PLIST" <<PLIST
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$APPDIR/venv/bin/python</string>
+    <string>$EXE</string>
     <string>$APPDIR/skyscope.py</string>
-    <string>--web-only</string><string>--no-browser</string>
+    <string>--web-only</string><string>--no-browser</string><string>--tray</string>
     $HOSTARGS
   </array>
   <key>EnvironmentVariables</key>
@@ -80,7 +117,7 @@ cat > "$PLIST" <<PLIST
   <key>StandardOutPath</key><string>$LOG</string>
   <key>StandardErrorPath</key><string>$LOG</string>
   <key>RunAtLoad</key><$RUNATLOAD/>
-  <key>ProcessType</key><string>Background</string>
+  <key>ProcessType</key><string>Standard</string>
 </dict>
 </plist>
 PLIST
@@ -129,4 +166,4 @@ else
   "$APPS/Start SkyScope.app/Contents/MacOS/run"
 fi
 echo "Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in Applications › SkyScope)."
-[ -n "$SS_PHONES" ] || osascript -e 'display dialog "SkyScope is installed and running.\n\nUse Start SkyScope and Stop SkyScope on your Desktop (also in your Applications folder, under SkyScope).\n\nYou can delete the downloaded folder now." buttons {"OK"} default button "OK" with title "Install SkyScope"' >/dev/null 2>&1 || true
+[ -n "$SS_PHONES" ] || osascript -e 'display dialog "SkyScope is installed and running.\n\nWhile it runs, its radar icon is in the menu bar at the top of the screen: click it for the radar, the settings or to stop SkyScope.\n\nUse Start SkyScope and Stop SkyScope on your Desktop (also in your Applications folder, under SkyScope).\n\nYou can delete the downloaded folder now." buttons {"OK"} default button "OK" with title "Install SkyScope"' >/dev/null 2>&1 || true

@@ -12,17 +12,26 @@ function Test-Up {
     catch { return $false }
 }
 
-if (-not (Test-Up)) {
-    $argv = @("`"$(Join-Path $AppDir 'run.py')`"")
-    if (-not $cfg.phones) { $argv += @('--host', '127.0.0.1') }
-    $p = Start-Process -FilePath (Join-Path $AppDir 'venv\Scripts\pythonw.exe') -ArgumentList $argv `
-        -WorkingDirectory $AppDir -PassThru
-    Set-Content -Path (Join-Path $AppDir 'skyscope.pid') -Value $p.Id
-
+function Show-Note($text, $ms) {
     $note = New-Object System.Windows.Forms.NotifyIcon
     $note.Icon = New-Object System.Drawing.Icon (Join-Path $AppDir 'skyscope-start.ico')
     $note.Visible = $true
-    $note.ShowBalloonTip(5000, 'SkyScope', 'Starting SkyScope...', 'Info')
+    $note.ShowBalloonTip($ms, 'SkyScope', $text, 'Info')
+    return $note
+}
+
+if (Test-Up) {
+    # already running: say so (the radar opens below)
+    if (-not $NoBrowser) { $n = Show-Note 'SkyScope is already running. Opening the radar...' 3000; Start-Sleep -Seconds 3; $n.Dispose() }
+} else {
+    $argv = @("`"$(Join-Path $AppDir 'run.py')`"", '--tray')
+    if (-not $cfg.phones) { $argv += @('--host', '127.0.0.1') }
+    $exe = if ($cfg.exe -and (Test-Path $cfg.exe)) { $cfg.exe } else { Join-Path $AppDir 'venv\Scripts\pythonw.exe' }
+    $p = Start-Process -FilePath $exe -ArgumentList $argv `
+        -WorkingDirectory $AppDir -PassThru
+    Set-Content -Path (Join-Path $AppDir 'skyscope.pid') -Value $p.Id
+
+    $note = Show-Note 'Starting SkyScope...' 5000
     for ($i = 0; $i -lt 90; $i++) {
         if ((Test-Up) -or $p.HasExited) { break }
         Start-Sleep -Seconds 1

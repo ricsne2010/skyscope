@@ -336,17 +336,28 @@ device on the network can open `/radar` while the Pi drives the TV.
 **The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Mac.zip)**
 or **[for Windows](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Windows.zip)**
 (also on the [latest release](../../releases/latest)), unzip it and double-click
-**Install SkyScope**. It needs Python 3.10 or newer from
-[python.org](https://www.python.org/downloads/) (on Windows, tick **Add
-python.exe to PATH**). The installer:
+**Install SkyScope**. It runs on Python 3.10 or newer from
+[python.org](https://www.python.org/downloads/); if the computer hasn't got
+it, the installer offers to download and install it (checking it's signed by
+the Python Software Foundation). The installer:
 
 * installs SkyScope for you (Mac: `~/Library/Application Support/SkyScope`;
-  Windows: `%LOCALAPPDATA%\SkyScope`) with its own copy of pygame-ce,
+  Windows: `%LOCALAPPDATA%\SkyScope`) with its own copy of pygame-ce
+  (and pystray and Pillow for its icon),
 * asks whether phones and SkyScope Satellite displays on your Wi-Fi may open
   it (otherwise it listens to this computer only), and whether it should start
   when you log in,
 * puts **Start SkyScope** and **Stop SkyScope** on the Desktop (and in
   Applications › SkyScope or the Start menu, with **Uninstall SkyScope**).
+
+**Is it running?** While SkyScope runs in the background, its radar icon
+sits in the Mac menu bar (black or white like the icons beside it; faint if
+SkyScope stops answering) or by the Windows clock (green; grey if SkyScope
+stops answering; under the **^** until you drag it onto the taskbar). It goes
+away when SkyScope stops. Click it for the radar, the settings or **Stop
+SkyScope**; its menu also shows the version, when it started and how many
+aircraft are in range. Activity Monitor and Task Manager list it as
+**SkyScope**. Start SkyScope says so if it's already running.
 
 Run the installer again to update or to change your answers: your settings,
 FlightAware key and logo cache are kept. If macOS says it can't verify the
@@ -389,7 +400,13 @@ The installers live in `installer/` (`mac/`, `windows/`) with `Install
 SkyScope.command` and `Install SkyScope.bat`; the icons are in
 `tools/launcher/` (`make_icon.py --start` / `--stop`). For unattended test
 installs, answer the questions ahead: `SS_PHONES=yes|no`, `SS_AUTOSTART=yes|no`,
-`SS_OPEN=no` (and `SS_UNATTENDED=1` for the uninstaller).
+`SS_OPEN=no`, `SS_PYTHON=yes|no` (install Python if it's missing; and
+`SS_UNATTENDED=1` for the uninstaller). The Python they install is pinned
+(`PY_VERSION` in `Install SkyScope.command`, `$PyVersion` in
+`installer/windows/install.ps1`): move it on once pygame-ce, Pillow and PyObjC
+have packages for a newer one. The menu bar / taskbar icon is `tray.py`,
+started by `skyscope.py --web-only --tray`; on Windows, `brand_exe.py` makes
+`SkyScope.exe` so Task Manager shows SkyScope.
 
 ## Testing on a desktop
 
@@ -496,6 +513,7 @@ scope design, range presets and colours were the starting point.
 | Software | Source | Licence |
 |----------|--------|---------|
 | Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
+| Menu bar / taskbar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
 | Built with | [Claude Code](https://claude.com/claude-code) (Anthropic): designed, written and tested with Claude | |
 
 **Not for navigation.** Map layers are approximations for watching traffic;

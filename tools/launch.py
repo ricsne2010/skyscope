@@ -65,11 +65,11 @@ def kill_processes() -> bool:
     """Last resort: end any running skyscope.py (an older SkyScope without
     the shutdown request, or one that's stuck)."""
     if sys.platform == "win32":
-        ps = ("$p = Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*skyscope.py*' }; "
+        ps = ("$p = Get-CimInstance Win32_Process | Where-Object { ($_.Name -like 'python*' -or $_.Name -eq 'SkyScope.exe') -and $_.CommandLine -like '*skyscope.py*' }; "
               "$p | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }; if ($p) { exit 0 } else { exit 1 }")
         r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=0x08000000, check=False)
     else:
-        r = subprocess.run(["pkill", "-f", "[Pp]ython.* skyscope\\.py"], check=False)  # not an editor with the file open
+        r = subprocess.run(["pkill", "-f", "([Pp]ython|/SkyScope).* skyscope\\.py"], check=False)  # not an editor with the file open
     return r.returncode == 0
 
 

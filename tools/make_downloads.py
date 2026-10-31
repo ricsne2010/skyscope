@@ -26,28 +26,31 @@ READ_ME = {
     "Mac": """SkyScope {v} for Mac
 Designed and Created by Project Moon Pi
 
-1. Install Python 3.10 or newer from https://www.python.org/downloads/ (once).
-2. Double-click "Install SkyScope.command".
+1. Double-click "Install SkyScope.command".
    If macOS says it can't verify the developer: System Settings > Privacy & Security > Open Anyway.
-3. Answer its two questions. It installs SkyScope, starts it and opens the radar.
-   If macOS asks whether Python may accept incoming network connections, click Allow
+   If Python isn't installed yet, it offers to install it from python.org (click Install Python;
+   it asks for your Mac password).
+2. Answer its two questions. It installs SkyScope, starts it and opens the radar.
+   If macOS asks whether SkyScope (or Python) may accept incoming network connections, click Allow
    (that lets phones and SkyScope Satellite displays reach it).
 
 Afterwards use Start SkyScope and Stop SkyScope on your Desktop (also in Applications > SkyScope).
+While SkyScope runs, its radar icon is in the menu bar: click it for the radar, settings or Stop.
 To update, run the installer of a newer version: your settings are kept.
 You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
 """,
     "Windows": """SkyScope {v} for Windows
 Designed and Created by Project Moon Pi
 
-1. Install Python 3.10 or newer from https://www.python.org/downloads/ (once).
-   In its installer, tick "Add python.exe to PATH".
-2. Double-click "Install SkyScope.bat".
+1. Double-click "Install SkyScope.bat".
    If Windows says it protected your PC: More info > Run anyway.
-3. Answer its two questions. It installs SkyScope, starts it and opens the radar.
+   If Python isn't installed yet, it offers to install it from python.org (click Yes).
+2. Answer its two questions. It installs SkyScope, starts it and opens the radar.
    If you choose phones, click Yes if Windows asks to allow changes (that opens the firewall for them).
 
 Afterwards use Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu).
+While SkyScope runs, its green radar icon is by the clock (click ^ if it's hidden): click it for the
+radar, right-click for the settings or Stop.
 To update, run the installer of a newer version: your settings are kept.
 You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
 """,
@@ -69,7 +72,7 @@ def build(platform: str) -> Path:
                or f.name in ("README.md", "LICENSE")]
     launcher = ROOT / "tools" / "launcher"
     if windows:
-        extra = [ROOT / "Install SkyScope.bat"] + sorted((ROOT / "installer/windows").iterdir())
+        extra = [ROOT / "Install SkyScope.bat"] + sorted(f for f in (ROOT / "installer/windows").iterdir() if f.is_file())
         extra += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope.ico")]
     else:
         extra = [ROOT / "Install SkyScope.command"] + sorted((ROOT / "installer/mac").glob("*.sh"))

@@ -1,10 +1,10 @@
 # Install SkyScope on this PC (run by "Install SkyScope.bat"; run it again later to update; your settings are kept).
 #
 # Installs the program in %LOCALAPPDATA%\SkyScope and puts Start SkyScope and Stop SkyScope on the Desktop and in
-# the Start menu. Needs Python 3.10 or newer from python.org.
+# the Start menu. Needs Python 3.10 or newer from python.org, and offers to install it if it isn't there.
 # Designed and Created by Project Moon Pi.
 #
-# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no
+# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no SS_PYTHON=yes|no
 $ErrorActionPreference = 'Stop'
 $Src = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $AppDir = Join-Path $env:LOCALAPPDATA 'SkyScope'
@@ -33,6 +33,33 @@ foreach ($c in @(@{exe = 'py'; pre = @('-3')}, @{exe = 'python'; pre = @()})) {
     try { & $c.exe @argv 2>$null } catch { continue }    # e.g. the Microsoft Store's "python" placeholder
     if ($LASTEXITCODE -eq 0) { $py = $c; break }
 }
+# none: offer to install it from python.org, for this user only (no admin needed). This version is the one
+# SkyScope's packages were tested with; move it on when a newer one has been tried.
+$PyVersion = '3.15.2'
+if (-not $py -and (Ask $env:SS_PYTHON "SkyScope needs Python, which isn't on this PC yet.`n`nDownload and install Python $PyVersion from python.org now? It's installed for you only, about 30 MB, and takes a minute or two.")) {
+    $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
+    $setup = Join-Path $env:TEMP "python-$PyVersion-$arch.exe"
+    try {
+        Write-Host "Downloading Python $PyVersion from python.org..."
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $ProgressPreference = 'SilentlyContinue'     # (the progress bar makes Windows PowerShell 5.1 download slowly)
+        Invoke-WebRequest "https://www.python.org/ftp/python/$PyVersion/python-$PyVersion-$arch.exe" -OutFile $setup -UseBasicParsing
+        $sig = Get-AuthenticodeSignature $setup
+        if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Python Software Foundation') {
+            throw "the download isn't signed by the Python Software Foundation"
+        }
+        Write-Host "Installing Python $PyVersion..."
+        $p = Start-Process $setup -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1', 'Include_test=0' -Wait -PassThru
+        if ($p.ExitCode -ne 0) { throw "Python's installer stopped (exit code $($p.ExitCode))" }
+        $exe = Join-Path $env:LOCALAPPDATA ("Programs\Python\Python" + ($PyVersion.Split('.')[0..1] -join '') + '\python.exe')
+        & $exe @check 2>$null
+        if ($LASTEXITCODE -eq 0) { $py = @{exe = $exe; pre = @()} }
+    } catch {
+        Write-Host "Couldn't install Python: $_"
+    } finally {
+        Remove-Item $setup -ErrorAction SilentlyContinue
+    }
+}
 if (-not $py) {
     Write-Host 'SkyScope needs Python 3.10 or newer from https://www.python.org/downloads/'
     $go = [System.Windows.Forms.MessageBox]::Show(
@@ -54,6 +81,9 @@ $venvPy = Join-Path $AppDir 'venv\Scripts\python.exe'
 if (-not (Test-Path $venvPy)) { Run $py.exe ($py.pre + @('-m', 'venv', (Join-Path $AppDir 'venv'))) 'Setting up Python' }
 Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pip') 'Updating pip'
 Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pygame-ce') 'Installing pygame-ce'
+# pystray and Pillow put SkyScope's icon by the clock; without them it runs without the icon
+try { Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pystray', 'pillow') 'Installing pystray and Pillow' }
+catch { Write-Host "$_ - SkyScope will run without its icon by the clock." }
 
 # the program: replaced on every install; settings.json, the logo cache and the FlightAware count stay
 foreach ($d in 'web', 'data', 'docs') { Remove-Item (Join-Path $AppDir $d) -Recurse -Force -ErrorAction SilentlyContinue }
@@ -64,12 +94,17 @@ foreach ($f in 'README.md', 'LICENSE') { if (Test-Path (Join-Path $Src $f)) { Co
 foreach ($f in 'run.py', 'start.ps1', 'stop.ps1', 'uninstall.ps1', 'firewall.ps1') { Copy-Item (Join-Path $PSScriptRoot $f) $AppDir -Force }
 foreach ($f in 'skyscope-start.ico', 'skyscope-stop.ico', 'skyscope.ico') { Copy-Item (Join-Path $Src "tools\launcher\$f") $AppDir -Force }
 Get-ChildItem $AppDir -Recurse -File | Unblock-File      # drop the "downloaded from the internet" mark on our copies
+# SkyScope.exe: Python under SkyScope's own name and icon, so Task Manager shows "SkyScope" (pythonw.exe if not)
+$ErrorActionPreference = 'Continue'
+$exe = & $venvPy (Join-Path $PSScriptRoot 'brand_exe.py') $AppDir | Select-Object -Last 1
+$ErrorActionPreference = 'Stop'
+if (-not $exe -or -not (Test-Path $exe)) { $exe = Join-Path $AppDir 'venv\Scripts\pythonw.exe' }
 Push-Location $AppDir
 $version = & $venvPy -c 'from version import VERSION; print(VERSION)'
 # (no double quotes inside: Windows PowerShell 5.1 drops them from a program's arguments)
 $port = & $venvPy -c 'import json, os; p = ''settings.json''; print((json.load(open(p)).get(''web_port'') if os.path.exists(p) else 0) or 7700)'
 Pop-Location
-@{ port = [int]$port; phones = $phones; autostart = $autostart; version = "$version" } | ConvertTo-Json |
+@{ port = [int]$port; phones = $phones; autostart = $autostart; version = "$version"; exe = "$exe" } | ConvertTo-Json |
     Set-Content (Join-Path $AppDir 'install.json')
 
 # shortcuts: Desktop and Start menu, plus the Startup folder when it should start at sign-in
@@ -101,9 +136,8 @@ else { Remove-Item $startupLink -ErrorAction SilentlyContinue }
 $fw = Join-Path $AppDir 'firewall.ps1'
 $networkNote = ''
 if ($phones) {
-    $pythonw = & $venvPy -c "import os, sys; print(os.path.join(sys.base_prefix, 'pythonw.exe'))"   # the program that listens
     Write-Host 'Checking that phones on your home network can reach SkyScope...'
-    $state = & $fw -Allow -Port ([int]$port) -Program $pythonw
+    $state = & $fw -Allow -Port ([int]$port) -Program $exe      # the program that listens
     $public = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object NetworkCategory -eq 'Public').Count
     if ($state -eq 'Declined') {
         $networkNote = "Windows didn't allow the firewall change, so phones and Satellites can't reach SkyScope yet. Run the installer again and click Yes when Windows asks."
@@ -120,6 +154,6 @@ if ($env:SS_OPEN -eq 'no') { & (Join-Path $AppDir 'start.ps1') -NoBrowser } else
 Write-Host 'Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu).'
 if (-not $env:SS_PHONES) {
     [System.Windows.Forms.MessageBox]::Show(
-        "SkyScope is installed and running.`n`nUse Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu, under SkyScope).`n`nYou can delete the downloaded folder now." + $(if ($networkNote) { "`n`n$networkNote" } else { '' }),
+        "SkyScope is installed and running.`n`nWhile it runs, its green radar icon sits by the clock (click ^ if it's hidden there). Click it for the radar, the settings or to stop SkyScope.`n`nUse Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu, under SkyScope).`n`nYou can delete the downloaded folder now." + $(if ($networkNote) { "`n`n$networkNote" } else { '' }),
         'Install SkyScope', 'OK', 'Information') | Out-Null
 }

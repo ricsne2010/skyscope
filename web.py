@@ -918,6 +918,10 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",
         'Drawn with <a href="https://www.pygame.org" target="_blank" rel="noopener">pygame</a> (LGPL) in Python',
+        'Menu bar / taskbar icon (installed copies): <a href="https://github.com/moses-palmer/pystray" '
+        'target="_blank" rel="noopener">pystray</a> (LGPL 3), <a href="https://python-pillow.org" target="_blank" '
+        'rel="noopener">Pillow</a> (MIT-CMU) and, on a Mac, <a href="https://github.com/ronaldoussoren/pyobjc" '
+        'target="_blank" rel="noopener">PyObjC</a> (MIT)',
         'Built with <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a> (Anthropic)',
     ])
     about = (
@@ -1005,6 +1009,9 @@ class SettingsServer:
                         return
                     if path == "/api/state":
                         self._send_json(radar.web_state())
+                        return
+                    if path == "/api/status":  # the menu bar / taskbar icon
+                        self._send_json(radar.web_status())
                         return
                     if path == "/api/route":
                         a = {k: v[0][:20] for k, v in parse_qs(self.path.partition("?")[2]).items()}

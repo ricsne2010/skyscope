@@ -2,7 +2,9 @@
 # Start SkyScope: starts the background service if it isn't running, then opens the radar.
 # --no-browser: start it without opening the radar.
 . "$(dirname "$0")/common.sh"
-if ! up; then
+if up; then
+  [ "$1" = "--no-browser" ] && notify "SkyScope is already running." || notify "SkyScope is already running. Opening the radar…"
+else
   launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1 || launchctl bootstrap "$DOMAIN" "$PLIST"
   launchctl kickstart "$DOMAIN/$LABEL"
   notify "Starting SkyScope…"
