@@ -82,7 +82,7 @@
   <li><a href="#what">What SkyScope does</a></li>
   <li><a href="#requirements">Requirements</a></li>
   <li><a href="#install-pi">Installing on a Raspberry Pi</a></li>
-  <li><a href="#install-computer">Running on a laptop or desktop</a></li>
+  <li><a href="#install-computer">Installing on a Mac or Windows PC</a></li>
   <li><a href="#first-setup">First-time setup</a></li>
   <li><a href="#radar">Using the radar</a></li>
   <li><a href="#settings">The settings page</a></li>
@@ -176,33 +176,37 @@ echo "python3 $HOME/skyscope/skyscope.py &amp;" &gt;&gt; ~/.config/labwc/autosta
 <pre><code>python3 ~/skyscope/skyscope.py --web-only &amp;
 chromium --kiosk http://localhost:7700/radar</code></pre>
 
-<h2 id="install-computer">4. Running on a laptop or desktop</h2>
-<p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the web radar in your browser, and a desktop icon with a radar-screen picture starts it with one click.</p>
-<h3>Mac</h3>
-<ol class="steps">
-  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org (open the downloaded installer and follow it).</li>
-  <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>, and unzip it somewhere it can stay, such as your Documents folder. (Or <code>git clone https://github.com/ricsne2010/skyscope.git</code>.)</li>
-  <li>Open <b>Terminal</b>, type <code>cd </code> (with a space), drag the SkyScope folder onto the Terminal window, and press Return. Then install pygame-ce and make the desktop icons:
-<pre><code>python3 -m pip install pygame-ce
-sh tools/make_mac_app.sh</code></pre></li>
-  <li>Double-click the new <b>SkyScope</b> icon on your Desktop (a <b>Stop SkyScope</b> icon appears beside it). The radar opens in your browser after a few seconds. If macOS asks whether Python may accept incoming network connections, choose <b>Allow</b>, so phones and Satellite displays can reach it.</li>
-</ol>
-<h3>Windows 10 or 11</h3>
-<ol class="steps">
-  <li>Install <a href="https://www.python.org/downloads/">Python 3.10 or newer</a> from python.org. On the installer's first screen, tick <b>Add python.exe to PATH</b>, then choose <b>Install Now</b>.</li>
-  <li>Download SkyScope: on <a href="https://github.com/ricsne2010/skyscope">its GitHub page</a> choose <b>Code → Download ZIP</b>. Right-click the ZIP, choose <b>Extract All</b>, and put the folder somewhere it can stay, such as Documents.</li>
-  <li>In the SkyScope folder, open <b>tools</b>, then <b>windows</b>, and double-click <b>create-shortcut.bat</b>. If Windows warns about a file from the internet, choose <b>More info → Run anyway</b>. The window installs pygame-ce if needed and makes the <b>SkyScope</b> and <b>Stop SkyScope</b> shortcuts. Press a key to close it when it says <i>Done</i>.</li>
-  <li>Double-click the new <b>SkyScope</b> icon on your Desktop (it's also in the Start menu). The radar opens in your browser after a few seconds. If Windows Firewall asks about Python, allow it on <b>private networks</b>.</li>
-</ol>
-<h3>Using the icon</h3>
+<h2 id="install-computer">4. Installing on a Mac or Windows PC</h2>
+<p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the radar in your browser. An installer sets it up as a background program with <b>Start SkyScope</b> and <b>Stop SkyScope</b> icons, the same way as the US Train Tracker.</p>
+<h3>Step 1: Install Python (once)</h3>
 <ul>
-  <li>Click it to start SkyScope. It runs in the background, with no window of its own, and opens the radar. Clicking it while SkyScope is running just opens the radar again.</li>
-  <li>After restarting the computer, click it again. SkyScope keeps all your settings.</li>
-  <li>To stop SkyScope, click <b>Stop SkyScope</b> (the icon with the red stop badge). It says when SkyScope has stopped, or that it wasn't running. Only this computer can stop it; phones and other computers on your network can't.</li>
-  <li>If it doesn't start, a message says so, and the details are in <code>skyscope.log</code> in the SkyScope folder. If you move the SkyScope folder or reinstall Python, make the icons again (step 3).</li>
+  <li><b>Mac:</b> go to <a href="https://www.python.org/downloads/">python.org/downloads</a>, click <b>Download Python 3.x</b>, open the downloaded <code>.pkg</code> and click through it.</li>
+  <li><b>Windows:</b> the same download. On the installer's first screen, tick <b>Add python.exe to PATH</b>, then click <b>Install Now</b>.</li>
 </ul>
-<div class="note"><b>Without the icon:</b> in a terminal, in the SkyScope folder, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>), and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. To use the Pi-style display in a window instead: <code>python3 skyscope.py --window 1280x720</code>. The web radar is sharper on high-resolution (Retina or scaled) laptop screens.</div>
-<div class="note"><b>Why pygame-ce?</b> It's the community edition of pygame, a drop-in replacement with ready-made packages for the newest Python versions. Classic pygame often lags behind them, which makes installing it fail on a new Python.</div>
+<p>SkyScope needs Python 3.10 or newer. If it's already installed, skip this: the installer checks.</p>
+<h3>Step 2: Download SkyScope</h3>
+<p>From the <a href="https://github.com/ricsne2010/skyscope/releases/latest">latest release</a>, download <b>SkyScope-for-Mac.zip</b> or <b>SkyScope-for-Windows.zip</b>, and unzip it. (Windows: right-click the ZIP, then <b>Extract All…</b>.) The folder has a <b>READ ME FIRST</b> note and this guide.</p>
+<h3>Step 3: Run the installer</h3>
+<ol class="steps">
+  <li><b>Mac:</b> double-click <b>Install SkyScope.command</b>. If macOS says it can't check the developer, open <b>System Settings → Privacy &amp; Security</b>, scroll down to the message about it, and click <b>Open Anyway</b>. (On macOS 14 or older you can instead Control-click the file and choose <b>Open</b>.)<br>
+      <b>Windows:</b> double-click <b>Install SkyScope.bat</b>. If Windows says it protected your PC, click <b>More info</b>, then <b>Run anyway</b>.</li>
+  <li>Answer its two questions:
+    <ul>
+      <li><b>Phones too, or this computer only?</b> Choose <b>Phones too</b> if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, click <b>Yes</b> if it asks to allow changes: that opens the firewall for them, on home (private) networks only.</li>
+      <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you click Start SkyScope.</li>
+    </ul></li>
+  <li>It installs SkyScope (about a minute), starts it and opens the radar. If the Mac asks whether Python may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
+</ol>
+<h3>Using it</h3>
+<ul>
+  <li><b>Start SkyScope</b> (Desktop, and Applications → SkyScope or the Start menu) starts it if it isn't running and opens the radar.</li>
+  <li><b>Stop SkyScope</b> shuts it down; the radar stops until you start it again.</li>
+  <li><b>To update</b>, download a newer release and run its installer: your settings, FlightAware key and logo cache are kept.</li>
+  <li><b>Uninstall SkyScope</b> (Applications → SkyScope, or the Start menu) removes it and its settings.</li>
+  <li>If it won't start, a message says so. Its messages are in <code>~/Library/Logs/SkyScope.log</code> on a Mac, or <code>%LOCALAPPDATA%\SkyScope\skyscope.log</code> on Windows.</li>
+</ul>
+<div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\SkyScope</code>, with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions).</div>
+<div class="note"><b>Running from the source instead</b> (for developers): in a SkyScope folder from GitHub, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>) after <code>python3 -m pip install pygame-ce</code>, and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. <code>sh tools/make_mac_app.sh</code> or <code>tools\windows\create-shortcut.bat</code> makes desktop icons for that copy. <code>python3 skyscope.py --window 1280x720</code> shows the Pi-style display in a window.</div>
 
 <h2 id="first-setup">5. First-time setup</h2>
 <p>Open the settings page (<code>http://&lt;address&gt;:7700/radar_config</code>). The tabs across the top hold every option; nothing changes until you press <b>Save</b> in the bar at the bottom, which shows "Unsaved changes" whenever there's something to save.</p>

@@ -1456,7 +1456,7 @@ class SkyScope:
         self.invalidate()
 
 
-def run_web_only(settings: Settings) -> int:
+def run_web_only(settings: Settings, host: str = "0.0.0.0", open_browser: bool = True) -> int:
     """Data, GPS and web server only; the browser draws the radar."""
     import webbrowser
     if not settings.web_port:
@@ -1466,12 +1466,13 @@ def run_web_only(settings: Settings) -> int:
     # Geometry only: an off-screen surface stands in for the window.
     app = SkyScope(pygame.Surface((1920, 1080)), settings, feed)
     feed.start()
-    web = SettingsServer(settings, settings.web_port, app.web_statuses, app)
+    web = SettingsServer(settings, settings.web_port, app.web_statuses, app, host)
     if not web.start():
         return 1
     url = f"http://localhost:{settings.web_port}/radar"
     print(f"Radar: {url}   (Ctrl+C to stop)")
-    webbrowser.open(url)
+    if open_browser:
+        webbrowser.open(url)
     try:
         while not web.stop_requested.is_set():
             web.apply_pending(app.apply_changes)
@@ -1555,11 +1556,16 @@ def main() -> int:
     ap.add_argument("--no-splash", action="store_true", help="skip the start-up screen")
     ap.add_argument("--web-only", action="store_true",
                     help="no window: serve the radar to a browser at /radar (sharp on any screen)")
+    ap.add_argument("--no-browser", action="store_true",
+                    help="with --web-only: don't open the radar in a browser (a background service)")
+    ap.add_argument("--host", default="0.0.0.0",
+                    help="where the web pages listen: 0.0.0.0 (default) for phones and Satellite "
+                         "displays on your network too, 127.0.0.1 for this computer only")
     args = ap.parse_args()
 
     settings = Settings.load()
     if args.web_only:
-        return run_web_only(settings)
+        return run_web_only(settings, args.host, not args.no_browser)
     pygame.init()
     pygame.display.set_caption("SkyScope")
     if args.window:
@@ -1571,7 +1577,7 @@ def main() -> int:
     feed = AdsbFeed(settings.fetch_interval_s, settings.data_source, settings.sdr_location)
     app = SkyScope(screen, settings, feed)
     feed.start()
-    web = SettingsServer(settings, settings.web_port, app.web_statuses, app) if settings.web_port else None
+    web = SettingsServer(settings, settings.web_port, app.web_statuses, app, args.host) if settings.web_port else None
     if web and web.start():
         app.web_url = f"http://{lan_address()}:{settings.web_port}/radar_config"
 

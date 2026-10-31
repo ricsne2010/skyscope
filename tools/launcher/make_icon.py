@@ -2,6 +2,7 @@
 
     python3 tools/launcher/make_icon.py tools/launcher/skyscope-1024.png
     python3 tools/launcher/make_icon.py tools/launcher/skyscope-stop-1024.png --stop
+    python3 tools/launcher/make_icon.py tools/launcher/skyscope-start-1024.png --start
 
 skyscope.icns (Mac) and skyscope.ico (Windows) are made from that PNG; see
 make_mac_app.sh for the Mac steps."""
@@ -100,8 +101,10 @@ face.alpha_composite(hl)
 body = Image.new("RGBA", (W, W), (0, 0, 0, 0))
 body.paste(face, (0, 0), mask)
 img.alpha_composite(body)
-if "--stop" in sys.argv:
-    # The Stop SkyScope icon: a red stop badge over the scope's lower right.
+if "--stop" in sys.argv or "--start" in sys.argv:
+    # Start and Stop SkyScope: a badge over the scope's lower right, green with a
+    # play triangle or red with a stop square (as the train tracker's icons).
+    start = "--start" in sys.argv
     bx, by, br = off + tile * 0.80, off + tile * 0.80, 175 * SS
     badge = Image.new("RGBA", (W, W), (0, 0, 0, 0))
     bd = ImageDraw.Draw(badge)
@@ -110,8 +113,12 @@ if "--stop" in sys.argv:
     badge = badge.filter(ImageFilter.GaussianBlur(12 * SS))
     bd = ImageDraw.Draw(badge)
     bd.ellipse([bx - br - 14 * SS, by - br - 14 * SS, bx + br + 14 * SS, by + br + 14 * SS], fill=(255, 255, 255, 255))
-    bd.ellipse([bx - br, by - br, bx + br, by + br], fill=(222, 38, 38, 255))
+    bd.ellipse([bx - br, by - br, bx + br, by + br], fill=(34, 170, 80, 255) if start else (222, 38, 38, 255))
     q = br * 0.42
-    bd.rounded_rectangle([bx - q, by - q, bx + q, by + q], radius=14 * SS, fill=(255, 255, 255, 255))
+    if start:
+        bd.polygon([(bx - q * 0.75, by - q * 1.1), (bx - q * 0.75, by + q * 1.1), (bx + q * 1.2, by)],
+                   fill=(255, 255, 255, 255))
+    else:
+        bd.rounded_rectangle([bx - q, by - q, bx + q, by + q], radius=14 * SS, fill=(255, 255, 255, 255))
     img.alpha_composite(badge)
 img.resize((S, S), Image.LANCZOS).save(sys.argv[1])

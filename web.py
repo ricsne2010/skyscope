@@ -960,9 +960,10 @@ class SettingsServer:
     """Runs the web page on a daemon thread. The render loop calls
     apply_pending() each frame with a function that applies a change dict."""
 
-    def __init__(self, settings: Settings, port: int, statuses=lambda: {}, radar=None):
+    def __init__(self, settings: Settings, port: int, statuses=lambda: {}, radar=None, host: str = "0.0.0.0"):
         self.settings = settings
         self.port = port
+        self.host = host  # 0.0.0.0: the whole network (phones, Satellites); 127.0.0.1: this computer only
         self.statuses = statuses  # () → {group title: status line}
         self.radar = radar  # SkyScope app: data for the browser display at /radar
         self._pending: queue.Queue[tuple[dict, threading.Event]] = queue.Queue()
@@ -1153,12 +1154,13 @@ class SettingsServer:
                 self.end_headers()
 
         try:
-            httpd = ThreadingHTTPServer(("0.0.0.0", self.port), Handler)
+            httpd = ThreadingHTTPServer((self.host, self.port), Handler)
         except OSError as exc:
             print(f"web: can't listen on port {self.port}: {exc}")
             return False
         threading.Thread(target=httpd.serve_forever, name="web", daemon=True).start()
-        print(f"Settings page: http://{lan_address()}:{self.port}{CONFIG_PATH}")
+        where = lan_address() if self.host == "0.0.0.0" else self.host
+        print(f"Settings page: http://{where}:{self.port}{CONFIG_PATH}")
         return True
 
     def procedure_rows(self) -> list[dict]:

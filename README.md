@@ -333,31 +333,33 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-The same code runs anywhere Python 3.10+ and pygame do. On a computer, install
-**pygame-ce**, the drop-in community edition of pygame: it has ready-made
-packages for the newest Python versions, which classic pygame often doesn't yet. Download SkyScope
-(`git clone https://github.com/ricsne2010/skyscope.git`, or **Code → Download
-ZIP** and unzip it), then:
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Mac.zip)**
+or **[for Windows](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Windows.zip)**
+(also on the [latest release](../../releases/latest)), unzip it and double-click
+**Install SkyScope**. It needs Python 3.10 or newer from
+[python.org](https://www.python.org/downloads/) (on Windows, tick **Add
+python.exe to PATH**). The installer:
 
-**Mac:** install Python from [python.org](https://www.python.org/downloads/),
-then in Terminal, in the SkyScope folder:
+* installs SkyScope for you (Mac: `~/Library/Application Support/SkyScope`;
+  Windows: `%LOCALAPPDATA%\SkyScope`) with its own copy of pygame-ce,
+* asks whether phones and SkyScope Satellite displays on your Wi-Fi may open
+  it (otherwise it listens to this computer only), and whether it should start
+  when you log in,
+* puts **Start SkyScope** and **Stop SkyScope** on the Desktop (and in
+  Applications › SkyScope or the Start menu, with **Uninstall SkyScope**).
 
-```bash
-python3 -m pip install pygame-ce
-sh tools/make_mac_app.sh        # SkyScope and Stop SkyScope icons on your Desktop
-```
+Run the installer again to update or to change your answers: your settings,
+FlightAware key and logo cache are kept. If macOS says it can't verify the
+developer: System Settings › Privacy & Security › **Open Anyway**; if Windows
+says it protected your PC: **More info › Run anyway**. Step by step: section 4
+of the [guide](docs/SkyScope-Guide.pdf).
 
-**Windows 10/11:** install Python from [python.org](https://www.python.org/downloads/)
-(tick **Add python.exe to PATH**), then double-click
-**`tools\windows\create-shortcut.bat`** in the SkyScope folder. It installs
-pygame-ce if needed and puts SkyScope and Stop SkyScope shortcuts on the
-Desktop and in the Start menu. (If Windows warns about a downloaded file,
-choose **More info → Run anyway**.)
-
-Clicking the icon starts SkyScope in the background, if it isn't already
-running, and opens the radar in your browser; clicking it again just opens
-the radar. Output goes to `skyscope.log` in the SkyScope folder. To stop
-SkyScope, click **Stop SkyScope**; only the computer it runs on can stop it. From a terminal instead, on any system:
+**From the source** (developers, or Linux): download SkyScope
+(`git clone https://github.com/ricsne2010/skyscope.git`), install pygame-ce
+(`python3 -m pip install pygame-ce`, the drop-in community edition of pygame,
+which has ready-made packages for the newest Python versions), and run it
+from a terminal. `sh tools/make_mac_app.sh` (Mac) or
+`tools\windows\create-shortcut.bat` (Windows) makes desktop icons for that copy.
 
 ```bash
 python3 skyscope.py --web-only          # radar in your browser (sharpest); py on Windows
@@ -377,6 +379,17 @@ devices, so on a Pi use GPS or type the position in.
 (Mac) or scaled-display (Windows) resolution, so the window is drawn at
 standard resolution and the OS enlarges it, which looks slightly soft. A Pi on
 an HDMI TV or monitor isn't affected: one drawn pixel is one screen pixel.
+
+## Building the downloads
+
+`python3 tools/make_downloads.py` writes `dist/SkyScope-for-Mac.zip` and
+`dist/SkyScope-for-Windows.zip` (the installer, the program, the guide and a
+READ ME FIRST note; only files tracked by git) for attaching to a release.
+The installers live in `installer/` (`mac/`, `windows/`) with `Install
+SkyScope.command` and `Install SkyScope.bat`; the icons are in
+`tools/launcher/` (`make_icon.py --start` / `--stop`). For unattended test
+installs, answer the questions ahead: `SS_PHONES=yes|no`, `SS_AUTOSTART=yes|no`,
+`SS_OPEN=no` (and `SS_UNATTENDED=1` for the uninstaller).
 
 ## Testing on a desktop
 
