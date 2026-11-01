@@ -35,6 +35,7 @@ Designed and Created by Project Moon Pi
    (that lets phones and SkyScope Satellite displays reach it).
 
 Afterwards use Start SkyScope and Stop SkyScope on your Desktop (also in Applications > SkyScope).
+To remove it, double-click Uninstall SkyScope there.
 While SkyScope runs, its radar icon is in the menu bar: click it for the radar, settings or Stop.
 To update, run the installer of a newer version: your settings are kept.
 You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
@@ -49,6 +50,7 @@ Designed and Created by Project Moon Pi
    If you choose phones, click Yes if Windows asks to allow changes (that opens the firewall for them).
 
 Afterwards use Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu).
+To remove it, double-click Uninstall SkyScope there, or use Settings > Apps.
 While SkyScope runs, its green radar icon is by the clock (click ^ if it's hidden): click it for the
 radar, right-click for the settings or Stop.
 To update, run the installer of a newer version: your settings are kept.
@@ -73,10 +75,10 @@ def build(platform: str) -> Path:
     launcher = ROOT / "tools" / "launcher"
     if windows:
         extra = [ROOT / "Install SkyScope.bat"] + sorted(f for f in (ROOT / "installer/windows").iterdir() if f.is_file())
-        extra += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope.ico")]
+        extra += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico")]
     else:
         extra = [ROOT / "Install SkyScope.command"] + sorted((ROOT / "installer/mac").glob("*.sh"))
-        extra += [launcher / n for n in ("skyscope-start.icns", "skyscope-stop.icns", "skyscope.icns")]
+        extra += [launcher / n for n in ("skyscope-start.icns", "skyscope-stop.icns", "skyscope-uninstall.icns", "skyscope.icns")]
 
     def add(z, name, data, executable=False):
         info = zipfile.ZipInfo(f"{top}/{name}", date_time=time.localtime()[:6])

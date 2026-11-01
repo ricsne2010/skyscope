@@ -64,7 +64,11 @@ launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
 
 echo "Installing with $("$PY" --version) into $APPDIR (about a minute)…"
 mkdir -p "$APPDIR" "$APPS" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
-[ -x "$APPDIR/venv/bin/python" ] || "$PY" -m venv "$APPDIR/venv"
+# a fresh environment if there's none, or its Python was removed or is too old
+"$APPDIR/venv/bin/python" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null || {
+  rm -rf "$APPDIR/venv"
+  "$PY" -m venv "$APPDIR/venv"
+}
 "$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pip
 "$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pygame-ce
 # pystray and Pillow (with PyObjC) put SkyScope's icon in the menu bar; without them it runs without the icon
@@ -152,11 +156,12 @@ INFO
 }
 make_app "Start SkyScope" start.sh skyscope-start start
 make_app "Stop SkyScope" stop.sh skyscope-stop stop
-make_app "Uninstall SkyScope" uninstall.sh skyscope uninstall
+make_app "Uninstall SkyScope" uninstall.sh skyscope-uninstall uninstall
 # files from a downloaded zip carry macOS's "downloaded" flag; apps built here shouldn't
 xattr -dr com.apple.quarantine "$APPS" "$APPDIR" 2>/dev/null || true
 ln -sfn "$APPS/Start SkyScope.app" "$HOME/Desktop/Start SkyScope"
 ln -sfn "$APPS/Stop SkyScope.app" "$HOME/Desktop/Stop SkyScope"
+ln -sfn "$APPS/Uninstall SkyScope.app" "$HOME/Desktop/Uninstall SkyScope"
 
 launchctl bootstrap "$DOMAIN" "$PLIST"
 echo "Installed SkyScope $VERSION. Starting it…"
@@ -165,5 +170,5 @@ if [ "${SS_OPEN:-yes}" = no ]; then
 else
   "$APPS/Start SkyScope.app/Contents/MacOS/run"
 fi
-echo "Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in Applications › SkyScope)."
+echo "Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in Applications › SkyScope); Uninstall SkyScope is there too."
 [ -n "$SS_PHONES" ] || osascript -e 'display dialog "SkyScope is installed and running.\n\nWhile it runs, its radar icon is in the menu bar at the top of the screen: click it for the radar, the settings or to stop SkyScope.\n\nUse Start SkyScope and Stop SkyScope on your Desktop (also in your Applications folder, under SkyScope).\n\nYou can delete the downloaded folder now." buttons {"OK"} default button "OK" with title "Install SkyScope"' >/dev/null 2>&1 || true

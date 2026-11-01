@@ -1,13 +1,14 @@
 # Install SkyScope on this PC (run by "Install SkyScope.bat"; run it again later to update; your settings are kept).
 #
-# Installs the program in %LOCALAPPDATA%\SkyScope and puts Start SkyScope and Stop SkyScope on the Desktop and in
-# the Start menu. Needs Python 3.10 or newer from python.org, and offers to install it if it isn't there.
+# Installs the program in %LOCALAPPDATA%\SkyScope and puts Start, Stop and Uninstall SkyScope on the Desktop and in
+# the Start menu, and lists it in Windows' Settings > Apps (with its Uninstall button). Needs Python 3.10 or newer from python.org, and offers to install it if it isn't there.
 # Designed and Created by Project Moon Pi.
 #
 # For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no SS_PYTHON=yes|no
 $ErrorActionPreference = 'Stop'
 $Src = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $AppDir = Join-Path $env:LOCALAPPDATA 'SkyScope'
+$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectMoonPi.SkyScope'
 Add-Type -AssemblyName System.Windows.Forms
 
 function Ask($preset, $text) {
@@ -78,7 +79,15 @@ if (Test-Path (Join-Path $AppDir 'stop.ps1')) { & (Join-Path $AppDir 'stop.ps1')
 Write-Host "Installing into $AppDir (about a minute)..."
 New-Item -ItemType Directory -Force -Path $AppDir | Out-Null
 $venvPy = Join-Path $AppDir 'venv\Scripts\python.exe'
-if (-not (Test-Path $venvPy)) { Run $py.exe ($py.pre + @('-m', 'venv', (Join-Path $AppDir 'venv'))) 'Setting up Python' }
+# a fresh environment if there's none, or its Python was removed or is too old
+$venvOk = $false
+if (Test-Path $venvPy) {
+    try { & $venvPy -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>$null; $venvOk = $LASTEXITCODE -eq 0 } catch { }
+}
+if (-not $venvOk) {
+    Remove-Item (Join-Path $AppDir 'venv') -Recurse -Force -ErrorAction SilentlyContinue
+    Run $py.exe ($py.pre + @('-m', 'venv', (Join-Path $AppDir 'venv'))) 'Setting up Python'
+}
 Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pip') 'Updating pip'
 Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pygame-ce') 'Installing pygame-ce'
 # pystray and Pillow put SkyScope's icon by the clock; without them it runs without the icon
@@ -92,7 +101,7 @@ Copy-Item (Join-Path $Src '*.py') $AppDir -Force
 foreach ($d in 'web', 'data', 'docs') { Copy-Item (Join-Path $Src $d) $AppDir -Recurse -Force }
 foreach ($f in 'README.md', 'LICENSE') { if (Test-Path (Join-Path $Src $f)) { Copy-Item (Join-Path $Src $f) $AppDir -Force } }
 foreach ($f in 'run.py', 'start.ps1', 'stop.ps1', 'uninstall.ps1', 'firewall.ps1') { Copy-Item (Join-Path $PSScriptRoot $f) $AppDir -Force }
-foreach ($f in 'skyscope-start.ico', 'skyscope-stop.ico', 'skyscope.ico') { Copy-Item (Join-Path $Src "tools\launcher\$f") $AppDir -Force }
+foreach ($f in 'skyscope-start.ico', 'skyscope-stop.ico', 'skyscope-uninstall.ico', 'skyscope.ico') { Copy-Item (Join-Path $Src "tools\launcher\$f") $AppDir -Force }
 Get-ChildItem $AppDir -Recurse -File | Unblock-File      # drop the "downloaded from the internet" mark on our copies
 # SkyScope.exe: Python under SkyScope's own name and icon, so Task Manager shows "SkyScope" (pythonw.exe if not)
 $ErrorActionPreference = 'Continue'
@@ -126,11 +135,26 @@ New-Item -ItemType Directory -Force -Path $menu | Out-Null
 foreach ($dir in $desktop, $menu) {
     New-Shortcut (Join-Path $dir 'Start SkyScope.lnk') 'start.ps1' 'skyscope-start.ico' 'Start SkyScope and open the radar'
     New-Shortcut (Join-Path $dir 'Stop SkyScope.lnk') 'stop.ps1' 'skyscope-stop.ico' 'Stop SkyScope'
+    New-Shortcut (Join-Path $dir 'Uninstall SkyScope.lnk') 'uninstall.ps1' 'skyscope-uninstall.ico' 'Remove SkyScope from this PC'
 }
-New-Shortcut (Join-Path $menu 'Uninstall SkyScope.lnk') 'uninstall.ps1' 'skyscope.ico' 'Remove SkyScope from this PC'
 $startupLink = Join-Path ([Environment]::GetFolderPath('Startup')) 'SkyScope.lnk'
 if ($autostart) { New-Shortcut $startupLink 'start.ps1' 'skyscope-start.ico' 'Start SkyScope at sign-in' '-NoBrowser' }
 else { Remove-Item $startupLink -ErrorAction SilentlyContinue }
+
+# Settings > Apps (and Control Panel > Programs) list it, with an Uninstall button that runs uninstall.ps1
+$size = [int]((Get-ChildItem $AppDir -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1KB)
+$uninstall = "`"$powershell`" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$(Join-Path $AppDir 'uninstall.ps1')`""
+New-Item -Path $UninstallKey -Force | Out-Null
+foreach ($v in @(@('DisplayName', 'SkyScope'), @('DisplayVersion', "$version"), @('Publisher', 'Project Moon Pi'),
+                 @('DisplayIcon', (Join-Path $AppDir 'skyscope.ico')), @('InstallLocation', $AppDir),
+                 @('UninstallString', $uninstall), @('QuietUninstallString', "$uninstall -Quiet"),
+                 @('URLInfoAbout', 'https://github.com/ricsne2010/skyscope'),
+                 @('InstallDate', (Get-Date -Format 'yyyyMMdd')))) {
+    New-ItemProperty -Path $UninstallKey -Name $v[0] -Value $v[1] -PropertyType String -Force | Out-Null
+}
+foreach ($v in @(@('NoModify', 1), @('NoRepair', 1), @('EstimatedSize', $size))) {
+    New-ItemProperty -Path $UninstallKey -Name $v[0] -Value $v[1] -PropertyType DWord -Force | Out-Null
+}
 
 # phones and Satellites: make sure the firewall lets them in on home networks (Windows asks only if needed)
 $fw = Join-Path $AppDir 'firewall.ps1'
@@ -151,9 +175,9 @@ if ($networkNote) { Write-Host $networkNote }
 
 Write-Host "Installed SkyScope $version. Starting it..."
 if ($env:SS_OPEN -eq 'no') { & (Join-Path $AppDir 'start.ps1') -NoBrowser } else { & (Join-Path $AppDir 'start.ps1') }
-Write-Host 'Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu).'
+Write-Host 'Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu); Uninstall SkyScope is there too, and in Settings > Apps.'
 if (-not $env:SS_PHONES) {
     [System.Windows.Forms.MessageBox]::Show(
-        "SkyScope is installed and running.`n`nWhile it runs, its green radar icon sits by the clock (click ^ if it's hidden there). Click it for the radar, the settings or to stop SkyScope.`n`nUse Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu, under SkyScope).`n`nYou can delete the downloaded folder now." + $(if ($networkNote) { "`n`n$networkNote" } else { '' }),
+        "SkyScope is installed and running.`n`nWhile it runs, its green radar icon sits by the clock (click ^ if it's hidden there). Click it for the radar, the settings or to stop SkyScope.`n`nUse Start SkyScope and Stop SkyScope on your Desktop (also in the Start menu, under SkyScope). To remove it, use Uninstall SkyScope there, or Settings > Apps.`n`nYou can delete the downloaded folder now." + $(if ($networkNote) { "`n`n$networkNote" } else { '' }),
         'Install SkyScope', 'OK', 'Information') | Out-Null
 }

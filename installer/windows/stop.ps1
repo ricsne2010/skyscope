@@ -25,9 +25,14 @@ if (Test-Path $pidFile) {
 # or one started some other way)
 Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
     ForEach-Object { Stop-IfPython $_.OwningProcess }
-# and its icon by the clock (it would go by itself within a few seconds)
-Get-Process -Name SkyScope -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$AppDir\*" } |
-    Stop-Process -Force -ErrorAction SilentlyContinue
+# and its icon by the clock: it goes by itself within a few seconds of SkyScope (closing it by force would leave a
+# dead icon there until the mouse passes over it), so only if it hasn't
+for ($i = 0; $i -lt 16; $i++) {
+    $icon = @(Get-Process -Name SkyScope -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$AppDir\*" })
+    if (-not $icon) { break }
+    Start-Sleep -Milliseconds 500
+}
+$icon | Stop-Process -Force -ErrorAction SilentlyContinue
 
 $still = $true
 for ($i = 0; $i -lt 20; $i++) {

@@ -207,6 +207,9 @@ class Tray:
                                  self.headline(), menu)
         if sys.platform == "darwin":
             sharp_on_retina(self.icon)
+            import AppKit
+            # menu bar only: no Python icon in the Dock or the app switcher
+            AppKit.NSApplication.sharedApplication().setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
 
         def setup(icon):
             icon.visible = True

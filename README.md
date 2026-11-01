@@ -347,8 +347,9 @@ the Python Software Foundation). The installer:
 * asks whether phones and SkyScope Satellite displays on your Wi-Fi may open
   it (otherwise it listens to this computer only), and whether it should start
   when you log in,
-* puts **Start SkyScope** and **Stop SkyScope** on the Desktop (and in
-  Applications › SkyScope or the Start menu, with **Uninstall SkyScope**).
+* puts **Start SkyScope**, **Stop SkyScope** and **Uninstall SkyScope** on the
+  Desktop (and in Applications › SkyScope or the Start menu); on Windows it's
+  also listed in **Settings › Apps**, whose Uninstall button does the same.
 
 **Is it running?** While SkyScope runs in the background, its radar icon
 sits in the Mac menu bar (black or white like the icons beside it; faint if
