@@ -9,24 +9,29 @@ SRC="$(cd "$(dirname "$0")/../.." && pwd)"           # the program's files (insi
 . "$SRC/installer/mac/common.sh"
 set -e
 step() { echo "@@ $1 $2"; }
+PIP=(--disable-pip-version-check --no-input --progress-bar off)   # pip says what it fetches (for the details box)
 PY=${SS_PY:?}; PHONES=${SS_PHONES:-yes}; AUTOSTART=${SS_AUTOSTART:-no}; DESKTOP=${SS_DESKTOP:-yes}
 
 step 3 "Stopping SkyScope, if it's running..."
-launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
+if launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1; then echo "Stopped the running SkyScope."; else echo "SkyScope wasn't running."; fi
 mkdir -p "$APPDIR" "$APPS" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
+echo "Program folder: $APPDIR"
+echo "Apps folder: $APPS"
 
 step 8 "Setting up Python for SkyScope..."
+echo "Using $("$PY" -c 'import sys; print("Python", sys.version.split()[0])') ($PY)"
 # a fresh environment if there's none, or its Python was removed or is too old
 "$APPDIR/venv/bin/python" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null || {
   rm -rf "$APPDIR/venv"
+  echo "Making SkyScope's own Python environment (venv)..."
   "$PY" -m venv "$APPDIR/venv"
-}
-"$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pip || true
+} && echo "SkyScope's Python environment: $APPDIR/venv"
+"$APPDIR/venv/bin/python" -m pip install --quiet "${PIP[@]}" --upgrade pip || true
 step 20 "Installing pygame-ce (it draws the radar)..."
-"$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pygame-ce
+"$APPDIR/venv/bin/python" -m pip install "${PIP[@]}" --upgrade pygame-ce
 step 45 "Installing the menu bar icon (pystray, Pillow)..."
 # pystray and Pillow (with PyObjC) put SkyScope's icon in the menu bar; without them it runs without the icon
-"$APPDIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade pystray pillow ||
+"$APPDIR/venv/bin/python" -m pip install "${PIP[@]}" --upgrade pystray pillow ||
   echo "(Couldn't install pystray and Pillow: SkyScope will run without its menu bar icon.)"
 
 step 68 "Naming SkyScope for Activity Monitor..."
@@ -38,6 +43,7 @@ if cp "$REAL" "$APPDIR/venv/bin/SkyScope.new" && codesign --force -s - "$APPDIR/
    PYGAME_HIDE_SUPPORT_PROMPT=1 "$APPDIR/venv/bin/SkyScope.new" -c 'import sys, pygame; sys.exit(sys.prefix == sys.base_prefix)' 2>/dev/null; then
   mv -f "$APPDIR/venv/bin/SkyScope.new" "$APPDIR/venv/bin/SkyScope"
   EXE="$APPDIR/venv/bin/SkyScope"
+  echo "Made $EXE (a signed copy of Python under SkyScope's name)"
 else
   rm -f "$APPDIR/venv/bin/SkyScope.new"
   echo "(Activity Monitor will show SkyScope as Python.)"
@@ -54,6 +60,8 @@ mkdir -p "$APPDIR/installer/mac"
 cp "$SRC/installer/mac/window.py" "$SRC/installer/mac/uninstall.sh" "$SRC/installer/mac/common.sh" "$APPDIR/installer/mac/"
 VERSION=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'from version import VERSION; print(VERSION)')
 PORT=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'import json; print(json.load(open("settings.json")).get("web_port") or 7700)' 2>/dev/null || echo 7700)
+echo "Copied SkyScope $VERSION ($(ls "$APPDIR"/*.py | wc -l | tr -d ' ') program files, web pages, data, guide)"
+echo "Web port $PORT; phones and Satellites: $PHONES; start at login: $AUTOSTART"
 printf 'PORT=%s\nPHONES=%s\nAUTOSTART=%s\nDESKTOP=%s\nAPPS="%s"\n' "$PORT" "$PHONES" "$AUTOSTART" "$DESKTOP" "$APPS" > "$APPDIR/settings.sh"
 
 step 80 "Setting up the background service..."
@@ -85,6 +93,7 @@ cat > "$PLIST" <<PLIST
 </dict>
 </plist>
 PLIST
+echo "Wrote the service: $PLIST"
 
 step 84 "Making Start, Stop and Uninstall SkyScope..."
 # Each is a small AppleScript app (made by macOS's osacompile) that runs its script from Contents/Resources. A real
@@ -112,6 +121,7 @@ make_app() {   # make_app "Name" script icon id
   plutil -replace LSUIElement -bool YES "$plist"
   codesign --force -s - "$app" 2>/dev/null || true   # signed again after the changes, so macOS knows it
   touch "$app"
+  echo "Made $app"
 }
 # an earlier SkyScope kept its apps in your own Applications folder
 [ "$APPS" = "$HOME/Applications/SkyScope" ] || rm -rf "$HOME/Applications/SkyScope"
@@ -125,17 +135,20 @@ step 92 "Adding the icons..."
 if [ "$DESKTOP" = yes ]; then
   # (macOS asks once whether the installer may change the Desktop)
   { ln -sfn "$APPS/Start SkyScope.app" "$HOME/Desktop/Start SkyScope" &&
-    ln -sfn "$APPS/Stop SkyScope.app" "$HOME/Desktop/Stop SkyScope"; } 2>/dev/null ||
+    ln -sfn "$APPS/Stop SkyScope.app" "$HOME/Desktop/Stop SkyScope"; } 2>/dev/null && echo "Put Start and Stop SkyScope on the Desktop" ||
     echo "@! macOS didn't let the installer put Start and Stop SkyScope on your Desktop: they're in Applications › SkyScope."
 else
   rm -f "$HOME/Desktop/Start SkyScope" "$HOME/Desktop/Stop SkyScope" 2>/dev/null || true
+  echo "No Desktop icons (as chosen)"
 fi
 rm -f "$HOME/Desktop/Uninstall SkyScope" 2>/dev/null || true   # (1.6.1 put one there; it lives in Applications › SkyScope)
 
 step 95 "Starting SkyScope..."
 launchctl bootstrap "$DOMAIN" "$PLIST"
 launchctl kickstart "$DOMAIN/$LABEL"
+echo "Started the service; waiting for SkyScope to answer on port $PORT..."
 for _ in $(seq 1 90); do up && break; sleep 1; done
+up && echo "SkyScope is running: http://localhost:$PORT"
 up || { echo "SkyScope didn't start: its messages are in $LOG"; exit 2; }
 step 100 "Done."
 echo "VERSION=$VERSION PORT=$PORT"

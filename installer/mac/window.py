@@ -445,6 +445,8 @@ class Installer:
         self.log.config(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")
         self.log.pack(side="left", fill="both", expand=True)
+        self.log.tag_config("step", foreground="#e8e8e8", font=("Menlo", 9, "bold"))   # each step's heading
+        self.log.tag_config("note", foreground="#ffcc00")
         ttk.Label(self.body, text=f"Everything is also kept in the log: {LOG.replace(os.path.expanduser('~'), '~')}",
                   style="Note.TLabel", wraplength=WRAP).pack(anchor="w", side="bottom", pady=(6, 0))
         self.fit()
@@ -461,6 +463,13 @@ class Installer:
             self.details.pack(anchor="w", fill="both", pady=(6, 0), after=self.details_b)
             self.details_b.config(text="Hide details")
         self.fit()
+
+    def show(self, text, tag=None):
+        """A line in the details box (the steps' headings stand out; the work under them is grey)."""
+        if self.log.index("end-1c") == "1.0":
+            text = text.lstrip("\n")
+        self.log.insert("end", text + "\n", tag or ())
+        self.log.see("end")
 
     def run(self, script, env, steps, then):
         tail = []
@@ -482,12 +491,14 @@ class Installer:
                     if m:
                         pct, what = int(m.group(1)), m.group(2)
                         nxt = next((s for s in steps if s > pct), 100)
-                        self.later(lambda w=what, a=pct, b=nxt: (self.status.config(text=w), self.bar.set(a / 100, b / 100)))
+                        self.later(lambda w=what, a=pct, b=nxt: (self.status.config(text=w), self.bar.set(a / 100, b / 100),
+                                                                 self.show(f"\n▸ {w}", "step")))
                     elif line.startswith("@! "):
                         self.notes.append(line[3:])
+                        self.later(lambda t=line[3:]: self.show(f"  Note: {t}", "note"))
                     else:
                         tail = (tail + [line])[-12:]
-                        self.later(lambda t=line: (self.log.insert("end", t + "\n"), self.log.see("end")))
+                        self.later(lambda t=line: self.show("  " + t))
             ok = p.wait() == 0
         except Exception as e:
             tail, ok = tail + [str(e)], False

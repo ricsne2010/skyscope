@@ -10,10 +10,10 @@ if [ -z "$SS_UNATTENDED$SS_WINDOW" ]; then
   [ "$answer" = "Remove" ] || exit 0
 fi
 step 10 "Stopping SkyScope..."
-launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1
-rm -f "$PLIST" "$LOG"
+launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 && echo "Stopped SkyScope." || echo "SkyScope wasn't running."
+rm -f "$PLIST" "$LOG" && echo "Removed the background service ($PLIST)"
 step 40 "Removing the program and its settings..."
-rm -rf "$APPDIR"
+rm -rf "$APPDIR" && echo "Removed $APPDIR (the program, its Python environment and settings)"
 step 75 "Removing the icons..."
 # the Desktop icons: macOS asks once whether Uninstall SkyScope may change the Desktop
 icons=("$HOME/Desktop/Start SkyScope" "$HOME/Desktop/Stop SkyScope" "$HOME/Desktop/Uninstall SkyScope")
@@ -29,5 +29,6 @@ elif [ -z "$SS_UNATTENDED" ]; then
   osascript -e "display dialog \"$done_msg\" buttons {\"OK\"} default button \"OK\" with title \"Uninstall SkyScope\"" >/dev/null 2>&1
 fi
 step 95 "Removing Start, Stop and Uninstall SkyScope..."
+echo "Removing $APPS"
 rm -rf "$HOME/Applications/SkyScope" "/Applications/SkyScope"   # last: this app lives in one of them
 step 100 "Done."
