@@ -21,7 +21,7 @@ static class Runner
 
     static string PidFile(string dir) { return Path.Combine(dir, App.Slug + ".pid"); }
 
-    public static string PythonW(string dir) { return Path.Combine(dir, @"venv\Scripts\pythonw.exe"); }
+    public static string PythonW(string dir) { return App.PythonW(dir); }
 
     // --run: the app itself
     public static int Run(string dir)
@@ -58,12 +58,13 @@ static class Runner
         bool installing = Environment.GetEnvironmentVariable("SS_INSTALLING") == "1";
         if (Web.Up(port))
         {
-            if (browser && !installing) { using (Note(App.Name + " is already running. Opening " + App.PageName + "...")) { Proc.Open(url); Sleep(3000); } }
+            // (no notices for an app with no StartingNote: a game opened from its icon just opens)
+            if (browser && !installing && App.StartingNote != null) { using (Note(App.Name + " is already running. Opening " + App.PageName + "...")) { Proc.Open(url); Sleep(3000); } }
             else if (browser) Proc.Open(url);
             return 0;
         }
         var host = Process.Start(new ProcessStartInfo(App.Exe, "--run") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir });
-        using (installing ? null : Note(App.StartingNote))
+        using (installing || App.StartingNote == null ? null : Note(App.StartingNote))
         {
             for (int i = 0; i < App.StartSeconds * 2 && !host.HasExited; i++)
             {

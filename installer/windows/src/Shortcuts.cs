@@ -1,5 +1,6 @@
-// The app's shortcuts: Start and Stop in the Start menu (and on the Desktop if wanted), Remove <App> in the Start menu,
-// and Start at sign-in in the Startup folder when it should. All of them open <App>.exe in the install folder.
+// The app's shortcuts (App.Links: Start and Stop, or Play) in the Start menu and on the Desktop if wanted, Remove <App>
+// in the Start menu, and Start at sign-in in the Startup folder when it should. All of them open <App>.exe in the
+// install folder.
 // Designed and Created by Project Moon Pi.
 using System;
 using System.IO;
@@ -26,13 +27,10 @@ static class Shortcuts
     {
         Directory.CreateDirectory(Menu);
         var places = onDesktop ? new[] { Menu, Desktop } : new[] { Menu };
-        if (!onDesktop) { Files.TryDelete(Path.Combine(Desktop, "Start " + App.Name + ".lnk")); Files.TryDelete(Path.Combine(Desktop, "Stop " + App.Name + ".lnk")); }
-        Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));     // (1.6.1 put one there)
+        if (!onDesktop) foreach (var l in App.Links) Files.TryDelete(Path.Combine(Desktop, l[0] + ".lnk"));
+        Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));     // (earlier versions put one there)
         foreach (var place in places)
-        {
-            Make(Path.Combine(place, "Start " + App.Name + ".lnk"), dir, "", App.Icon("start"), "Start " + App.Display + " and open " + App.PageName);
-            Make(Path.Combine(place, "Stop " + App.Name + ".lnk"), dir, "--stop", App.Icon("stop"), "Stop " + App.Display);
-        }
+            foreach (var l in App.Links) Make(Path.Combine(place, l[0] + ".lnk"), dir, l[1], App.Icon(l[2]), l[3]);
         // Remove <App>: two things keep Windows' Start menu from hiding it (found in the Win11 VM): no description
         // (one about removing the program hides it), and a new command on every install (--installed <time>), made
         // as a new shortcut: Windows remembers a Remove shortcut that went with an uninstall and hides any later one
@@ -42,13 +40,14 @@ static class Shortcuts
         Files.TryDelete(Path.Combine(Menu, "Remove " + App.Name + ".lnk"));
         Make(Path.Combine(Menu, "Remove " + App.Name + ".lnk"), dir, "--uninstall --installed " + DateTime.Now.ToString("yyyyMMddHHmmss"),
              App.Icon("uninstall"), "");
-        if (atSignIn) Make(Startup, dir, "--no-browser", App.Icon("start"), "Start " + App.Display + " at sign-in");
+        if (atSignIn) Make(Startup, dir, "--no-browser", App.Icon(App.Links[0][2]), "Start " + App.Display + " at sign-in");
         else Files.TryDelete(Startup);
     }
 
     public static void RemoveAll()
     {
-        foreach (var name in new[] { "Start", "Stop", "Uninstall" }) Files.TryDelete(Path.Combine(Desktop, name + " " + App.Name + ".lnk"));
+        foreach (var l in App.Links) Files.TryDelete(Path.Combine(Desktop, l[0] + ".lnk"));
+        Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));
         Files.TryDelete(Startup);
         Files.TryDeleteDir(Menu);
     }

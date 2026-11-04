@@ -34,6 +34,15 @@ static partial class App
     public const int StartSeconds = 90;
     public const string StartingNote = "Starting SkyScope...";
 
+    // its shortcuts in the Start menu (and on the Desktop if wanted): name, <App>.exe's arguments, icon, description
+    public static readonly string[][] Links = {
+        new[] { "Start SkyScope", "", "start", "Start SkyScope and open the radar" },
+        new[] { "Stop SkyScope", "--stop", "stop", "Stop SkyScope" },
+    };
+
+    // the Python that runs it: its own Python set-up's (venv), without a console window
+    public static string PythonW(string dir) { return Path.Combine(dir, @"venv\Scripts\pythonw.exe"); }
+
     // the icons in the install folder (copied from tools\launcher)
     public static string Icon(string kind)                 // "app", "start", "stop", "uninstall"
     {
