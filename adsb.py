@@ -235,7 +235,7 @@ class AdsbFeed:
 
 def _load_json(location: str) -> dict:
     if location.startswith(("http://", "https://")):
-        req = urllib.request.Request(location, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"})
+        req = urllib.request.Request(location, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"})
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_S) as resp:
             return json.load(resp)
     with open(location, encoding="utf-8") as f:

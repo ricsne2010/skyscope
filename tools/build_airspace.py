@@ -28,7 +28,7 @@ def fetch(cls: str) -> list[dict]:
             "outSR": 4326, "geometryPrecision": 5, "resultOffset": offset,
             "resultRecordCount": page_size, "f": "geojson"})
         for attempt in range(4):
-            req = urllib.request.Request(f"{SERVICE}?{query}", headers={"User-Agent": "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"})
+            req = urllib.request.Request(f"{SERVICE}?{query}", headers={"User-Agent": "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"})
             with urllib.request.urlopen(req, timeout=120) as resp:
                 doc = json.load(resp)
             if "features" in doc:

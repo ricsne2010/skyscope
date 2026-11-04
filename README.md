@@ -19,8 +19,8 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.6.3 for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)** ·
-**[SkyScope 1.6.3 for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
+**[SkyScope 1.6.3 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)** ·
+**[SkyScope 1.6.3 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
 (or the [latest release](../../releases/latest) page). Unzip it and double-click
 **Install SkyScope**; the [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
@@ -284,7 +284,7 @@ in Raspberry Pi Imager):
 
 ```bash
 sudo apt update && sudo apt install -y python3-pygame git
-git clone https://github.com/ricsne2010/skyscope.git ~/skyscope
+git clone https://github.com/projectmoonpi/skyscope.git ~/skyscope
 python3 ~/skyscope/skyscope.py
 
 # start on boot
@@ -342,8 +342,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)**
-or **[for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
 (also on the [latest release](../../releases/latest)), unzip it and double-click
 **Install SkyScope**. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
@@ -379,7 +379,7 @@ says it protected your PC: **More info › Run anyway**. Step by step: section 4
 of the [guide](docs/SkyScope-Guide.pdf).
 
 **From the source** (developers, or Linux): download SkyScope
-(`git clone https://github.com/ricsne2010/skyscope.git`), install pygame-ce
+(`git clone https://github.com/projectmoonpi/skyscope.git`), install pygame-ce
 (`python3 -m pip install pygame-ce`, the drop-in community edition of pygame,
 which has ready-made packages for the newest Python versions), and run it
 from a terminal. `sh tools/make_mac_app.sh` (Mac) or
@@ -506,11 +506,11 @@ Logos sit on a light tile so dark logos stay readable on the dark screen.
 
 Both run on a 4.3″ ESP32-S3 touch display (Sunton ESP32-8048S043, 800×480):
 
-- **[SkyScope Satellite](https://github.com/ricsne2010/skyscope-satellite)**: a
+- **[SkyScope Satellite](https://github.com/projectmoonpi/skyscope-satellite)**: a
   second screen for this SkyScope. It reads `/api/satellite` and shows the same
   radar, range, filters and map. Point it at `skyscope.local` (name the Pi
   `skyscope`) or at the address on the settings page's **About** tab.
-- **[SkyScope Mini](https://github.com/ricsne2010/skyscope-mini)**: a small
+- **[SkyScope Mini](https://github.com/projectmoonpi/skyscope-mini)**: a small
   standalone radar that fetches adsb.fi itself; no Pi needed.
 
 ## Credits and data

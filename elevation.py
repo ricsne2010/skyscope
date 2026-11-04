@@ -11,7 +11,7 @@ import threading
 import urllib.parse
 import urllib.request
 
-USER_AGENT = "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"
+USER_AGENT = "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"
 OPEN_METEO = "https://api.open-meteo.com/v1/elevation"
 TIMEOUT_S = 8
 FT_PER_M = 3.28084

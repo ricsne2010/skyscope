@@ -58,7 +58,7 @@ def read_lines(path: Path | None) -> list[str]:
         return path.read_text(encoding="latin-1").splitlines()
     url = current_cycle_url()
     print(f"downloading {url} ...")
-    data = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"}), timeout=300).read()
+    data = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"}), timeout=300).read()
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         name = next(n for n in z.namelist() if n.upper().startswith("FAACIFP"))
         return z.read(name).decode("latin-1").splitlines()

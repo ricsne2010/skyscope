@@ -15,7 +15,7 @@ import time
 import urllib.parse
 import urllib.request
 
-USER_AGENT = "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"
+USER_AGENT = "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"
 PLANESPOTTERS = "https://api.planespotters.net/pub/photos/{}/{}"
 TIMEOUT_S = 8
 AIRFRAME_TTL_S = 24 * 3600  # re-check an airframe's photo after a day

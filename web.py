@@ -137,7 +137,7 @@ SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_s
 UNITS = {"gps_update_s": "s"}
 TABS = [("general", "General"), ("display", "Display"), ("map", "Map"), ("filters", "Filters"),
         ("presets", "Presets"), ("alerts", "Alerts"), ("about", "About")]
-REPO = "https://github.com/ricsne2010"
+REPO = "https://github.com/projectmoonpi"
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

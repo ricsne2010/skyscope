@@ -363,7 +363,7 @@ function Main {
     foreach ($v in @(@('DisplayName', 'SkyScope'), @('DisplayVersion', "$version"), @('Publisher', 'Project Moon Pi'),
                      @('DisplayIcon', (Join-Path $AppDir 'skyscope.ico')), @('InstallLocation', $AppDir),
                      @('UninstallString', $uninstall), @('QuietUninstallString', "$uninstall -Quiet"),
-                     @('URLInfoAbout', 'https://github.com/ricsne2010/skyscope'),
+                     @('URLInfoAbout', 'https://github.com/projectmoonpi/skyscope'),
                      @('InstallDate', (Get-Date -Format 'yyyyMMdd')))) {
         New-ItemProperty -Path $UninstallKey -Name $v[0] -Value $v[1] -PropertyType String -Force | Out-Null
     }

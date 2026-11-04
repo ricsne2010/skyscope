@@ -32,7 +32,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-USER_AGENT = "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"
+USER_AGENT = "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"
 ADSBDB = "https://api.adsbdb.com/v0/callsign/{}"
 HEXDB = "https://hexdb.io/api/v1/route/icao/{}"
 HEXDB_FRESH_S = 2 * 365 * 86400  # a hexdb route updated within two years is preferred

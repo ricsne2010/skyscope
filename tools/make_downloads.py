@@ -197,8 +197,8 @@ def update_readme() -> None:
     """The README's download links: this version's files on its GitHub release."""
     readme = ROOT / "README.md"
     text = readme.read_text()
-    new = re.sub(r"https://github\.com/ricsne2010/skyscope/releases/[^)\s]*?SkyScope-[^)\s]*?for-(Mac|Windows)\.zip",
-                 lambda m: f"https://github.com/ricsne2010/skyscope/releases/download/v{VERSION}/SkyScope-{VERSION}-for-{m.group(1)}.zip",
+    new = re.sub(r"https://github\.com/projectmoonpi/skyscope/releases/[^)\s]*?SkyScope-[^)\s]*?for-(Mac|Windows)\.zip",
+                 lambda m: f"https://github.com/projectmoonpi/skyscope/releases/download/v{VERSION}/SkyScope-{VERSION}-for-{m.group(1)}.zip",
                  text)
     new = re.sub(r"SkyScope [\d.]+ for (Mac|Windows)\]", lambda m: f"SkyScope {VERSION} for {m.group(1)}]", new)
     if new != text:

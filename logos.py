@@ -108,7 +108,7 @@ class LogoStore:
             code = self._queue.get()
             url = SOURCE_URL.format(code)
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/ricsne2010/skyscope)"})
+                req = urllib.request.Request(url, headers={"User-Agent": "SkyScope/1.0 (+https://github.com/projectmoonpi/skyscope)"})
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     data = resp.read()
                 (CACHE_DIR / f"{code}.png").write_bytes(data)
