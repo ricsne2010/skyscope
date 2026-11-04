@@ -185,16 +185,16 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <p>From the <a href="https://github.com/ricsne2010/skyscope/releases/latest">latest release</a>, download <b>SkyScope-<i>version</i>-for-Mac.zip</b> or <b>SkyScope-<i>version</i>-for-Windows.zip</b> (for example SkyScope-1.6.2-for-Mac.zip), and unzip it. (Windows: right-click the ZIP, then <b>Extract All…</b>.) The folder has a <b>READ ME FIRST</b> note and this guide.</p>
 <h3>Step 3: Run the installer</h3>
 <ol class="steps">
-  <li><b>Mac:</b> double-click <b>Install SkyScope.command</b>. If macOS says it can't check the developer, open <b>System Settings → Privacy &amp; Security</b>, scroll down to the message about it, and click <b>Open Anyway</b>. (On macOS 14 or older you can instead Control-click the file and choose <b>Open</b>.)<br>
+  <li><b>Mac:</b> double-click <b>Install SkyScope</b> (the radar icon). It opens the installer's window, like the M.O.S.S. SD Card Creator's: it checks the Mac, asks its questions, then shows each step of the install. If the Mac hasn't got Python yet, it first offers to install it from python.org (click <b>Install Python</b>; macOS asks for your password). If macOS says it can't check the developer, open <b>System Settings → Privacy &amp; Security</b>, scroll down to the message about it, and click <b>Open Anyway</b>. (On macOS 14 or older you can instead Control-click the file and choose <b>Open</b>.)<br>
       <b>Windows:</b> double-click <b>Install SkyScope</b> (the radar icon) in the extracted folder. If Windows says it protected your PC, click <b>More info</b>, then <b>Run anyway</b>. It opens the installer's window, with the Project Moon Pi logo.</li>
-  <li>Answer its questions (on Windows, tick boxes on one page, then <b>Install</b>):
+  <li>Answer its questions (tick boxes on one page, then <b>Install</b>):
     <ul>
       <li><b>Where?</b> (Windows) <b>Install in</b> suggests a SkyScope folder of your own; type another or click <b>Browse…</b>. It can't go in Program Files (SkyScope installs just for you, without admin permission). A folder that already holds other things gets a SkyScope folder inside it.</li>
       <li><b>Phones too, or this computer only?</b> Choose phones if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, a note then explains Windows' "allow this app to make changes" question for Windows PowerShell: click <b>Yes</b>. That opens the firewall for them, on home (private) networks only.</li>
       <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you click Start SkyScope.</li>
       <li><b>Start and Stop on the Desktop?</b> They're in Applications → SkyScope (Mac) or the Start menu (Windows) either way.</li>
     </ul></li>
-  <li>It installs SkyScope (about a minute), starts it and opens the radar (on Windows, after you click <b>Finish</b>, with <b>Open the radar now</b> ticked). If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
+  <li>It installs SkyScope (about a minute), showing each step, and starts it last. Click <b>Finish</b>: with <b>Open the radar now</b> ticked, the radar opens. If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
 </ol>
 <h3>Using it</h3>
 <ul>

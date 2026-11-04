@@ -19,8 +19,8 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.6.2 for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Mac.zip)** ·
-**[SkyScope 1.6.2 for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Windows.zip)**
+**[SkyScope 1.6.3 for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)** ·
+**[SkyScope 1.6.3 for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
 (or the [latest release](../../releases/latest) page). Unzip it and double-click
 **Install SkyScope**; the [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
@@ -342,8 +342,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Mac.zip)**
-or **[for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Windows.zip)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Mac.zip)**
+or **[for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.3/SkyScope-1.6.3-for-Windows.zip)**
 (also on the [latest release](../../releases/latest)), unzip it and double-click
 **Install SkyScope**. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
@@ -410,8 +410,12 @@ an HDMI TV or monitor isn't affected: one drawn pixel is one screen pixel.
 `dist/SkyScope-<version>-for-Windows.zip` (named with the version, and it points
 this README's download links at them; the installer, the program, the guide and a
 READ ME FIRST note; only files tracked by git) for attaching to a release.
-The installers live in `installer/` (`mac/`, `windows/`) with `Install
-SkyScope.command` and `installer/windows/Install SkyScope.exe` (a small launcher
+The installers live in `installer/` (`mac/`, `windows/`). On a Mac,
+`make_downloads.py` builds **Install SkyScope.app** (an AppleScript app made with
+`osacompile`, the program inside it), which opens the installer's window
+(`installer/mac/window.py`, Tk, made like the M.O.S.S. SD Card Creator's; try it
+with `python3 installer/mac/window.py --dry-run`, `--uninstall --dry-run`); its work
+is `install.sh` / `uninstall.sh`. On Windows, `installer/windows/Install SkyScope.exe` (a small launcher
 with the SkyScope icon that opens the installer's window, `ui.ps1`, without a
 console; rebuild it from `launcher.cs` with `build_launcher.ps1` on Windows, or on
 a Mac with Mono: `csc -target:winexe -reference:System.Windows.Forms.dll
@@ -420,7 +424,7 @@ a Mac with Mono: `csc -target:winexe -reference:System.Windows.Forms.dll
 installs, answer the questions ahead: `SS_PHONES=yes|no`, `SS_AUTOSTART=yes|no`,
 `SS_OPEN=no`, `SS_PYTHON=yes|no` (install Python if it's missing; and
 `SS_UNATTENDED=1` for the uninstaller). The Python they install is pinned
-(`PY_VERSION` in `Install SkyScope.command`, `$PyVersion` in
+(`PY_VERSION` in `installer/mac/get_python.sh`, `$PyVersion` in
 `installer/windows/install.ps1`): move it on once pygame-ce, Pillow and PyObjC
 have packages for a newer one. The menu bar / taskbar icon is `tray.py`,
 started by `skyscope.py --web-only --tray`; on Windows, `brand_exe.py` makes
