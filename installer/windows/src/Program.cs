@@ -32,7 +32,7 @@ static class Program
                 Process.Start(new ProcessStartInfo(Path.Combine(dir, "Uninstall " + App.Name + ".exe")) { UseShellExecute = false, WorkingDirectory = dir });
                 return 0;
             }
-            if (!File.Exists(Path.Combine(dir, "install.json")))
+            if (!App.IsInstalledIn(dir))
             {
                 MessageBox.Show(App.Name + " isn't installed in " + dir + ". Run Install " + App.Name + " first.", App.Name);
                 return 1;

@@ -1,9 +1,10 @@
 // SkyScope.exe, in the install folder: starts and stops the app, and is the app's own process while it runs.
-//   SkyScope.exe                 Start: starts it in the background if it isn't running, then opens it in the browser
-//   SkyScope.exe --no-browser    Start without opening the browser (at sign-in, and by the installer)
-//   SkyScope.exe --stop [--quiet]   Stop (--quiet: no message afterwards)
-//   SkyScope.exe --uninstall     opens Uninstall <App>.exe beside it (the Start menu's Remove <App>)
-//   SkyScope.exe --run           the app itself: runs its Python program hidden and stays while it runs, so Task
+// <App>.exe, in the install folder: starts and stops the app, and is the app's own process while it runs.
+//   <App>.exe                 Start: starts it in the background if it isn't running, then opens it in the browser
+//   <App>.exe --no-browser    Start without opening the browser (at sign-in, and by the installer)
+//   <App>.exe --stop [--quiet]   Stop (--quiet: no message afterwards)
+//   <App>.exe --uninstall     opens Uninstall <App>.exe beside it (the Start menu's Remove <App>)
+//   <App>.exe --run           the app itself: runs its Python program hidden and stays while it runs, so Task
 //                                Manager lists it under the app's own name and icon (Python's own files are never
 //                                changed). Stopping it ends the venv's Python launcher, which takes Python with it.
 // Designed and Created by Project Moon Pi.
@@ -18,23 +19,23 @@ static class Runner
 {
     static string StopSignal { get { return "Local\\" + App.Id + ".Stop"; } }
 
+    static string PidFile(string dir) { return Path.Combine(dir, App.Slug + ".pid"); }
+
     public static string PythonW(string dir) { return Path.Combine(dir, @"venv\Scripts\pythonw.exe"); }
 
     // --run: the app itself
     public static int Run(string dir)
     {
-        bool phones = App.InstalledFlag(dir, "phones", true);
-        var args = Proc.Quote(App.Runner(dir)) + " " + App.RunArgs(phones);
-        var si = new ProcessStartInfo(PythonW(dir), args) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir };
+        var si = new ProcessStartInfo(PythonW(dir), App.RunArgs(dir)) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir };
         si.EnvironmentVariables["PYGAME_HIDE_SUPPORT_PROMPT"] = "1";
         Process p;
         try { p = Process.Start(si); }
         catch (Exception e)
         {
-            File.AppendAllText(Path.Combine(dir, App.Name.ToLowerInvariant() + ".log"), DateTime.Now + " couldn't start Python: " + e.Message + "\r\n");
+            File.AppendAllText(App.AppLog(dir), DateTime.Now + " couldn't start Python: " + e.Message + "\r\n");
             return 1;
         }
-        try { File.WriteAllText(Path.Combine(dir, App.Name.ToLowerInvariant() + ".pid"), Process.GetCurrentProcess().Id.ToString()); } catch { }
+        try { File.WriteAllText(PidFile(dir), Process.GetCurrentProcess().Id.ToString()); } catch { }
         using (var stop = new EventWaitHandle(false, EventResetMode.ManualReset, StopSignal))
         using (var ended = new ManualResetEvent(false) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(p.Handle, false) })
         {
@@ -53,17 +54,18 @@ static class Runner
     public static int Start(string dir, bool browser)
     {
         int port = App.InstalledPort(dir);
-        string url = "http://127.0.0.1:" + port + "/radar";
+        string url = "http://127.0.0.1:" + port + App.OpenPath;
         bool installing = Environment.GetEnvironmentVariable("SS_INSTALLING") == "1";
         if (Web.Up(port))
         {
-            if (browser) { using (Note("SkyScope is already running. Opening the radar...")) { Proc.Open(url); Sleep(3000); } }
+            if (browser && !installing) { using (Note(App.Name + " is already running. Opening " + App.PageName + "...")) { Proc.Open(url); Sleep(3000); } }
+            else if (browser) Proc.Open(url);
             return 0;
         }
         var host = Process.Start(new ProcessStartInfo(App.Exe, "--run") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir });
-        using (installing ? null : Note("Starting " + App.Name + "..."))
+        using (installing ? null : Note(App.StartingNote))
         {
-            for (int i = 0; i < 180 && !host.HasExited; i++)
+            for (int i = 0; i < App.StartSeconds * 2 && !host.HasExited; i++)
             {
                 if (Web.Up(port, 1000)) break;
                 Sleep(500);
@@ -71,7 +73,7 @@ static class Runner
         }
         if (!Web.Up(port))
         {
-            MessageBox.Show(App.Name + " didn't start. Its messages are in " + Path.Combine(dir, App.Name.ToLowerInvariant() + ".log"),
+            MessageBox.Show(App.Name + " didn't start. Its messages are in " + App.AppLog(dir),
                             App.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
@@ -80,7 +82,7 @@ static class Runner
     }
 
     // Stop: the app's own shutdown request first (its icon by the clock then goes by itself), then firmer if needed.
-    // Also stops an install from before SkyScope.exe (any program running from the install folder).
+    // Also stops an install from before <App>.exe (any program running from the install folder).
     public static int Stop(string dir, bool quiet)
     {
         int port = App.InstalledPort(dir);
@@ -99,7 +101,7 @@ static class Runner
         foreach (var p in RunningFrom(dir)) { try { p.Kill(); } catch { } }
         bool still = true;
         for (int i = 0; i < 20; i++) { if (!Web.Up(port, 500)) { still = false; break; } Sleep(250); }
-        Files.TryDelete(Path.Combine(dir, App.Name.ToLowerInvariant() + ".pid"));
+        Files.TryDelete(PidFile(dir));
         if (!quiet)
         {
             if (still) MessageBox.Show(App.Name + " is still running: something else may be using port " + port + ".", App.Name, MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -112,7 +114,7 @@ static class Runner
     {
         try
         {
-            int id = int.Parse(File.ReadAllText(Path.Combine(dir, App.Name.ToLowerInvariant() + ".pid")).Trim());
+            int id = int.Parse(File.ReadAllText(PidFile(dir)).Trim());
             var p = Process.GetProcessById(id);
             string at = Proc.PathOf(p);
             return at != null && at.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase) ? p : null;

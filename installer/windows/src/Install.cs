@@ -160,7 +160,7 @@ static class Install
     {
         chosen = Environment.ExpandEnvironmentVariables(chosen).TrimEnd('\\');
         if (Directory.Exists(chosen) && Directory.EnumerateFileSystemEntries(chosen).Any()
-            && !File.Exists(Path.Combine(chosen, "install.json"))
+            && !File.Exists(Path.Combine(chosen, App.InfoFile))
             && !string.Equals(Path.GetFileName(chosen), App.Name, StringComparison.OrdinalIgnoreCase))
             return Path.Combine(chosen, App.Name);
         return chosen;
@@ -220,11 +220,11 @@ static class Install
     static int Steps()
     {
         Ui.Open("Install " + App.Name, Path.Combine(Src, @"docs\images\moon-pi-logo-128.png"),
-                Path.Combine(Src, @"tools\launcher\" + App.Name.ToLowerInvariant() + ".ico"), App.Name);
+                Path.Combine(Src, @"tools\launcher\" + App.Icon("app")), App.Name);
         App.Log("window shown");
 
         var py = FindPython();
-        string intro = App.Tagline + " This installs " + App.Name + " for you on this PC; it runs quietly in the background, with a radar icon by the clock.";
+        string intro = "A live aircraft radar, in your web browser. This installs " + App.Name + " for you on this PC; it runs quietly in the background, with a radar icon by the clock.";
         if (py == null) intro += "\n\nIt also installs Python " + App.PyVersion + " from python.org (about 36 MB), which " + App.Name + " runs on.";
         string was = App.InstalledDir();
         string suggest = Env("SS_DIR") ?? was ?? App.DefaultDir;
@@ -312,7 +312,7 @@ static class Install
         if (was != null && !string.Equals(was, AppDir, StringComparison.OrdinalIgnoreCase) && Directory.Exists(was)) others.Add(was);
         foreach (var d in new[] { AppDir }.Concat(others))
         {
-            if (!File.Exists(Path.Combine(d, "install.json"))) continue;
+            if (!File.Exists(Path.Combine(d, App.InfoFile))) continue;
             if (Web.Up(App.InstalledPort(d))) WasRunning = d;     // (if this install goes wrong after this, it's started again)
             App.Log("stopping the copy in " + d);
             Runner.Stop(d, true);
@@ -334,7 +334,7 @@ static class Install
                     try { Run(py.Exe, py.With(Path.Combine(Src, @"installer\keep_key.py"), "save", settings, App.KeptKey), "Keeping the FlightAware key", 44, 10); }
                     catch (Exception e) { App.Log(e.Message + " - the FlightAware key couldn't be kept"); }
                 }
-                if (File.Exists(Path.Combine(d, "install.json"))) { Files.TryDeleteDir(d); App.Log("removed " + d); }
+                if (File.Exists(Path.Combine(d, App.InfoFile))) { Files.TryDeleteDir(d); App.Log("removed " + d); }
             }
             Shortcuts.RemoveAll();
             Registry.CurrentUser.DeleteSubKeyTree(App.UninstallKey, false);
@@ -417,8 +417,7 @@ static class Install
         Put(Path.Combine(win, "run.py"), Path.Combine(AppDir, "run.py"));
         foreach (var exe in new[] { App.Name + ".exe", "Uninstall " + App.Name + ".exe" })
             Put(Path.Combine(win, exe), Path.Combine(AppDir, exe));
-        string lower = App.Name.ToLowerInvariant();
-        foreach (var ico in new[] { lower + "-start.ico", lower + "-stop.ico", lower + "-uninstall.ico", lower + ".ico" })
+        foreach (var ico in new[] { App.Icon("start"), App.Icon("stop"), App.Icon("uninstall"), App.Icon("app") })
             Put(Path.Combine(Src, @"tools\launcher\" + ico), Path.Combine(AppDir, ico));
         Put(Path.Combine(Src, @"docs\images\moon-pi-logo-128.png"), Path.Combine(AppDir, "logo.png"));
         // what the PowerShell installers (before 1.7) left: their scripts, and Python renamed for Task Manager
@@ -434,7 +433,7 @@ static class Install
 
         string version = Regex.Match(File.ReadAllText(Path.Combine(AppDir, "version.py")), "VERSION = \"([^\"]+)\"").Groups[1].Value;
         int port = App.PortOf(AppDir);
-        Json.Write(Path.Combine(AppDir, "install.json"), new Dictionary<string, object> {
+        Json.Write(Path.Combine(AppDir, App.InfoFile), new Dictionary<string, object> {
             { "port", port }, { "phones", phones }, { "autostart", autostart }, { "desktop", onDesktop },
             { "version", version }, { "exe", Path.Combine(AppDir, App.Name + ".exe") } });
 
@@ -451,7 +450,7 @@ static class Install
             k.SetValue("DisplayName", App.Name);
             k.SetValue("DisplayVersion", version);
             k.SetValue("Publisher", "Project Moon Pi");
-            k.SetValue("DisplayIcon", Path.Combine(AppDir, lower + ".ico"));
+            k.SetValue("DisplayIcon", Path.Combine(AppDir, App.Icon("app")));
             k.SetValue("InstallLocation", AppDir);
             k.SetValue("UninstallString", uninstall);
             k.SetValue("QuietUninstallString", uninstall + " -Quiet");
@@ -463,7 +462,7 @@ static class Install
         }
 
         // moved from another folder: it's stopped, its settings came along and everything else has been replaced
-        foreach (var d in others) if (File.Exists(Path.Combine(d, "install.json"))) Files.TryDeleteDir(d);
+        foreach (var d in others) if (File.Exists(Path.Combine(d, App.InfoFile))) Files.TryDeleteDir(d);
 
         // phones and Satellites: make sure the firewall lets them in on home networks (Windows asks for
         // permission only if needed, and a note says so first)
@@ -496,7 +495,7 @@ static class Install
             " in the Start menu, Uninstall " + App.Name + " in " + AppDir + ", or Settings > Apps." +
             (networkNote != null ? "\n\n" + networkNote : "") + string.Concat(notes.Select(n => "\n\n" + n));
         var open = Ui.Done(done, "Finish", new[] { new Box("Open the radar now", up && Env("SS_OPEN") != "no") });
-        if (up && open.Length > 0 && open[0] && !Ui.Unattended) Proc.Open("http://127.0.0.1:" + port + "/radar");
+        if (up && open.Length > 0 && open[0] && !Ui.Unattended) Proc.Open("http://127.0.0.1:" + port + App.OpenPath);
         return 0;
     }
 

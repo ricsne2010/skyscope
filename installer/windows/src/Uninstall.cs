@@ -22,7 +22,7 @@ static class Uninstall
         string dir = at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
         if (dir == null)
         {
-            if (File.Exists(Path.Combine(App.Here, "install.json")))
+            if (App.IsInstalledIn(App.Here))
             {
                 // in the install folder: carry on from a copy in %TEMP%
                 string tmp = Path.Combine(Path.GetTempPath(), App.Name + " uninstall " + Process.GetCurrentProcess().Id);
@@ -55,14 +55,13 @@ static class Uninstall
 
     static int Steps(string dir, bool quiet)
     {
-        string lower = App.Name.ToLowerInvariant();
         // a FlightAware key: asked about on its own (it's yours, from FlightAware's site; kept, it comes back next time)
         var fa = Json.Read(Path.Combine(dir, "settings.json"));
         string key = fa != null && fa.ContainsKey("flightaware_key") ? Convert.ToString(fa["flightaware_key"]) : "";
         bool dropKey = true;
         if (!quiet)
         {
-            Ui.Open("Uninstall " + App.Name, Path.Combine(dir, "logo.png"), Path.Combine(dir, lower + "-uninstall.ico"), App.Name);
+            Ui.Open("Uninstall " + App.Name, Path.Combine(dir, "logo.png"), Path.Combine(dir, App.Icon("uninstall")), App.Name);
             var boxes = new List<Box>();
             if (key != "") boxes.Add(new Box("Also delete my FlightAware API key (ending " + key.Substring(Math.Max(0, key.Length - 4)) + ")", true));
             string text = "Remove " + App.Name + " from this PC?\n\nIt stops " + App.Name + " and removes the program, its shortcuts and its settings (location, filters). Python stays, for anything else that uses it.";

@@ -51,9 +51,9 @@ static partial class App
     {
         string at = null;
         using (var k = Registry.CurrentUser.OpenSubKey(UninstallKey)) { if (k != null) at = k.GetValue("InstallLocation") as string; }
-        if (!string.IsNullOrEmpty(at) && File.Exists(Path.Combine(at, "install.json"))) return at.TrimEnd('\\');
-        string before = Path.Combine(LocalAppData, Name);          // (the default before 1.6)
-        if (File.Exists(Path.Combine(before, "install.json"))) return before;
+        if (!string.IsNullOrEmpty(at) && File.Exists(Path.Combine(at, InfoFile))) return at.TrimEnd('\\');
+        foreach (var before in OldDirs)                            // (where earlier versions installed it)
+            if (File.Exists(Path.Combine(before, InfoFile))) return before;
         return null;
     }
 
@@ -64,11 +64,13 @@ static partial class App
             var v = k == null ? null : k.GetValue("DisplayVersion") as string;
             if (!string.IsNullOrEmpty(v)) return v;
         }
-        var j = Json.Read(Path.Combine(dir, "install.json"));
+        var j = InstallInfo(dir);
         return j != null && j.ContainsKey("version") ? Convert.ToString(j["version"]) : null;
     }
 
-    public static Dictionary<string, object> InstallInfo(string dir) { return Json.Read(Path.Combine(dir, "install.json")); }
+    public static Dictionary<string, object> InstallInfo(string dir) { return Json.Read(Path.Combine(dir, InfoFile)); }
+    public static bool IsInstalledIn(string dir) { return File.Exists(Path.Combine(dir, InfoFile)); }
+    public static string AppLog(string dir) { return Path.Combine(dir, Slug + ".log"); }
 
     public static int InstalledPort(string dir)
     {
@@ -207,7 +209,7 @@ static class Web
     {
         try
         {
-            var r = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/radar");
+            var r = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + App.ProbePath);
             r.Timeout = ms; r.ReadWriteTimeout = ms; r.Proxy = null;
             using (r.GetResponse()) return true;
         }
@@ -215,14 +217,15 @@ static class Web
         catch { return false; }
     }
 
-    // the app's own shutdown request (only from this computer, with this header)
+    // the app's own shutdown request (only from this computer, with its header), if it has one
     public static bool AskToStop(int port)
     {
+        if (App.StopHeader == null) return false;
         try
         {
             var r = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/api/shutdown");
             r.Method = "POST"; r.Timeout = 3000; r.Proxy = null; r.ContentLength = 0;
-            r.Headers["X-SkyScope"] = "stop";
+            r.Headers[App.StopHeader] = "stop";
             using (r.GetResponse()) return true;
         }
         catch { return false; }

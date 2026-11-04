@@ -24,15 +24,14 @@ static class Shortcuts
 
     public static void Make(string dir, bool onDesktop, bool atSignIn)
     {
-        string lower = App.Name.ToLowerInvariant();
         Directory.CreateDirectory(Menu);
         var places = onDesktop ? new[] { Menu, Desktop } : new[] { Menu };
         if (!onDesktop) { Files.TryDelete(Path.Combine(Desktop, "Start " + App.Name + ".lnk")); Files.TryDelete(Path.Combine(Desktop, "Stop " + App.Name + ".lnk")); }
         Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));     // (1.6.1 put one there)
         foreach (var place in places)
         {
-            Make(Path.Combine(place, "Start " + App.Name + ".lnk"), dir, "", lower + "-start.ico", "Start " + App.Name + " and open it");
-            Make(Path.Combine(place, "Stop " + App.Name + ".lnk"), dir, "--stop", lower + "-stop.ico", "Stop " + App.Name);
+            Make(Path.Combine(place, "Start " + App.Name + ".lnk"), dir, "", App.Icon("start"), "Start " + App.Display + " and open " + App.PageName);
+            Make(Path.Combine(place, "Stop " + App.Name + ".lnk"), dir, "--stop", App.Icon("stop"), "Stop " + App.Display);
         }
         // Remove <App>: two things keep Windows' Start menu from hiding it (found in the Win11 VM): no description
         // (one about removing the program hides it), and a new command on every install (--installed <time>), made
@@ -42,8 +41,8 @@ static class Shortcuts
         Files.TryDelete(Path.Combine(Menu, "Uninstall " + App.Name + ".lnk"));
         Files.TryDelete(Path.Combine(Menu, "Remove " + App.Name + ".lnk"));
         Make(Path.Combine(Menu, "Remove " + App.Name + ".lnk"), dir, "--uninstall --installed " + DateTime.Now.ToString("yyyyMMddHHmmss"),
-             lower + "-uninstall.ico", "");
-        if (atSignIn) Make(Startup, dir, "--no-browser", lower + "-start.ico", "Start " + App.Name + " at sign-in");
+             App.Icon("uninstall"), "");
+        if (atSignIn) Make(Startup, dir, "--no-browser", App.Icon("start"), "Start " + App.Display + " at sign-in");
         else Files.TryDelete(Startup);
     }
 
