@@ -450,6 +450,21 @@ PAGE = """<!doctype html>
         form.querySelector('[name=lat]').value = pos.coords.latitude.toFixed(6);
         form.querySelector('[name=lon]').value = pos.coords.longitude.toFixed(6);
         apField.value = '';
+        // A computer without Wi-Fi (a desktop on a cable, a virtual machine) can only guess from its internet
+        // address: the middle of the internet provider's city, often kilometres off. Then it's filled in but not
+        // saved, with a note saying so; a close fix (Wi-Fi, GPS) is saved at once.
+        const metres = pos.coords.accuracy || 0;
+        if (metres > 1500) {
+          geo.disabled = false; geo.textContent = "Use this computer's location";
+          geoNote.hidden = false;
+          geoNote.textContent = `This is only a rough guess, to within about ${Math.round(metres / 1000)} km: ` +
+            "this computer has no Wi-Fi to find itself by (a desktop on a network cable, or a virtual machine), " +
+            "so it went by the internet address, which usually points at the middle of your provider's city. " +
+            "Check the position above, change it or choose an airport if it's wrong, then click Save.";
+          markDirty();
+          return;
+        }
+        geoNote.hidden = true;
         dirty = false; form.requestSubmit(form.querySelector('button.save'));
       }, err => {
         geo.disabled = false; geo.textContent = "Use this computer's location";

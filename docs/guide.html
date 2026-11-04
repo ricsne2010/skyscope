@@ -219,7 +219,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <figure><img src="images/settings-general.jpg" alt="The General tab of the settings page">
   <figcaption>The General tab: where the radar is centred, and where its aircraft data comes from.</figcaption></figure>
 <ol class="steps">
-  <li><b>Choose the centre.</b> On the <b>General</b> tab, with <b>Manual</b> selected, either search for an airport (by code or name, such as <code>KDVT</code>, <code>PHX</code> or <code>Heathrow</code>) and pick it, or type a latitude and longitude. On a laptop, <b>Use this computer's location</b> fills them in for you.</li>
+  <li><b>Choose the centre.</b> On the <b>General</b> tab, with <b>Manual</b> selected, either search for an airport (by code or name, such as <code>KDVT</code>, <code>PHX</code> or <code>Heathrow</code>) and pick it, or type a latitude and longitude. On a laptop, <b>Use this computer's location</b> fills them in for you. A computer without Wi-Fi (a desktop on a network cable, or a virtual machine) can only guess from its internet address, often the middle of your provider's city: SkyScope then says it's a rough guess and waits for you to check the position and click <b>Save</b>.</li>
   <li><b>Pick your units</b> on the <b>Display</b> tab: distance (km, statute miles or nautical miles), speed and altitude.</li>
   <li><b>Pick a range</b> on the Display tab: the distance from the centre to the outer ring.</li>
   <li>Press <b>Save</b>, then <b>Open radar</b> (top right) to see the result.</li>
@@ -335,6 +335,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>No route for a flight</td><td>Without a FlightAware key, routes come from community databases by flight number, which don't know every flight; SkyScope shows one only when it fits where the aircraft is. A FlightAware key gives the filed route of the card's aircraft. See <a href="#routes">Flight routes</a>.</td></tr>
   <tr><td>“No image available” for an aircraft</td><td>Photos only appear when Planespotters.net has one of that exact aircraft; many light aircraft and helicopters have none. To hide the photo box altogether, turn off the aircraft photo on the settings page's Display tab.</td></tr>
   <tr><td>No SIDs or STARs appear</td><td>Tick SIDs or STARs for at least one airport on the Map tab, and check the Show switch isn't set to None. Only US airports have this data.</td></tr>
+  <tr><td>"Use this computer's location" puts you in the middle of town</td><td>That computer has no Wi-Fi to find itself by (a desktop on a cable, or a virtual machine), so it guessed from the internet address. Pick your airport or type the position instead.</td></tr>
   <tr><td>"Use this computer's location" is missing</td><td>Browsers only share location with the computer running SkyScope (<code>localhost</code>). On a Pi, type the position, pick an airport, or use GPS.</td></tr>
   <tr><td>The Pi display is jerky</td><td>See <a href="#install-pi">If the Pi struggles</a> in section 3.</td></tr>
 </table>

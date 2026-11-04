@@ -401,6 +401,10 @@ Then open **http://localhost:7700/radar_config** (settings) in a browser on the 
 click **Use this computer's location**. The browser asks permission and
 fills in your position from the operating system's location service (on a
 laptop, worked out from nearby Wi-Fi; usually within a few hundred metres).
+A computer without Wi-Fi (a desktop on a network cable, or a virtual machine)
+can only guess from its internet address, often just the middle of your
+provider's city: then SkyScope fills the position in but doesn't save it,
+and says to check it first.
 On a Mac, Location Services must be on for your browser (System Settings →
 Privacy & Security → Location Services). The button only appears on
 `localhost`: browsers don't share location with plain-http pages on other
