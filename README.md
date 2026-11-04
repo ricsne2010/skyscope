@@ -17,6 +17,15 @@ in any web browser (sharp on Retina and high-DPI screens).
   on your network, or alone on a laptop with `--web-only`.
 - Settings page at `http://<address>:7700/radar_config`.
 
+## Download
+
+**[SkyScope 1.6.2 for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Mac.zip)** ·
+**[SkyScope 1.6.2 for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Windows.zip)**
+(or the [latest release](../../releases/latest) page). Unzip it and double-click
+**Install SkyScope**; the [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
+has the details. (GitHub's green **Code › Download ZIP** button gives the source
+code as `skyscope-main.zip`, which isn't the installer.)
+
 ## Documentation
 
 **[SkyScope Guide (PDF)](docs/SkyScope-Guide.pdf)**: requirements, step-by-step
@@ -333,8 +342,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Mac.zip)**
-or **[for Windows](https://github.com/ricsne2010/skyscope/releases/latest/download/SkyScope-for-Windows.zip)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Mac.zip)**
+or **[for Windows](https://github.com/ricsne2010/skyscope/releases/download/v1.6.2/SkyScope-1.6.2-for-Windows.zip)**
 (also on the [latest release](../../releases/latest)), unzip it and double-click
 **Install SkyScope**. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
@@ -397,8 +406,9 @@ an HDMI TV or monitor isn't affected: one drawn pixel is one screen pixel.
 
 ## Building the downloads
 
-`python3 tools/make_downloads.py` writes `dist/SkyScope-for-Mac.zip` and
-`dist/SkyScope-for-Windows.zip` (the installer, the program, the guide and a
+`python3 tools/make_downloads.py` writes `dist/SkyScope-<version>-for-Mac.zip` and
+`dist/SkyScope-<version>-for-Windows.zip` (named with the version, and it points
+this README's download links at them; the installer, the program, the guide and a
 READ ME FIRST note; only files tracked by git) for attaching to a release.
 The installers live in `installer/` (`mac/`, `windows/`) with `Install
 SkyScope.command` and `installer/windows/Install SkyScope.exe` (a small launcher

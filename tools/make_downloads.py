@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Build the two downloads attached to each GitHub release (as the US Train Tracker's):
 
-  dist/SkyScope-for-Mac.zip       Install SkyScope.command + the Mac installer pieces
-  dist/SkyScope-for-Windows.zip   Install SkyScope.exe + the Windows installer pieces
+  dist/SkyScope-<version>-for-Mac.zip       Install SkyScope.command + the Mac installer pieces
+  dist/SkyScope-<version>-for-Windows.zip   Install SkyScope.exe + the Windows installer pieces
+
+(named with the version, as is the folder inside, so a download says what it is). It also points the README's
+download links at this version's files.
 
 Each holds the program (copied into place by the installer), the guide and a READ ME FIRST note. Only files
 tracked by git go in, so a working copy's settings, logo cache and logs never end up in a download.
@@ -71,8 +74,10 @@ def tracked() -> list[Path]:
 
 
 def build(platform: str) -> Path:
-    top = f"SkyScope for {platform}"
-    out = DIST / f"SkyScope-for-{platform}.zip"
+    top = f"SkyScope {VERSION} for {platform}"
+    out = DIST / f"SkyScope-{VERSION}-for-{platform}.zip"
+    for old in DIST.glob(f"SkyScope-*for-{platform}.zip"):   # earlier versions' builds
+        old.unlink()
     windows = platform == "Windows"
     files = tracked()
     program = [f for f in files if (f.parent == ROOT and f.suffix == ".py")
@@ -109,6 +114,20 @@ def build(platform: str) -> Path:
     return out
 
 
+def update_readme() -> None:
+    """The README's download links: this version's files on its GitHub release."""
+    readme = ROOT / "README.md"
+    text = readme.read_text()
+    new = re.sub(r"https://github\.com/ricsne2010/skyscope/releases/[^)\s]*?SkyScope-[^)\s]*?for-(Mac|Windows)\.zip",
+                 lambda m: f"https://github.com/ricsne2010/skyscope/releases/download/v{VERSION}/SkyScope-{VERSION}-for-{m.group(1)}.zip",
+                 text)
+    new = re.sub(r"SkyScope [\d.]+ for (Mac|Windows)\]", lambda m: f"SkyScope {VERSION} for {m.group(1)}]", new)
+    if new != text:
+        readme.write_text(new)
+        print(f"README.md: download links now point at {VERSION}")
+
+
 if __name__ == "__main__":
     for p in (sys.argv[1:] or ["Mac", "Windows"]):
         build(p)
+    update_readme()
