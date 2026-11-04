@@ -120,13 +120,24 @@ class MoonBar(tk.Canvas):
         y0, y1 = self.bar_y - self.BAR_H / 2, self.bar_y + self.BAR_H / 2
         self.create_rectangle(0, y0, width, y1, fill="#8e8e93", outline="", stipple="gray50")   # the track
         self.fill = self.create_rectangle(0, y0, 0, y1, fill="#0a84ff", outline="")
-        self.plane = self.create_text(0, y0 - 3, text="✈", anchor="sw", fill="#0a84ff", font=("Helvetica", 20))
+        # the plane: drawn (not the ✈ character) so it can turn round and face the way it flies
+        self.plane = self.create_polygon(self.plane_points(0, 1), fill="#0a84ff", outline="")
         try:
             self.patch = tk.PhotoImage(file=LOGO).subsample(4) if LOGO else None
         except tk.TclError:
             self.patch = None
         self.pt = self.create_image(self.PATCH / 2, self.bar_y, image=self.patch) if self.patch else None
         self.after(self.TICK, self.tick)
+
+    # an airliner seen from above, nose to the right, 24 px long, centred on (0, 0): the top half (the bottom mirrors it)
+    PLANE = [(12, 0), (10.5, -1.6), (2.5, -1.6), (-3, -10), (-6, -10), (-2, -1.6), (-8, -1.6),
+             (-10.5, -5.5), (-12.5, -5.5), (-11, -1.2), (-12, 0)]
+
+    def plane_points(self, left, facing):
+        """The plane's outline with its left end at `left`, facing right (1) or left (-1)."""
+        cx, cy = left + 12, self.bar_y - self.BAR_H / 2 - 13
+        half = self.PLANE + [(x, -y) for x, y in reversed(self.PLANE[1:-1])]
+        return [v for x, y in half for v in (cx + facing * x, cy + y)]
 
     def set(self, fraction, creep_to=None):
         """Head for `fraction`; until the next set(), creep slowly towards `creep_to` (never quite reaching it)."""
@@ -153,7 +164,7 @@ class MoonBar(tk.Canvas):
                 self.x, self.dir = room, -1
             elif self.x <= 0:
                 self.x, self.dir = 0.0, 1
-        self.coords(self.plane, self.x, self.bar_y - self.BAR_H / 2 - 3)
+        self.coords(self.plane, *self.plane_points(self.x, self.dir))
         self.itemconfig(self.plane, state="normal" if room > 0 else "hidden")
         if self.pt:
             self.tag_raise(self.pt)
