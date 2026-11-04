@@ -157,7 +157,10 @@ class Tray:
         shutdown request if this isn't an installed copy."""
         self.stopping = True
         self.icon.update_menu()
-        mac_app = Path.home() / "Applications/SkyScope/Stop SkyScope.app/Contents/MacOS/run"
+        mac_app = next((p for p in (Path(base) / "SkyScope/Stop SkyScope.app/Contents" / run
+                                    for base in ("/Applications", Path.home() / "Applications")
+                                    for run in ("Resources/run.sh", "MacOS/run")) if p.exists()),
+                       Path("/nonexistent"))
         win_script = HERE / "stop.ps1"
         if sys.platform == "darwin" and mac_app.exists() and HERE == Path.home() / "Library/Application Support/SkyScope":
             subprocess.Popen([str(mac_app)], start_new_session=True)

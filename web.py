@@ -197,6 +197,8 @@ PAGE = """<!doctype html>
   .field { margin-top: 14px; }
   .field > .label { font-weight: 600; margin-bottom: 6px; }
   .hint { color: var(--dim); font-size: .85rem; margin-top: 6px; }
+  .vm-note { margin-top: 10px; padding: 10px 12px; border-radius: 8px; line-height: 1.5; font-size: .92rem;
+    background: rgba(245, 158, 11, .14); border: 1px solid rgba(245, 158, 11, .45); }
   .hint a { color: var(--green); font-weight: 600; }
   .stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -479,6 +481,123 @@ def lan_address() -> str:
             return s.getsockname()[0]
     except OSError:
         return "127.0.0.1"
+
+
+# --- virtual machines ----------------------------------------------------------
+# In a virtual machine on the VM program's own private network ("NAT", the usual default), phones, tablets and
+# SkyScope Satellites on the Wi-Fi can't reach this computer's address: the About tab says so (as US Train Tracker
+# does).
+
+VM_VENDORS = (("vmware", "VMware"), ("parallels", "Parallels"), ("virtualbox", "VirtualBox"), ("innotek", "VirtualBox"),
+              ("qemu", "QEMU"), ("kvm", "KVM"), ("xen", "Xen"))
+VM_BRIDGED = {
+    "VMware": "in VMware, shut the virtual machine down, open its Settings › Network Adapter and choose Bridged Networking",
+    "Parallels": "in Parallels, open the virtual machine's Configure › Hardware › Network and choose Default Adapter (Bridged)",
+    "VirtualBox": "in VirtualBox, open the virtual machine's Settings › Network and choose Bridged Adapter",
+    "Hyper-V": "in Hyper-V Manager, connect the virtual machine to an External virtual switch",
+}
+
+
+def vm_name(text: str):
+    """The VM program named in a computer's maker and model text, or None."""
+    low = text.lower()
+    for key, name in VM_VENDORS:
+        if key in low:
+            return name
+    if "microsoft corporation" in low and "virtual machine" in low:
+        return "Hyper-V"
+    return None
+
+
+def virtual_machine():
+    """The virtual machine program this computer runs in ("VMware", "Hyper-V"...), or None on a real computer."""
+    import sys
+    try:
+        if sys.platform == "win32":
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\BIOS") as k:
+                return vm_name(" ".join(str(winreg.QueryValueEx(k, v)[0]) for v in ("SystemManufacturer", "SystemProductName")))
+        if sys.platform.startswith("linux"):
+            return vm_name(" ".join(open(f"/sys/class/dmi/id/{f}").read() for f in ("sys_vendor", "product_name")))
+        if sys.platform == "darwin":
+            import subprocess
+            r = subprocess.run(["sysctl", "-n", "kern.hv_vmm_present"], capture_output=True, text=True, timeout=5)
+            return "a virtual machine" if r.stdout.strip() == "1" else None
+    except (OSError, ValueError, ImportError):
+        pass
+    return None
+
+
+def default_gateway(ip: str):
+    """The router this computer's address ip goes out through, or None."""
+    import subprocess
+    import sys
+    try:
+        if sys.platform == "win32":
+            out = subprocess.run(["route", "print", "-4", "0.0.0.0"], capture_output=True, text=True, timeout=5,
+                                 creationflags=0x08000000).stdout
+            for line in out.splitlines():
+                f = line.split()
+                if len(f) >= 4 and f[0] == "0.0.0.0" and f[1] == "0.0.0.0" and f[3] == ip:
+                    return f[2]
+        elif sys.platform.startswith("linux"):
+            for line in open("/proc/net/route").read().splitlines()[1:]:
+                f = line.split()
+                if len(f) > 2 and f[1] == "00000000":
+                    g = int(f[2], 16)
+                    return ".".join(str((g >> s) & 255) for s in (0, 8, 16, 24))
+        elif sys.platform == "darwin":
+            out = subprocess.run(["route", "-n", "get", "default"], capture_output=True, text=True, timeout=5).stdout
+            for line in out.splitlines():
+                if line.strip().startswith("gateway:"):
+                    return line.split(":", 1)[1].strip()
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def vm_private(vm, ip: str, gateway) -> bool:
+    """Whether a VM's address looks like one on the VM program's own private network: VMware's NAT routes through
+    .2, VirtualBox's (and QEMU's) is 10.0.2.x, Parallels' 10.211.55.x or 10.37.129.x, Hyper-V's Default Switch
+    172.16-31.x. A VM bridged onto the home network looks like any other computer there."""
+    import ipaddress
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if vm == "VMware":
+        return gateway is None or gateway.endswith(".2")
+    if vm in ("VirtualBox", "QEMU", "KVM"):
+        return a in ipaddress.ip_network("10.0.2.0/24")
+    if vm == "Parallels":
+        return any(a in ipaddress.ip_network(n) for n in ("10.211.55.0/24", "10.37.129.0/24"))
+    if vm == "Hyper-V":
+        return a in ipaddress.ip_network("172.16.0.0/12")
+    return False
+
+
+_vm_seen = {}
+
+
+def vm_note(address: str) -> str:
+    """HTML for the About tab: in a VM on its private network, why phones and Satellites can't reach SkyScope and
+    how to put the VM on the home network; a gentler hint in a VM on the home network; nothing on a real computer.
+    (Worked out once per address: it asks the system.)"""
+    if address not in _vm_seen:
+        vm = virtual_machine()
+        _vm_seen[address] = (vm, vm and vm_private(vm, address, default_gateway(address)))
+    vm, private = _vm_seen[address]
+    if not vm:
+        return ""
+    what = vm if vm.startswith("a ") else f"a {vm} virtual machine"
+    if private:
+        how = VM_BRIDGED.get(vm, "in your virtual machine program, set the virtual machine's network to Bridged")
+        return ('<div class="vm-note">' + esc(
+            f"This computer is {what} on its own private network, so phones, tablets and SkyScope Satellites on "
+            f"your Wi-Fi can't reach it: use the radar on this computer instead. To use them, {how}, then stop and "
+            "start SkyScope so it finds its new address.") + "</div>")
+    return ('<div class="hint">' + esc(f"This computer is {what}. If a phone or Satellite can't reach it, the virtual "
+                                       "machine is on a private network that they can't reach.") + "</div>")
 
 
 # --- parsing ---------------------------------------------------------------------
@@ -941,7 +1060,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                f"<dt>Satellite address</dt><dd>{esc(sat_where)} &middot; port {st.web_port}</dd>"
                "</dl>"
                '<div class="hint">Enter the Satellite address on a SkyScope Satellite\'s setup page '
-               "to mirror this radar on it.</div>")
+               "to mirror this radar on it.</div>"
+               + vm_note(address))
         + card("Guide and projects", f'<ul class="links">{links}</ul>')
         + card("Data and credits", f'<ul class="links">{credits}</ul>'
                + '<div class="hint">Not for navigation or air traffic control. ADS-B shows only aircraft that '

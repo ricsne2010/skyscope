@@ -31,12 +31,12 @@ if (Test-Up) {
         -WorkingDirectory $AppDir -PassThru
     Set-Content -Path (Join-Path $AppDir 'skyscope.pid') -Value $p.Id
 
-    $note = Show-Note 'Starting SkyScope...' 5000
+    $note = if ($env:SS_INSTALLING) { $null } else { Show-Note 'Starting SkyScope...' 5000 }   # (the installer's window says so)
     for ($i = 0; $i -lt 90; $i++) {
         if ((Test-Up) -or $p.HasExited) { break }
         Start-Sleep -Seconds 1
     }
-    $note.Dispose()
+    if ($note) { $note.Dispose() }
     if (-not (Test-Up)) {
         [System.Windows.Forms.MessageBox]::Show("SkyScope didn't start. Its messages are in $(Join-Path $AppDir 'skyscope.log')", 'SkyScope', 'OK', 'Error') | Out-Null
         exit 1

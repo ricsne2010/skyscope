@@ -1,9 +1,10 @@
 # Let phones, tablets and SkyScope Satellite displays on your home network reach SkyScope (or stop letting them).
 #   firewall.ps1 -Allow -Program <pythonw.exe>   makes sure phones can connect; prints Allowed / AllowedPublic / Declined
 #   firewall.ps1                                  removes our rule
+#   -Quiet                                        no note before Windows' admin prompt (unattended installs)
 # Reading rules works without admin rights (netsh); changing them needs admin, so Windows asks once, and only
 # when something actually needs changing. Designed and Created by Project Moon Pi.
-param([switch]$Allow, [int]$Port = 7700, [string]$Program = '')
+param([switch]$Allow, [int]$Port = 7700, [string]$Program = '', [switch]$Quiet)
 $name = 'SkyScope (phones and Satellites on your network)'
 
 function Get-InboundRules {
@@ -36,6 +37,13 @@ function Invoke-Admin($commands) {
     $script = ($commands -join "`n") + "`nexit 0"
     try {
         if ($admin) { Invoke-Expression ($commands -join "`n"); return $true }
+        if (-not $Quiet) {
+            # Windows' prompt names only "Windows PowerShell", so say first what it's for
+            Add-Type -AssemblyName System.Windows.Forms
+            $why = if ($Allow) { "Click Yes: that lets phones, tablets and SkyScope Satellite displays on your home network reach SkyScope. It opens only SkyScope's port, and only on home (Private) networks." }
+                   else { "Click Yes: that closes the firewall opening SkyScope made for phones and Satellites. (If you click No, SkyScope is still removed; only that firewall setting stays.)" }
+            $null = [System.Windows.Forms.MessageBox]::Show("Next, Windows asks: `"Do you want to allow this app to make changes to your device?`" for Windows PowerShell.`n`n$why", 'SkyScope', 'OK', 'Information')
+        }
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
         $p = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -WindowStyle Hidden -ArgumentList "-NoProfile -EncodedCommand $encoded"
         return ($p.ExitCode -eq 0)

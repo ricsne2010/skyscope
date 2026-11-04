@@ -2,11 +2,13 @@
 # Install SkyScope on this Mac. Double-click to run; run it again later to update (your settings are kept).
 #
 # It installs the program in ~/Library/Application Support/SkyScope, sets it up as a background service, and
-# puts Start SkyScope and Stop SkyScope on your Desktop and in Applications › SkyScope.
+# puts Start SkyScope, Stop SkyScope and Uninstall SkyScope in Applications › SkyScope (Start and Stop on your
+# Desktop too, if you like).
 # Needs Python 3.10 or newer from python.org, and offers to install it if it isn't there.
 # Designed and Created by Project Moon Pi.
 #
-# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_OPEN=no SS_PYTHON=yes|no
+# For unattended installs, answer the questions ahead: SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_DESKTOP=yes|no SS_OPEN=no
+# SS_PYTHON=yes|no
 SRC="$(cd "$(dirname "$0")" && pwd)"
 . "$SRC/installer/mac/common.sh"
 set -e
@@ -58,6 +60,7 @@ PY=$(find_python) || { [ "${SS_PYTHON:-$(ask "SkyScope needs Python, which isn't
 
 PHONES=${SS_PHONES:-$(ask "Should phones, tablets and SkyScope Satellite displays on your Wi-Fi be able to open SkyScope?\n\nThe settings page's About tab shows the address to use." "This Mac only" "Phones too")}
 AUTOSTART=${SS_AUTOSTART:-$(ask "Start SkyScope by itself whenever you log in?\n\nOtherwise, use the Start SkyScope icon when you want it." "No" "Yes")}
+DESKTOP=${SS_DESKTOP:-$(ask "Put Start and Stop SkyScope on your Desktop?\n\nThey're in Applications › SkyScope either way, with Uninstall SkyScope." "No" "Yes")}
 
 # an update: stop the running service first
 launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 || true
@@ -95,7 +98,7 @@ cp -R "$SRC/web" "$SRC/data" "$SRC/docs" "$APPDIR/"
 cp "$SRC/README.md" "$SRC/LICENSE" "$APPDIR/" 2>/dev/null || true
 VERSION=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'from version import VERSION; print(VERSION)')
 PORT=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'import json; print(json.load(open("settings.json")).get("web_port") or 7700)' 2>/dev/null || echo 7700)
-printf 'PORT=%s\nPHONES=%s\nAUTOSTART=%s\n' "$PORT" "$PHONES" "$AUTOSTART" > "$APPDIR/settings.sh"
+printf 'PORT=%s\nPHONES=%s\nAUTOSTART=%s\nAPPS="%s"\n' "$PORT" "$PHONES" "$AUTOSTART" "$APPS" > "$APPDIR/settings.sh"
 
 # the background service (a LaunchAgent: runs as you, only while you're logged in)
 HOSTARGS=""
@@ -126,49 +129,55 @@ cat > "$PLIST" <<PLIST
 </plist>
 PLIST
 
-# the apps: Start, Stop and Uninstall, each a tiny app wrapping its script
+# the apps: Start, Stop and Uninstall. Each is a small AppleScript app (made by macOS's osacompile) that runs
+# its script from Contents/Resources. A real app, not a script in a folder, so macOS can ask about it by name:
+# Uninstall needs your OK, once, to remove its icons from the Desktop.
 make_app() {   # make_app "Name" script icon id
-  local app="$APPS/$1.app"
+  local app="$APPS/$1.app" plist="$APPS/$1.app/Contents/Info.plist"
   rm -rf "$app"
-  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-  cp "$SRC/installer/mac/$2" "$app/Contents/MacOS/run"
-  cp "$SRC/installer/mac/common.sh" "$app/Contents/MacOS/common.sh"
-  chmod +x "$app/Contents/MacOS/run"
-  cp "$SRC/tools/launcher/$3.icns" "$app/Contents/Resources/icon.icns"
-  cat > "$app/Contents/Info.plist" <<INFO
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleName</key><string>$1</string>
-  <key>CFBundleDisplayName</key><string>$1</string>
-  <key>CFBundleIdentifier</key><string>$LABEL.$4</string>
-  <key>CFBundleExecutable</key><string>run</string>
-  <key>CFBundleIconFile</key><string>icon</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>$VERSION</string>
-  <key>NSHumanReadableCopyright</key><string>Designed and Created by Project Moon Pi</string>
-  <key>LSUIElement</key><true/>
-</dict>
-</plist>
-INFO
+  osacompile -o "$app" -e 'on run' \
+    -e 'try' \
+    -e 'do shell script quoted form of (POSIX path of (path to me) & "Contents/Resources/run.sh")' \
+    -e 'end try' -e 'end run'   # (the script shows its own messages)
+  cp "$SRC/installer/mac/$2" "$app/Contents/Resources/run.sh"
+  cp "$SRC/installer/mac/common.sh" "$app/Contents/Resources/common.sh"
+  chmod +x "$app/Contents/Resources/run.sh"
+  cp "$SRC/tools/launcher/$3.icns" "$app/Contents/Resources/applet.icns"
+  rm -f "$app/Contents/Resources/Assets.car"
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$plist" 2>/dev/null || true
+  for kv in "CFBundleName string $1" "CFBundleDisplayName string $1" "CFBundleIdentifier string $LABEL.$4" \
+            "CFBundleShortVersionString string $VERSION" \
+            "NSHumanReadableCopyright string Designed and Created by Project Moon Pi" \
+            "NSDesktopFolderUsageDescription string To remove the SkyScope icons from your Desktop." \
+            "LSUIElement bool true"; do
+    set -- $kv; local key=$1 type=$2; shift 2
+    /usr/libexec/PlistBuddy -c "Delete :$key" "$plist" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :$key $type $*" "$plist"
+  done
+  codesign --force -s - "$app" 2>/dev/null || true   # signed again after the changes, so macOS knows it
   touch "$app"
 }
+# an earlier SkyScope kept its apps in your own Applications folder
+[ "$APPS" = "$HOME/Applications/SkyScope" ] || rm -rf "$HOME/Applications/SkyScope"
 make_app "Start SkyScope" start.sh skyscope-start start
 make_app "Stop SkyScope" stop.sh skyscope-stop stop
 make_app "Uninstall SkyScope" uninstall.sh skyscope-uninstall uninstall
 # files from a downloaded zip carry macOS's "downloaded" flag; apps built here shouldn't
 xattr -dr com.apple.quarantine "$APPS" "$APPDIR" 2>/dev/null || true
-ln -sfn "$APPS/Start SkyScope.app" "$HOME/Desktop/Start SkyScope"
-ln -sfn "$APPS/Stop SkyScope.app" "$HOME/Desktop/Stop SkyScope"
-ln -sfn "$APPS/Uninstall SkyScope.app" "$HOME/Desktop/Uninstall SkyScope"
+if [ "$DESKTOP" = yes ]; then
+  ln -sfn "$APPS/Start SkyScope.app" "$HOME/Desktop/Start SkyScope"
+  ln -sfn "$APPS/Stop SkyScope.app" "$HOME/Desktop/Stop SkyScope"
+else
+  rm -f "$HOME/Desktop/Start SkyScope" "$HOME/Desktop/Stop SkyScope"
+fi
+rm -f "$HOME/Desktop/Uninstall SkyScope"    # (1.6.1 put one there; it lives in Applications › SkyScope)
 
 launchctl bootstrap "$DOMAIN" "$PLIST"
 echo "Installed SkyScope $VERSION. Starting it…"
 if [ "${SS_OPEN:-yes}" = no ]; then
-  "$APPS/Start SkyScope.app/Contents/MacOS/run" --no-browser
+  "$APPS/Start SkyScope.app/Contents/Resources/run.sh" --no-browser
 else
-  "$APPS/Start SkyScope.app/Contents/MacOS/run"
+  "$APPS/Start SkyScope.app/Contents/Resources/run.sh"
 fi
-echo "Done. Use Start SkyScope and Stop SkyScope on your Desktop (also in Applications › SkyScope); Uninstall SkyScope is there too."
-[ -n "$SS_PHONES" ] || osascript -e 'display dialog "SkyScope is installed and running.\n\nWhile it runs, its radar icon is in the menu bar at the top of the screen: click it for the radar, the settings or to stop SkyScope.\n\nUse Start SkyScope and Stop SkyScope on your Desktop (also in your Applications folder, under SkyScope).\n\nYou can delete the downloaded folder now." buttons {"OK"} default button "OK" with title "Install SkyScope"' >/dev/null 2>&1 || true
+echo "Done. Start, Stop and Uninstall SkyScope are in Applications › SkyScope$([ "$DESKTOP" = yes ] && echo '; Start and Stop are on your Desktop too')."
+[ -n "$SS_PHONES" ] || osascript -e 'display dialog "SkyScope is installed and running.\n\nWhile it runs, its radar icon is in the menu bar at the top of the screen: click it for the radar, the settings or to stop SkyScope.\n\nStart, Stop and Uninstall SkyScope are in your Applications folder, under SkyScope.\n\nYou can delete the downloaded folder now." buttons {"OK"} default button "OK" with title "Install SkyScope"' >/dev/null 2>&1 || true

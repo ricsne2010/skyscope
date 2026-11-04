@@ -342,14 +342,17 @@ it, the installer offers to download and install it (checking it's signed by
 the Python Software Foundation). The installer:
 
 * installs SkyScope for you (Mac: `~/Library/Application Support/SkyScope`;
-  Windows: `%LOCALAPPDATA%\SkyScope`) with its own copy of pygame-ce
+  Windows: `%LOCALAPPDATA%\Programs\Project Moon Pi\SkyScope`, or a folder you choose) with its own copy of pygame-ce
   (and pystray and Pillow for its icon),
 * asks whether phones and SkyScope Satellite displays on your Wi-Fi may open
-  it (otherwise it listens to this computer only), and whether it should start
-  when you log in,
-* puts **Start SkyScope**, **Stop SkyScope** and **Uninstall SkyScope** on the
-  Desktop (and in Applications › SkyScope or the Start menu); on Windows it's
-  also listed in **Settings › Apps**, whose Uninstall button does the same.
+  it (otherwise it listens to this computer only), whether it should start
+  when you log in, and whether Start and Stop go on the Desktop,
+* puts **Start SkyScope**, **Stop SkyScope** and **Uninstall SkyScope** in
+  Applications › SkyScope (Mac) or the Start menu (Windows, where it's called
+  **Remove SkyScope**: Windows hides Start menu items named Uninstall). On
+  Windows, **Uninstall SkyScope** is also in the install folder and beside the
+  installer, and SkyScope is listed in **Settings › Apps**, whose Uninstall
+  button does the same.
 
 **Is it running?** While SkyScope runs in the background, its radar icon
 sits in the Mac menu bar (black or white like the icons beside it; faint if
@@ -398,7 +401,11 @@ an HDMI TV or monitor isn't affected: one drawn pixel is one screen pixel.
 `dist/SkyScope-for-Windows.zip` (the installer, the program, the guide and a
 READ ME FIRST note; only files tracked by git) for attaching to a release.
 The installers live in `installer/` (`mac/`, `windows/`) with `Install
-SkyScope.command` and `Install SkyScope.bat`; the icons are in
+SkyScope.command` and `installer/windows/Install SkyScope.exe` (a small launcher
+with the SkyScope icon that opens the installer's window, `ui.ps1`, without a
+console; rebuild it from `launcher.cs` with `build_launcher.ps1` on Windows, or on
+a Mac with Mono: `csc -target:winexe -reference:System.Windows.Forms.dll
+-win32icon:tools/launcher/skyscope.ico ...`); the icons are in
 `tools/launcher/` (`make_icon.py --start` / `--stop`). For unattended test
 installs, answer the questions ahead: `SS_PHONES=yes|no`, `SS_AUTOSTART=yes|no`,
 `SS_OPEN=no`, `SS_PYTHON=yes|no` (install Python if it's missing; and

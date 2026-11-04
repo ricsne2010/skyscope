@@ -1,7 +1,10 @@
 # Shared by the SkyScope apps on macOS (copied into each app when installed).
 LABEL=com.projectmoonpi.skyscope
 APPDIR="$HOME/Library/Application Support/SkyScope"
+# Start, Stop and Uninstall SkyScope: in the Applications folder Finder shows, or your own if that isn't
+# writable (settings.sh records which)
 APPS="$HOME/Applications/SkyScope"
+[ -w /Applications ] && APPS="/Applications/SkyScope"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG="$HOME/Library/Logs/SkyScope.log"
 DOMAIN="gui/$(id -u)"

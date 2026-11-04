@@ -186,25 +186,27 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <h3>Step 3: Run the installer</h3>
 <ol class="steps">
   <li><b>Mac:</b> double-click <b>Install SkyScope.command</b>. If macOS says it can't check the developer, open <b>System Settings → Privacy &amp; Security</b>, scroll down to the message about it, and click <b>Open Anyway</b>. (On macOS 14 or older you can instead Control-click the file and choose <b>Open</b>.)<br>
-      <b>Windows:</b> double-click <b>Install SkyScope.bat</b>. If Windows says it protected your PC, click <b>More info</b>, then <b>Run anyway</b>.</li>
-  <li>Answer its two questions:
+      <b>Windows:</b> double-click <b>Install SkyScope</b> (the radar icon) in the extracted folder. If Windows says it protected your PC, click <b>More info</b>, then <b>Run anyway</b>. It opens the installer's window, with the Project Moon Pi logo.</li>
+  <li>Answer its questions (on Windows, tick boxes on one page, then <b>Install</b>):
     <ul>
-      <li><b>Phones too, or this computer only?</b> Choose <b>Phones too</b> if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, click <b>Yes</b> if it asks to allow changes: that opens the firewall for them, on home (private) networks only.</li>
+      <li><b>Where?</b> (Windows) <b>Install in</b> suggests a SkyScope folder of your own; type another or click <b>Browse…</b>. It can't go in Program Files (SkyScope installs just for you, without admin permission). A folder that already holds other things gets a SkyScope folder inside it.</li>
+      <li><b>Phones too, or this computer only?</b> Choose phones if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, a note then explains Windows' "allow this app to make changes" question for Windows PowerShell: click <b>Yes</b>. That opens the firewall for them, on home (private) networks only.</li>
       <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you click Start SkyScope.</li>
+      <li><b>Start and Stop on the Desktop?</b> They're in Applications → SkyScope (Mac) or the Start menu (Windows) either way.</li>
     </ul></li>
-  <li>It installs SkyScope (about a minute), starts it and opens the radar. If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
+  <li>It installs SkyScope (about a minute), starts it and opens the radar (on Windows, after you click <b>Finish</b>, with <b>Open the radar now</b> ticked). If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the downloaded folder afterwards.</li>
 </ol>
 <h3>Using it</h3>
 <ul>
-  <li><b>Start SkyScope</b> (Desktop, and Applications → SkyScope or the Start menu) starts it if it isn't running and opens the radar.</li>
+  <li><b>Start SkyScope</b> (Applications → SkyScope or the Start menu, and the Desktop if you chose) starts it if it isn't running and opens the radar.</li>
   <li><b>Stop SkyScope</b> shuts it down; the radar stops until you start it again.</li>
   <li><b>Is it running?</b> Look for SkyScope's radar icon. On a Mac it's in the <b>menu bar</b> at the top of the screen, black or white like the icons beside it, and faint if SkyScope stops answering. On Windows it's green, <b>by the clock</b> (new icons start under the <b>^</b> there; drag it onto the taskbar to keep it in sight), and grey if SkyScope stops answering. It's there while SkyScope runs and goes away when SkyScope stops. Click it for a menu: the version, when it started and how many aircraft are in range, then <b>Open the radar</b>, <b>Settings</b> and <b>Stop SkyScope</b>. (On Windows, a plain click opens the radar; right-click for the menu.)</li>
   <li>Activity Monitor (Mac) and Task Manager (Windows) list it as <b>SkyScope</b>. Start SkyScope says so if it's already running, and Stop SkyScope if it wasn't.</li>
   <li><b>To update</b>, download a newer release and run its installer: your settings, FlightAware key and logo cache are kept.</li>
-  <li><b>Uninstall SkyScope</b> (Desktop, and Applications → SkyScope or the Start menu; on Windows also <b>Settings → Apps</b>, SkyScope, Uninstall) removes it and its settings.</li>
-  <li>If it won't start, a message says so. Its messages are in <code>~/Library/Logs/SkyScope.log</code> on a Mac, or <code>%LOCALAPPDATA%\SkyScope\skyscope.log</code> on Windows.</li>
+  <li><b>Uninstall SkyScope</b> removes it and its settings; Python stays. On a Mac it's in Applications → SkyScope. On Windows it's <b>Remove SkyScope</b> in the Start menu (Windows hides Start menu items named Uninstall), and <b>Uninstall SkyScope</b> in the folder SkyScope is installed in, beside <b>Install SkyScope</b> in the downloaded folder, and in <b>Settings → Apps</b> (SkyScope, Uninstall). On a Mac, the first time, macOS asks whether <b>Uninstall SkyScope</b> may access your Desktop folder: click <b>Allow</b> so it can remove its Desktop icons too.</li>
+  <li>If it won't start, a message says so. Its messages are in <code>~/Library/Logs/SkyScope.log</code> on a Mac, or <code>skyscope.log</code> in the folder it's installed in on Windows (normally <code>%LOCALAPPDATA%\Programs\Project Moon Pi\SkyScope</code>) on Windows (in the folder you chose, if you chose another).</li>
 </ul>
-<div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\SkyScope</code>, with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions; pystray and Pillow for the icon).</div>
+<div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\Programs\Project Moon Pi\SkyScope</code> (or a folder you choose), with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions; pystray and Pillow for the icon).</div>
 <div class="note"><b>Running from the source instead</b> (for developers): in a SkyScope folder from GitHub, run <code>python3 skyscope.py --web-only</code> (on Windows <code>py skyscope.py --web-only</code>) after <code>python3 -m pip install pygame-ce</code>, and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. <code>sh tools/make_mac_app.sh</code> or <code>tools\windows\create-shortcut.bat</code> makes desktop icons for that copy. <code>python3 skyscope.py --window 1280x720</code> shows the Pi-style display in a window.</div>
 
 <h2 id="first-setup">5. First-time setup</h2>
