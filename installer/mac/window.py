@@ -11,6 +11,7 @@ The work itself is install.sh / uninstall.sh beside this file; they print "@@ <p
 step, and the radar opens only when you click Finish (with "Open the radar now" ticked).
 Needs Python 3.10 or newer with Tk (python.org's has it). Designed and Created by Project Moon Pi.
 """
+import json
 import os
 import queue
 import re
@@ -36,6 +37,8 @@ APP = "SkyScope"
 TITLE = f"Uninstall {APP}" if UNINSTALL else f"Install {APP}"
 CREDIT = "Designed and Created by Project Moon Pi"
 APPDIR = os.path.expanduser("~/Library/Application Support/SkyScope")
+# the FlightAware key, when the uninstaller is asked to keep it (common.sh's KEPT_KEY; the next install puts it back)
+KEPT_KEY = os.path.expanduser("~/Library/Application Support/Project Moon Pi/SkyScope FlightAware key.json")
 LOG = os.path.expanduser(f"~/Library/Logs/{TITLE}.log")
 WIDTH, WRAP = 580, 520                              # the window (points), the text's width
 INSTALL_STEPS = [3, 8, 20, 45, 68, 74, 80, 84, 92, 95, 100]   # install.sh's steps (the bar creeps to the next)
@@ -400,16 +403,45 @@ class Installer:
     def p_confirm(self):
         self.page(TITLE, next_text="Uninstall", next_cmd=self.uninstall)
         self.text("Remove SkyScope from this Mac?")
-        self.text("It stops SkyScope and removes the program, its settings (location, filters, FlightAware key), "
-                  "Start, Stop and Uninstall SkyScope, and their Desktop icons. Python stays, for anything else that "
-                  "uses it.")
+        self.text("It stops SkyScope and removes the program, its settings (location, filters), Start, Stop and "
+                  "Uninstall SkyScope, and their Desktop icons. Python stays, for anything else that uses it.")
+        # a FlightAware key: asked about on its own (it's yours, from FlightAware's site; kept, it comes back next time)
+        self.fa = self.fa_settings()
+        self.drop_key = tk.BooleanVar(value=True)
+        if self.fa.get("flightaware_key"):
+            key = str(self.fa["flightaware_key"])
+            ttk.Checkbutton(self.body, text=f"  Also delete my FlightAware API key (ending {key[-4:]})",
+                            variable=self.drop_key).pack(anchor="w", pady=(4, 0))
+            self.text("Untick it to keep the key on this Mac: installing SkyScope again puts it back.", "Note.TLabel")
         self.text("The first time, macOS may ask whether Uninstall SkyScope may access your Desktop folder: click Allow, "
                   "so it can remove the icons there.", "Note.TLabel")
         self.text(CREDIT, "Note.TLabel", pady=(14, 0))
         self.fit()
 
+    @staticmethod
+    def fa_settings():
+        try:
+            with open(os.path.join(APPDIR, "settings.json"), encoding="utf-8") as f:
+                s = json.load(f)
+            return {k: s[k] for k in ("flightaware_key", "flightaware_daily_limit") if k in s}
+        except (OSError, ValueError):
+            return {}
+
     def uninstall(self):
         env = dict(os.environ, SS_WINDOW="1")
+        try:
+            if DRY:
+                pass                                   # (a dry run changes nothing)
+            elif self.fa.get("flightaware_key") and not self.drop_key.get():
+                os.makedirs(os.path.dirname(KEPT_KEY), exist_ok=True)
+                with open(KEPT_KEY, "w", encoding="utf-8") as f:
+                    json.dump(self.fa, f, indent=2)
+                os.chmod(KEPT_KEY, 0o600)
+                self.notes.append("Your FlightAware API key is kept on this Mac: installing SkyScope again puts it back.")
+            elif self.fa.get("flightaware_key") and os.path.exists(KEPT_KEY):
+                os.remove(KEPT_KEY)                    # (one kept from an earlier uninstall goes too)
+        except OSError as e:
+            self.notes.append(f"The FlightAware key couldn't be kept: {e}")
         self.work("Removing SkyScope", os.path.join(HERE, "uninstall.sh"), env, UNINSTALL_STEPS, self.p_removed)
 
     def p_removed(self, ok, tail):

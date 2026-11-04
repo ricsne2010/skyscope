@@ -45,6 +45,8 @@ Designed and Created by Project Moon Pi
 
 Start, Stop and Uninstall SkyScope are in Applications > SkyScope (Start and Stop on your Desktop too, if you
 chose). While SkyScope runs, its radar icon is in the menu bar: click it for the radar, settings or Stop.
+Uninstall SkyScope asks whether to delete your FlightAware API key (if you added one) or keep it for the next
+install.
 To update, run the installer of a newer version: your settings are kept.
 You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
 """,
@@ -63,7 +65,8 @@ Designed and Created by Project Moon Pi
 
 Afterwards use Start SkyScope and Stop SkyScope in the Start menu (and on your Desktop if you chose).
 To remove it: Remove SkyScope in the Start menu, or Uninstall SkyScope in the folder it's installed in
-or beside the installer in this folder; or Settings > Apps.
+or beside the installer in this folder; or Settings > Apps. It asks whether to delete your FlightAware API key
+(if you added one) or keep it for the next install.
 While SkyScope runs, its green radar icon is by the clock (click ^ if it's hidden): click it for the
 radar, right-click for the settings or Stop.
 To update, run the installer of a newer version: your settings are kept.
@@ -152,7 +155,8 @@ def build(platform: str) -> Path:
     files = tracked()
     program = [f for f in files if (f.parent == ROOT and f.suffix == ".py")
                or f.relative_to(ROOT).parts[0] in ("web", "data", "docs")
-               or f.name in ("README.md", "LICENSE")]
+               or f.name in ("README.md", "LICENSE")
+               or f.relative_to(ROOT).as_posix() == "installer/keep_key.py"]   # (both installers)
     launcher = ROOT / "tools" / "launcher"
     if windows:
         extra = sorted(f for f in (ROOT / "installer/windows").iterdir() if f.is_file() and f.name != "Install SkyScope.exe")

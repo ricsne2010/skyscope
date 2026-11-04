@@ -102,11 +102,11 @@ function UI-WaitClick {
 }
 
 function UI-Choices($text, $boxes, $okText, [switch]$NoCancel, $Folder = $null, [scriptblock]$FolderCheck = $null,
-                    $Options = @(), $Selected = 0) {
+                    $Options = @(), $Selected = 0, $TextHeight = 106) {
     UI-Clear
     $script:UI.Text.Text = $text
-    $script:UI.Text.Height = 106
-    $top = 132
+    $script:UI.Text.Height = $TextHeight      # (taller for a page with more to say)
+    $top = $TextHeight + 26
     $script:UI_Folder = $Folder
     $script:UI_Option = $Selected
     $radios = @()

@@ -361,7 +361,9 @@ the Python Software Foundation). The installer:
   **Remove SkyScope**: Windows hides Start menu items named Uninstall). On
   Windows, **Uninstall SkyScope** is also in the install folder and beside the
   installer, and SkyScope is listed in **Settings › Apps**, whose Uninstall
-  button does the same.
+  button does the same. Uninstalling removes your settings too; if you've
+  added a FlightAware API key, it asks whether to delete that as well (keep
+  it, and installing SkyScope again puts it back).
 
 **Is it running?** While SkyScope runs in the background, its radar icon
 sits in the Mac menu bar (black or white like the icons beside it; faint if

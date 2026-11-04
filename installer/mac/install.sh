@@ -61,6 +61,8 @@ cp "$SRC/installer/mac/window.py" "$SRC/installer/mac/uninstall.sh" "$SRC/instal
 VERSION=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'from version import VERSION; print(VERSION)')
 PORT=$(cd "$APPDIR" && "$APPDIR/venv/bin/python" -c 'import json; print(json.load(open("settings.json")).get("web_port") or 7700)' 2>/dev/null || echo 7700)
 echo "Copied SkyScope $VERSION ($(ls "$APPDIR"/*.py | wc -l | tr -d ' ') program files, web pages, data, guide)"
+# a FlightAware key kept when SkyScope was last uninstalled comes back
+"$APPDIR/venv/bin/python" "$SRC/installer/keep_key.py" restore "$APPDIR/settings.json" "$KEPT_KEY" || true
 echo "Web port $PORT; phones and Satellites: $PHONES; start at login: $AUTOSTART"
 printf 'PORT=%s\nPHONES=%s\nAUTOSTART=%s\nDESKTOP=%s\nAPPS="%s"\n' "$PORT" "$PHONES" "$AUTOSTART" "$DESKTOP" "$APPS" > "$APPDIR/settings.sh"
 

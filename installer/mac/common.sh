@@ -14,3 +14,5 @@ PORT=7700
 up() { curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/radar"; }
 notify() { osascript -e "display notification \"$1\" with title \"SkyScope\"" >/dev/null 2>&1; }
 alert() { osascript -e "display alert \"$1\" message \"$2\"" >/dev/null 2>&1; }
+# the FlightAware key, when the uninstaller was asked to keep it (the next install puts it back)
+KEPT_KEY="$HOME/Library/Application Support/Project Moon Pi/SkyScope FlightAware key.json"

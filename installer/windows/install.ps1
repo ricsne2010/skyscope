@@ -305,6 +305,12 @@ function Main {
     foreach ($f in 'run.py', 'start.ps1', 'stop.ps1', 'uninstall.ps1', 'firewall.ps1', 'ui.ps1', 'Uninstall SkyScope.exe') { Copy-Item (Join-Path $PSScriptRoot $f) $AppDir -Force }
     foreach ($f in 'skyscope-start.ico', 'skyscope-stop.ico', 'skyscope-uninstall.ico', 'skyscope.ico') { Copy-Item (Join-Path $Src "tools\launcher\$f") $AppDir -Force }
     Copy-Item (Join-Path $Src 'docs\images\moon-pi-logo-128.png') (Join-Path $AppDir 'logo.png') -Force
+    # a FlightAware key kept when SkyScope was last uninstalled comes back
+    $keptKey = Join-Path $env:APPDATA 'Project Moon Pi\SkyScope FlightAware key.json'
+    if (Test-Path $keptKey) {
+        try { $null = Run $venvPy @((Join-Path $Src 'installer\keep_key.py'), 'restore', (Join-Path $AppDir 'settings.json'), $keptKey) 'Bringing back the FlightAware key' 77 10 }
+        catch { Log "$_ - the kept FlightAware key stays where it is" }
+    }
     Get-ChildItem $AppDir -Recurse -File | Unblock-File      # drop the "downloaded from the internet" mark on our copies
     # SkyScope.exe: Python under SkyScope's own name and icon, so Task Manager shows "SkyScope" (pythonw.exe if not)
     UI-Progress 'Naming SkyScope for Task Manager...' 80

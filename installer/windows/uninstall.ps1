@@ -7,13 +7,35 @@ $unattended = $Quiet -or [bool]$env:SS_UNATTENDED
 $UI_Unattended = $unattended
 . (Join-Path $AppDir 'ui.ps1')
 $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+# the FlightAware key, when you ask to keep it (install.ps1's KeptKey: the next install puts it back)
+$KeptKey = Join-Path $env:APPDATA 'Project Moon Pi\SkyScope FlightAware key.json'
 
 function Main {
+    # a FlightAware key: asked about on its own (it's yours, from FlightAware's site; kept, it comes back next time)
+    $fa = $null
+    try { $fa = Get-Content (Join-Path $AppDir 'settings.json') -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
+    $key = if ($fa -and $fa.flightaware_key) { [string]$fa.flightaware_key } else { '' }
+    $dropKey = $true
     if (-not $unattended) {
         UI-Open 'Uninstall SkyScope' (Join-Path $AppDir 'logo.png') (Join-Path $AppDir 'skyscope-uninstall.ico') 'SkyScope'
-        $null = UI-Choices "Remove SkyScope from this PC?`n`nIt stops SkyScope and removes the program, its shortcuts and its settings (location, filters, FlightAware key). Python stays, for anything else that uses it." @() 'Uninstall'
-        # (no boxes, so it returns nothing either way: the button says)
+        $boxes = @()
+        if ($key) {
+            $tail = $key.Substring([Math]::Max(0, $key.Length - 4))
+            $boxes = @(@{ text = "Also delete my FlightAware API key (ending $tail)"; checked = $true })
+        }
+        $text = "Remove SkyScope from this PC?`n`nIt stops SkyScope and removes the program, its shortcuts and its settings (location, filters). Python stays, for anything else that uses it."
+        if ($key) { $text += "`n`nTo keep your FlightAware API key for next time, untick the box: installing SkyScope again puts it back." }
+        $answers = UI-Choices $text $boxes 'Uninstall' -TextHeight $(if ($key) { 150 } else { 106 })
+        # (the button says whether to go ahead: with no boxes, the answers are an empty list either way)
         if ($script:UI.Clicked -ne 'ok') { UI-Close; return }
+        if ($key) { $dropKey = [bool]$answers[0] }
+    }
+    if ($key -and -not $dropKey) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $KeptKey) | Out-Null
+        @{ flightaware_key = $key; flightaware_daily_limit = [string]$fa.flightaware_daily_limit } | ConvertTo-Json |
+            Out-File $KeptKey -Encoding utf8
+    } elseif ($key) {
+        Remove-Item $KeptKey -ErrorAction SilentlyContinue      # (one kept from an earlier uninstall goes too)
     }
 
     if (-not $unattended) { UI-Progress 'Stopping SkyScope...' 10 }
@@ -46,7 +68,8 @@ function Main {
     }
     if (-not $unattended) {
         $left = Test-Path $AppDir
-        $null = UI-Done ("SkyScope has been removed." + $(if ($left) { "`n`nA few files in $AppDir were in use; they go when you restart the PC, or you can delete that folder." } else { '' })) 'Close'
+        $kept = if ($key -and -not $dropKey) { "`n`nYour FlightAware API key is kept on this PC: installing SkyScope again puts it back." } else { '' }
+        $null = UI-Done ("SkyScope has been removed." + $kept + $(if ($left) { "`n`nA few files in $AppDir were in use; they go when you restart the PC, or you can delete that folder." } else { '' })) 'Close'
     }
 }
 
