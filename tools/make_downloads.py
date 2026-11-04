@@ -157,6 +157,8 @@ def build(platform: str) -> Path:
                or f.relative_to(ROOT).parts[0] in ("web", "data", "docs")
                or f.name in ("README.md", "LICENSE")
                or f.relative_to(ROOT).as_posix() == "installer/keep_key.py"]   # (both installers)
+    if ROOT / "installer/filecheck.py" not in program:
+        program.append(ROOT / "installer/filecheck.py")   # (both installers: Repair and Update check files with it)
     launcher = ROOT / "tools" / "launcher"
     if windows:
         extra = sorted(f for f in (ROOT / "installer/windows").iterdir() if f.is_file() and f.name != "Install SkyScope.exe")

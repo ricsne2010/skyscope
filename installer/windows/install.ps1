@@ -32,7 +32,7 @@ trap {
 
 function Log($text) { "$(Get-Date -Format 'HH:mm:ss') $text" | Out-File $Log -Append -Encoding utf8 }
 
-function Run($exe, $argv, $what, $upTo, $seconds = 60) {
+function Run($exe, $argv, $what, $upTo, $seconds = 60, $ok = @(0)) {
     # a program run hidden, its output in the log, while the window keeps going
     Log "$what`: $exe $($argv -join ' ')"
     $out = Join-Path $env:TEMP "ss-step-$PID.txt"
@@ -42,7 +42,8 @@ function Run($exe, $argv, $what, $upTo, $seconds = 60) {
     $text = (Get-Content $out, "$out.err" -Raw -ErrorAction SilentlyContinue) -join ''
     Remove-Item $out, "$out.err" -ErrorAction SilentlyContinue
     if ($text) { Log $text.Trim() }
-    if ($code -ne 0) { throw "$what didn't work (exit code $code)." }
+    $script:LastCode = $code
+    if ($code -notin $ok) { throw "$what didn't work (exit code $code)." }
     return $text
 }
 
@@ -198,31 +199,46 @@ function Main {
     if ($was -and -not $have) { try { $have = (Get-Content (Join-Path $was 'install.json') -Raw | ConvertFrom-Json).version } catch { } }
     $prev = $null
     if ($was) { try { $prev = Get-Content (Join-Path $was 'install.json') -Raw | ConvertFrom-Json } catch { } }
-    $fresh = "Reinstall from scratch (keeps your settings and FlightAware key)"
-    $modes = @('install'); $options = @(); $okText = 'Install'
+    # the choices: Update, Repair or Reinstall from scratch as buttons on a page of their own (when it's installed),
+    # then the page with the folder and tick boxes (Back returns to the buttons)
+    $fresh = @{ label = 'Reinstall from scratch'; note = 'Removes everything SkyScope put on this PC, its settings too, then installs it new. Only your FlightAware API key is kept.' }
+    $compare = 'Compares the installed files with this installer''s and copies only the ones that differ. Your settings and FlightAware key are kept.'
+    $modes = @(); $buttons = @()
     if ($have) {
-        $okText = 'Continue'
         switch (Newer $newVersion $have) {
-            1 { $intro = "SkyScope $have is installed on this PC. This installer has version $newVersion.`n`nUpdate keeps everything as it is; reinstalling from scratch removes the program first."
-                $options = @("Update to $newVersion", $fresh); $modes = @('update', 'fresh') }
-            0 { $intro = "SkyScope $have is already installed on this PC.`n`nRepair installs it again over itself and rebuilds its Python set-up; reinstalling from scratch removes the program first. Both keep your settings."
-                $options = @("Repair", $fresh); $modes = @('repair', 'fresh') }
-            default { $intro = "A newer SkyScope ($have) is installed on this PC than this installer's version ($newVersion).`n`nClick Cancel to keep the newer one."
-                $options = @("Install $newVersion over it anyway", $fresh); $modes = @('update', 'fresh') }
+            1 { $modeIntro = "SkyScope $have is installed on this PC. This installer has version $newVersion. What would you like to do?"
+                $buttons = @(@{ label = "Update to $newVersion"; note = $compare }, $fresh); $modes = @('update', 'fresh') }
+            0 { $modeIntro = "SkyScope $have is already installed on this PC. What would you like to do?"
+                $buttons = @(@{ label = 'Repair'; note = 'Checks every installed file and puts back any that are damaged or missing, then sets up its shortcuts again. Your settings and FlightAware key are kept.' }, $fresh)
+                $modes = @('repair', 'fresh') }
+            default { $modeIntro = "A newer SkyScope ($have) is installed on this PC than this installer's version ($newVersion). Cancel keeps the newer one."
+                $buttons = @(@{ label = "Install $newVersion"; note = $compare }, $fresh); $modes = @('update', 'fresh') }
         }
-        if (-not $py) { $intro += "`n`nIt also installs Python $PyVersion from python.org, which SkyScope runs on." }
+        if (-not $py) { $modeIntro += " (It also installs Python $PyVersion from python.org, which SkyScope runs on.)" }
     }
     $wasPhones = if ($prev) { [bool]$prev.phones } else { $true }
     $wasAuto = if ($prev) { [bool]$prev.autostart } else { $false }
     $wasDesk = if ($prev -and $null -ne $prev.desktop) { [bool]$prev.desktop } else { $true }
-    $choices = UI-Choices $intro @(
-        @{ text = "Let phones, tablets and SkyScope Satellite displays on my Wi-Fi open it"; checked = $(if ($env:SS_PHONES) { $env:SS_PHONES -ne 'no' } else { $wasPhones }) },
-        @{ text = "Start SkyScope when I sign in to Windows"; checked = $(if ($env:SS_AUTOSTART) { $env:SS_AUTOSTART -eq 'yes' } else { $wasAuto }) },
-        @{ text = "Put Start and Stop SkyScope on the Desktop"; checked = $(if ($env:SS_DESKTOP) { $env:SS_DESKTOP -ne 'no' } else { $wasDesk }) }) $okText `
-        -Folder $suggest -FolderCheck { param($path) Check-Folder $path } -Options $options
+    $mode = 'install'
+    while ($true) {
+        $text = $intro; $okText = 'Install'
+        if ($have) {
+            $pick = UI-Modes $modeIntro $buttons
+            if ($null -eq $pick) { UI-Close; return }
+            $mode = $modes[$pick]
+            if ($UI_Unattended -and $env:SS_MODE) { $mode = $env:SS_MODE }
+            $okText = @{ update = 'Update'; repair = 'Repair'; fresh = 'Reinstall' }[$mode]
+            $text = @{ update = "Updating SkyScope $have to $newVersion"; repair = "Repairing SkyScope $have"; fresh = "Reinstalling SkyScope $newVersion from scratch" }[$mode] +
+                ": " + $buttons[[Math]::Max(0, [array]::IndexOf($modes, $mode))].note + "`n`nChoose below, then click $okText (or Back to choose differently)."
+        }
+        $choices = UI-Choices $text @(
+            @{ text = "Let phones, tablets and SkyScope Satellite displays on my Wi-Fi open it"; checked = $(if ($env:SS_PHONES) { $env:SS_PHONES -ne 'no' } else { $wasPhones }) },
+            @{ text = "Start SkyScope when I sign in to Windows"; checked = $(if ($env:SS_AUTOSTART) { $env:SS_AUTOSTART -eq 'yes' } else { $wasAuto }) },
+            @{ text = "Put Start and Stop SkyScope on the Desktop"; checked = $(if ($env:SS_DESKTOP) { $env:SS_DESKTOP -ne 'no' } else { $wasDesk }) }) $okText `
+            -Folder $suggest -FolderCheck { param($path) Check-Folder $path } -Back:([bool]$have)
+        if (-not $UI_Back) { break }
+    }
     if ($null -eq $choices) { UI-Close; return }
-    $mode = $modes[$UI_Option]
-    if ($UI_Unattended -and $env:SS_MODE -and $have) { $mode = $env:SS_MODE }
     $phones, $autostart, $onDesktop = $choices
     if ($UI_Unattended) { $phones = $env:SS_PHONES -eq 'yes'; $autostart = $env:SS_AUTOSTART -eq 'yes'; $onDesktop = $env:SS_DESKTOP -ne 'no' }
     $problem = Check-Folder $UI_Folder
@@ -259,15 +275,32 @@ function Main {
         }
     }
 
-    if ($mode -eq 'fresh' -and (Test-Path (Join-Path $AppDir 'install.json'))) {
-        # from scratch: everything in the program's folder goes except your settings, the logo cache and the
-        # FlightAware count
-        UI-Progress 'Removing the installed copy...' 44
-        Get-ChildItem $AppDir -Force | Where-Object { $_.Name -notin 'settings.json', 'flightaware_usage.json', 'logos_cache' } |
-            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    $notes = @()
+    $keptKey = Join-Path $env:APPDATA 'Project Moon Pi\SkyScope FlightAware key.json'
+    $check = Join-Path $Src 'installer\filecheck.py'
+    $env:FC_APP = 'SkyScope'
+    if ($mode -eq 'fresh') {
+        # from scratch: everything SkyScope put on this PC goes (the program, its settings, Python set-up, logo
+        # cache, shortcuts, Settings > Apps entry), except the FlightAware key, which comes back below as after an
+        # uninstall that kept it
+        UI-Progress 'Removing everything SkyScope put on this PC...' 44
+        foreach ($d in @($AppDir) + $others) {
+            $settings = Join-Path $d 'settings.json'
+            if (Test-Path $settings) {
+                try { $null = Run $py.exe ($py.pre + @((Join-Path $Src 'installer\keep_key.py'), 'save', $settings, $keptKey)) 'Keeping the FlightAware key' 44 10 }
+                catch { Log "$_ - the FlightAware key couldn't be kept" }
+            }
+            if (Test-Path (Join-Path $d 'install.json')) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue; Log "removed $d" }
+        }
+        $desktop = [Environment]::GetFolderPath('Desktop')
+        Remove-Item (Join-Path ([Environment]::GetFolderPath('Programs')) 'SkyScope') -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $desktop 'Start SkyScope.lnk'), (Join-Path $desktop 'Stop SkyScope.lnk'), (Join-Path $desktop 'Uninstall SkyScope.lnk'),
+            (Join-Path ([Environment]::GetFolderPath('Startup')) 'SkyScope.lnk') -ErrorAction SilentlyContinue
+        Remove-Item $UninstallKey -Recurse -Force -ErrorAction SilentlyContinue
+        $notes += 'Everything was removed and installed new, with SkyScope''s own settings' + $(if (Test-Path $keptKey) { ', except your FlightAware API key.' } else { '.' })
+        $others = @()
     }
     New-Item -ItemType Directory -Force -Path $AppDir | Out-Null
-    if ($mode -eq 'repair') { Remove-Item (Join-Path $AppDir 'venv') -Recurse -Force -ErrorAction SilentlyContinue }   # rebuilt below
     # moving: your settings, the logo cache and the FlightAware count come along
     foreach ($d in $others) {
         foreach ($f in 'settings.json', 'flightaware_usage.json', 'logos_cache') {
@@ -276,37 +309,63 @@ function Main {
         }
     }
     $venvPy = Join-Path $AppDir 'venv\Scripts\python.exe'
-    # a fresh environment if there's none, or its Python was removed or is too old
+    $pipArgs = @('--disable-pip-version-check', '--no-input', '--progress-bar', 'off')
+    function New-Venv {
+        UI-Progress 'Setting up Python for SkyScope...' 45
+        Remove-Item (Join-Path $AppDir 'venv') -Recurse -Force -ErrorAction SilentlyContinue
+        $null = Run $py.exe ($py.pre + @('-m', 'venv', (Join-Path $AppDir 'venv'))) 'Setting up Python' 50 20
+        try { $null = Run $venvPy (@('-m', 'pip', 'install', '--quiet', '--upgrade', 'pip') + $pipArgs) 'Updating pip' 52 20 }
+        catch { Log "$_ - carrying on with the pip it has" }
+    }
+    # a fresh environment if there's none, its Python was removed or is too old, or it can't run its own pip
     $venvOk = $false
     if (Test-Path $venvPy) {
         try { & $venvPy -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>$null; $venvOk = $LASTEXITCODE -eq 0 } catch { }
+        if ($venvOk) { try { & $venvPy -m pip --version 2>$null | Out-Null; $venvOk = $LASTEXITCODE -eq 0 } catch { $venvOk = $false } }
+        if (-not $venvOk) { Log "SkyScope's Python set-up can't run: making it again" }
     }
-    if (-not $venvOk) {
-        UI-Progress 'Setting up Python for SkyScope...' 45
-        Remove-Item (Join-Path $AppDir 'venv') -Recurse -Force -ErrorAction SilentlyContinue
-        $null = Run $py.exe ($py.pre + @('-m', 'venv', (Join-Path $AppDir 'venv'))) 'Setting up Python' 52 20
+    if (-not $venvOk) { New-Venv }
+    function Summary($text) { (($text -split "`r?`n") | Where-Object { $_ } | Select-Object -Last 1) -creplace '^Checked', 'checked' }
+    if ($mode -eq 'repair') {
+        # every file of SkyScope's Python parts against the fingerprint pip wrote down; packages with damaged or
+        # missing files are installed again (all of the Python set-up, if that doesn't fix them)
+        UI-Progress 'Checking SkyScope''s Python parts...' 52
+        $found = Run $venvPy @($check, 'check') 'Checking the installed Python parts' 56 120 @(0, 1)
+        $more = ''
+        if ($LastCode -ne 0) {
+            $fixed = $true
+            foreach ($want in @(($found -split "`r?`n") | Where-Object { $_ -match '^REPAIR ' } | ForEach-Object { $_.Substring(7).Trim() })) {
+                try { $null = Run $venvPy (@('-m', 'pip', 'install', '--force-reinstall', '--no-deps', $want) + $pipArgs) "Installing $want again" 58 60 }
+                catch { Log $_; $fixed = $false }
+            }
+            if ($fixed) { $null = Run $venvPy @($check, 'check') 'Checking them again' 59 120 @(0, 1); $fixed = $LastCode -eq 0 }
+            if (-not $fixed) { Log 'some files could not be fixed in place: making the Python set-up again'; New-Venv; $more = ' Its Python parts were set up again to fix them.' }
+        }
+        $notes += "Repair $(Summary $found)$more"
     }
-    UI-Progress 'Installing what SkyScope runs on...' 52 'Downloading pygame-ce; about a minute.'
-    try { $null = Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pip') 'Updating pip' 56 20 }
-    catch { Log "$_ - carrying on with the pip it has" }
-    $null = Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pygame-ce') 'Installing pygame-ce' 68 60
+    # what SkyScope runs on: only installed if it's missing (an update or repair keeps what's there)
+    UI-Progress 'Installing what SkyScope runs on...' 60 'Downloading pygame-ce; about a minute.'
+    $null = Run $venvPy (@('-m', 'pip', 'install', 'pygame-ce') + $pipArgs) 'Installing pygame-ce' 68 60
     # pystray and Pillow put SkyScope's icon by the clock; without them it runs without the icon
     UI-Progress 'Installing the icon by the clock...' 68
-    try { $null = Run $venvPy @('-m', 'pip', 'install', '--quiet', '--disable-pip-version-check', '--upgrade', 'pystray', 'pillow') 'Installing pystray and Pillow' 76 30 }
+    try { $null = Run $venvPy (@('-m', 'pip', 'install', 'pystray', 'pillow') + $pipArgs) 'Installing pystray and Pillow' 76 30 }
     catch { Log "$_ - no icon by the clock" }
 
-    # the program: replaced on every install; settings.json, the logo cache and the FlightAware count stay
-    UI-Progress 'Copying SkyScope...' 77
-    foreach ($d in 'web', 'data', 'docs') { Remove-Item (Join-Path $AppDir $d) -Recurse -Force -ErrorAction SilentlyContinue }
-    Get-ChildItem $AppDir -Filter *.py -File | Remove-Item -Force
-    Copy-Item (Join-Path $Src '*.py') $AppDir -Force
-    foreach ($d in 'web', 'data', 'docs') { Copy-Item (Join-Path $Src $d) $AppDir -Recurse -Force }
-    foreach ($f in 'README.md', 'LICENSE') { if (Test-Path (Join-Path $Src $f)) { Copy-Item (Join-Path $Src $f) $AppDir -Force } }
+    # the program: each file compared with this installer's, and only those that are damaged, missing or different
+    # are copied (installed-files.json lists them, so files a new version doesn't have go); settings.json, the logo
+    # cache and the FlightAware count stay. (An install from before that list: its program files are all replaced.)
+    UI-Progress $(if ($mode -eq 'repair') { 'Checking SkyScope''s program files...' } else { 'Copying SkyScope...' }) 77
+    if (-not (Test-Path (Join-Path $AppDir 'installed-files.json'))) {
+        foreach ($d in 'web', 'data', 'docs') { Remove-Item (Join-Path $AppDir $d) -Recurse -Force -ErrorAction SilentlyContinue }
+        Get-ChildItem $AppDir -Filter *.py -File | Remove-Item -Force
+    }
+    $why = if ($mode -eq 'repair') { 'repair' } else { 'update' }
+    $synced = Run $venvPy @($check, 'sync', $why, $Src, $AppDir, '*.py', 'web', 'data', 'docs', 'README.md', 'LICENSE') 'Copying the program' 77 60 @(0, 1)
+    if ($mode -eq 'repair' -or ($have -and $mode -ne 'fresh')) { $notes += (($synced -split "`r?`n") | Where-Object { $_ } | Select-Object -Last 1) }
     foreach ($f in 'run.py', 'start.ps1', 'stop.ps1', 'uninstall.ps1', 'firewall.ps1', 'ui.ps1', 'Uninstall SkyScope.exe') { Copy-Item (Join-Path $PSScriptRoot $f) $AppDir -Force }
     foreach ($f in 'skyscope-start.ico', 'skyscope-stop.ico', 'skyscope-uninstall.ico', 'skyscope.ico') { Copy-Item (Join-Path $Src "tools\launcher\$f") $AppDir -Force }
     Copy-Item (Join-Path $Src 'docs\images\moon-pi-logo-128.png') (Join-Path $AppDir 'logo.png') -Force
     # a FlightAware key kept when SkyScope was last uninstalled comes back
-    $keptKey = Join-Path $env:APPDATA 'Project Moon Pi\SkyScope FlightAware key.json'
     if (Test-Path $keptKey) {
         try { $null = Run $venvPy @((Join-Path $Src 'installer\keep_key.py'), 'restore', (Join-Path $AppDir 'settings.json'), $keptKey) 'Bringing back the FlightAware key' 77 10 }
         catch { Log "$_ - the kept FlightAware key stays where it is" }
@@ -411,7 +470,7 @@ function Main {
     $did = @{ install = 'is installed'; update = 'is installed (updated from ' + $have + ')'; repair = 'is repaired'; fresh = 'is reinstalled from scratch' }[$mode]
     $done = "SkyScope $version $did" + $(if ($up) { ' and running.' } else { ', but it didn''t start yet: use Start SkyScope in the Start menu.' }) +
         "`n`nIts radar icon is by the clock (click ^ if Windows has tucked it away there): click it for the radar, right-click for the settings or Stop. Start and Stop SkyScope are in the Start menu" + $(if ($onDesktop) { ', and on your Desktop' } else { '' }) + ". To remove it, use Remove SkyScope in the Start menu, Uninstall SkyScope in $AppDir, or Settings > Apps." +
-        $(if ($networkNote) { "`n`n$networkNote" } else { '' })
+        $(if ($networkNote) { "`n`n$networkNote" } else { '' }) + $(($notes | ForEach-Object { "`n`n$_" }) -join '')
     $open = UI-Done $done 'Finish' @(@{ text = 'Open the radar now'; checked = ($up -and $env:SS_OPEN -ne 'no') })
     if ($up -and $open -and $open[0] -and -not $UI_Unattended) { Start-Process "http://127.0.0.1:$port/radar" }
 }

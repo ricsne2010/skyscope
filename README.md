@@ -374,8 +374,13 @@ SkyScope**; its menu also shows the version, when it started and how many
 aircraft are in range. Activity Monitor and Task Manager list it as
 **SkyScope**. Start SkyScope says so if it's already running.
 
-Run the installer again to update or to change your answers: your settings,
-FlightAware key and logo cache are kept. If macOS says it can't verify the
+Run the installer again to update or to change your answers. When SkyScope is
+already installed it offers **Update** (compares the installed files with the new
+ones and copies only those that differ), **Repair** (checks every installed file
+and puts back any that are damaged or missing) or **Reinstall from scratch**
+(removes everything SkyScope put on the computer, its settings too, and installs
+it new; only your FlightAware key is kept). Update and Repair keep your settings,
+FlightAware key and logo cache. If macOS says it can't verify the
 developer: System Settings › Privacy & Security › **Open Anyway**; if Windows
 says it protected your PC: **More info › Run anyway**. Step by step: section 4
 of the [guide](docs/SkyScope-Guide.pdf).

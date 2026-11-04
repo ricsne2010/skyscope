@@ -6,6 +6,9 @@
 #     box with Browse...; the chosen folder is then in $UI_Folder
 #     -Options @('Update to 1.2', 'Repair', ...) -Selected 0: one choice of several (round buttons); the chosen one's
 #     number is then in $UI_Option
+#     -Back: a Back button too; clicked, it returns $null with $UI_Back set
+#   UI-Modes 'text' @(@{label = 'Update to 1.2'; note = 'what it does'}, ...)  -> the number of the one clicked, or
+#     $null on Cancel: a page of big buttons, each with what it does beside it (Update, Repair, Reinstall...)
 #   UI-Progress 'text' <percent>             moves the bar smoothly towards <percent> and says what's happening
 #   UI-Wait <process> <percent>               keeps the window alive while a program runs, the bar creeping on
 #   UI-Done 'text' 'Finish' @(@{text=...})    the last page; returns the boxes' states when closed
@@ -53,13 +56,15 @@ function UI-Open($title, $logo, $icon, $appName) {
         ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 110) }
     $ok = New-Object System.Windows.Forms.Button -Property @{ Width = 104; Height = 32; Left = 432; Top = 380; Visible = $false }
     $cancel = New-Object System.Windows.Forms.Button -Property @{ Width = 104; Height = 32; Left = 316; Top = 380; Text = 'Cancel'; Visible = $false }
-    $body.Controls.AddRange(@($text, $bar, $detail, $ok, $cancel))
+    $back = New-Object System.Windows.Forms.Button -Property @{ Width = 104; Height = 32; Left = 24; Top = 380; Text = '< Back'; Visible = $false }
+    $body.Controls.AddRange(@($text, $bar, $detail, $ok, $cancel, $back))
     $f.Controls.AddRange(@($body, $head))
 
-    $script:UI = @{ Form = $f; Text = $text; Bar = $bar; Detail = $detail; Ok = $ok; Cancel = $cancel; Body = $body
+    $script:UI = @{ Form = $f; Text = $text; Bar = $bar; Detail = $detail; Ok = $ok; Cancel = $cancel; Back = $back; Body = $body
                     Boxes = @(); Extra = @(); Clicked = $null; Target = 0; Closed = $false }
     $ok.Add_Click({ $script:UI.Clicked = 'ok' })
     $cancel.Add_Click({ $script:UI.Clicked = 'cancel' })
+    $back.Add_Click({ $script:UI.Clicked = 'back' })
     $f.Add_FormClosing({
         # the window's X: as Cancel while choosing; ignored while working
         if ($script:UI.Ok.Visible -or $script:UI.Cancel.Visible) { $script:UI.Clicked = 'cancel' } elseif (-not $script:UI.Closed) { $_.Cancel = $true }
@@ -82,8 +87,10 @@ function UI-Clear {
     foreach ($b in $script:UI.Boxes + $script:UI.Extra) { $script:UI.Body.Controls.Remove($b) }
     $script:UI.Boxes = @(); $script:UI.Extra = @()
     $script:UI.Bar.Visible = $false; $script:UI.Detail.Visible = $false
-    $script:UI.Ok.Visible = $false; $script:UI.Cancel.Visible = $false
+    $script:UI.Ok.Visible = $false; $script:UI.Cancel.Visible = $false; $script:UI.Back.Visible = $false
+    $script:UI.Form.AcceptButton = $null
     $script:UI.Clicked = $null
+    $script:UI_Back = $false
 }
 
 function UI-AddBoxes($boxes, $top) {
@@ -101,7 +108,7 @@ function UI-WaitClick {
     return $script:UI.Clicked
 }
 
-function UI-Choices($text, $boxes, $okText, [switch]$NoCancel, $Folder = $null, [scriptblock]$FolderCheck = $null,
+function UI-Choices($text, $boxes, $okText, [switch]$NoCancel, [switch]$Back, $Folder = $null, [scriptblock]$FolderCheck = $null,
                     $Options = @(), $Selected = 0, $TextHeight = 106) {
     UI-Clear
     $script:UI.Text.Text = $text
@@ -139,11 +146,14 @@ function UI-Choices($text, $boxes, $okText, [switch]$NoCancel, $Folder = $null, 
     UI-AddBoxes $boxes $top
     $script:UI.Ok.Text = $okText; $script:UI.Ok.Visible = $true
     $script:UI.Cancel.Visible = -not $NoCancel
+    $script:UI.Back.Visible = [bool]$Back
     $script:UI.Form.AcceptButton = $script:UI.Ok
     # (the leading comma keeps an empty list a list: a page with no boxes still says OK, not $null = Cancel)
     if ($UI_Unattended) { return , @($script:UI.Boxes | ForEach-Object { $_.Checked }) }
     while ($true) {
-        if ((UI-WaitClick) -ne 'ok') { return $null }
+        $click = UI-WaitClick
+        if ($click -eq 'back') { $script:UI_Back = $true; return $null }
+        if ($click -ne 'ok') { return $null }
         for ($i = 0; $i -lt $radios.Count; $i++) { if ($radios[$i].Checked) { $script:UI_Option = $i } }
         if (-not $Folder) { break }
         $script:UI_Folder = $script:UI.FolderBox.Text.Trim()
@@ -153,6 +163,31 @@ function UI-Choices($text, $boxes, $okText, [switch]$NoCancel, $Folder = $null, 
         $script:UI.Clicked = $null
     }
     return , @($script:UI.Boxes | ForEach-Object { $_.Checked })
+}
+
+function UI-Modes($text, $choices) {
+    # a page of big buttons: each choice's button, with what it does beside it; Cancel below
+    UI-Clear
+    $script:UI.Text.Text = $text
+    $script:UI.Text.Height = 64
+    $top = 90
+    $i = 0
+    foreach ($c in $choices) {
+        $b = New-Object System.Windows.Forms.Button -Property @{ Left = 26; Top = $top; Width = 180; Height = 44; Text = $c.label; Tag = $i
+            Font = (New-Object System.Drawing.Font('Segoe UI Semibold', 10.5)) }
+        $b.Add_Click({ $script:UI.Clicked = "mode$($this.Tag)" })
+        $n = New-Object System.Windows.Forms.Label -Property @{ Left = 222; Top = ($top - 2); Width = 316; Height = 88; Text = $c.note
+            ForeColor = [System.Drawing.Color]::FromArgb(80, 80, 90) }
+        $script:UI.Extra += @($b, $n)
+        $script:UI.Body.Controls.AddRange(@($b, $n))
+        if ($i -eq 0) { $script:UI.Form.AcceptButton = $b }
+        $top += 94; $i++
+    }
+    $script:UI.Cancel.Visible = $true
+    if ($UI_Unattended) { return 0 }
+    $click = UI-WaitClick
+    if ($click -like 'mode*') { return [int]$click.Substring(4) }
+    return $null
 }
 
 function UI-Progress($text, $percent, $detail = '') {

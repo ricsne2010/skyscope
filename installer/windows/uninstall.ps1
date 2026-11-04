@@ -61,6 +61,14 @@ function Main {
     Set-Location $env:TEMP
     [Environment]::CurrentDirectory = $env:TEMP
     Remove-Item $AppDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $AppDir) {
+        # something in it was still in use (as Uninstall SkyScope.exe can be, a moment longer): a moment later
+        # rmdir /s gets the rest, and the Project Moon Pi folder if that's then empty
+        $tidy = if ((Split-Path (Split-Path $AppDir) -Leaf) -eq 'Project Moon Pi') { " & rmdir `"$(Split-Path $AppDir)`" 2>nul" } else { '' }
+        Start-Process -WindowStyle Hidden -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') -WorkingDirectory $env:TEMP `
+            -ArgumentList "/c ping -n 4 127.0.0.1 >nul & rmdir /s /q `"$AppDir`"$tidy"
+        Start-Sleep -Seconds 4
+    }
     # and the Project Moon Pi folder it was in, once it's empty (no other Project Moon Pi app left there)
     $parent = Split-Path $AppDir
     if ((Split-Path $parent -Leaf) -eq 'Project Moon Pi' -and -not (Get-ChildItem $parent -Force -ErrorAction SilentlyContinue)) {

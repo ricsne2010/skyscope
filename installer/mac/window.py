@@ -41,7 +41,7 @@ APPDIR = os.path.expanduser("~/Library/Application Support/SkyScope")
 KEPT_KEY = os.path.expanduser("~/Library/Application Support/Project Moon Pi/SkyScope FlightAware key.json")
 LOG = os.path.expanduser(f"~/Library/Logs/{TITLE}.log")
 WIDTH, WRAP = 580, 520                              # the window (points), the text's width
-INSTALL_STEPS = [3, 8, 20, 45, 68, 74, 80, 84, 92, 95, 100]   # install.sh's steps (the bar creeps to the next)
+INSTALL_STEPS = [3, 8, 12, 20, 45, 68, 74, 80, 84, 92, 95, 100]   # install.sh's steps (the bar creeps to the next)
 UNINSTALL_STEPS = [10, 40, 75, 95, 100]
 
 
@@ -54,6 +54,31 @@ def version_of(folder):
 
 VERSION = version_of(ROOT) or ""
 INSTALLED = version_of(APPDIR)
+if DRY and "--as" in sys.argv[:-1]:                 # (a dry run can act as if another version were installed)
+    INSTALLED = sys.argv[sys.argv.index("--as") + 1]
+
+
+def key(v):
+    return tuple(int(x) if x.isdigit() else 0 for x in re.split(r"[.\-]", v or "0"))
+
+
+def modes():
+    """The ways to install over the installed copy, for their own page: [(mode, button, what it does)], the
+    suggested one first. Empty when it isn't installed (then it's simply installed)."""
+    fresh = ("fresh", "Reinstall from scratch",
+             "Removes everything SkyScope put on this Mac, its settings too, then installs it new. Only your "
+             "FlightAware API key is kept.")
+    compare = ("Compares the installed files with this installer's and copies only the ones that differ. Your "
+               "settings and FlightAware key are kept.")
+    if not INSTALLED:
+        return []
+    if key(INSTALLED) < key(VERSION):
+        return [("update", f"Update to {VERSION}", compare), fresh]
+    if key(INSTALLED) == key(VERSION):
+        return [("repair", "Repair",
+                 "Checks every installed file and puts back any that are damaged or missing, then sets up its apps "
+                 "and service again. Your settings and FlightAware key are kept."), fresh]
+    return [("install", f"Install {VERSION}", compare), fresh]
 
 
 def image(*names):
@@ -98,9 +123,11 @@ def check_space():
 def check_installed():
     if not INSTALLED:
         return "ok", "not yet: this installs it"
-    if INSTALLED == VERSION:
-        return "ok", f"SkyScope {INSTALLED} is installed: this installs it again (your settings are kept)"
-    return "ok", f"SkyScope {INSTALLED} is installed: this updates it to {VERSION} (your settings are kept)"
+    if key(INSTALLED) == key(VERSION):
+        return "ok", f"SkyScope {INSTALLED} is installed: you can repair it or reinstall it from scratch"
+    if key(INSTALLED) < key(VERSION):
+        return "ok", f"SkyScope {INSTALLED} is installed: this updates it to {VERSION} (your settings are kept)"
+    return "warn", f"SkyScope {INSTALLED} is installed: that's newer than this installer's {VERSION}"
 
 
 CHECKS = [("This Mac", check_mac), ("Python", check_python), ("Internet", check_internet), ("Disk space", check_space),
@@ -185,6 +212,7 @@ class Installer:
         self.notes = []
         self.phones, self.autostart, self.desktop = (tk.BooleanVar(value=v) for v in self.answers())
         self.open_radar = tk.BooleanVar(value=True)
+        self.mode = tk.StringVar(value=(modes() or [("install", "", "")])[0][0])
 
         style = ttk.Style()
         style.configure("Head.TLabel", font=("Helvetica", 18, "bold"))
@@ -250,7 +278,7 @@ class Installer:
             w.destroy()
         self.msg.config(text="")
         if not self.next_b.winfo_ismapped():            # (hidden while working)
-            self.next_b.pack(side="right")
+            self.next_b.pack(side="right", **({"before": self.back_b} if self.back_b.winfo_ismapped() else {}))
         self.back_b.config(state="normal" if back else "disabled", command=back or (lambda: None))
         self.next_b.config(text=next_text, state="normal", command=next_cmd or (lambda: None))
         if AUTO and next_cmd and next_text not in ("Finish", "Close"):
@@ -293,7 +321,7 @@ class Installer:
 
     # ---- installing
     def p_welcome(self):
-        self.page(TITLE, next_cmd=self.p_choices)
+        self.page(TITLE, next_cmd=self.p_mode if modes() else self.p_choices)
         self.text(f"SkyScope {VERSION}: a live aircraft radar in your web browser, styled after an ATC display. It "
                   "runs quietly in the background, with a radar icon in the menu bar, and phones, tablets and SkyScope "
                   "Satellite displays on your Wi-Fi can open it too.")
@@ -351,8 +379,51 @@ class Installer:
                 self.next_b.config(state="normal")
         self.fit()
 
+    def p_mode(self):
+        """Already installed: Update, Repair or Reinstall, each a button with what it does, on a page of its own."""
+        self.page("SkyScope is already installed", back=self.p_welcome)
+        self.next_b.pack_forget()                        # (a button below goes on; page() brings Next back)
+        if key(INSTALLED) > key(VERSION):
+            self.text(f"This Mac has SkyScope {INSTALLED}, which is newer than this installer's {VERSION}. "
+                      "Cancel keeps the newer one.")
+        elif key(INSTALLED) == key(VERSION):
+            self.text(f"This Mac already has SkyScope {INSTALLED}. What would you like to do?")
+        else:
+            self.text(f"This Mac has SkyScope {INSTALLED}. This installer has {VERSION}. What would you like to do?")
+        grid = ttk.Frame(self.body)
+        grid.pack(anchor="w", fill="x", pady=(6, 0))
+        first = None
+        for row, (mode, label, note) in enumerate(modes()):
+            b = ttk.Button(grid, text=label, width=19, command=lambda m=mode: self.chose(m),
+                           default="active" if row == 0 else "normal")
+            b.grid(row=row, column=0, sticky="nw", pady=(0, 16), padx=(0, 14))
+            ttk.Label(grid, text=note, style="Note.TLabel", wraplength=WRAP - 215, justify="left").grid(
+                row=row, column=1, sticky="nw", pady=(3, 16))
+            first = first or b
+        self.text("Next you choose about phones and Satellites, starting at login and Desktop icons.", "Note.TLabel",
+                  pady=(0, 0))
+        self.text(CREDIT, "Note.TLabel", pady=(14, 0))
+        if AUTO:
+            self.root.after(2500, lambda: self.head.cget("text").startswith("SkyScope is already") and first.invoke())
+        self.fit()
+
+    def chose(self, mode):
+        self.mode.set(mode)
+        self.p_choices()
+
     def p_choices(self):
-        self.page("Your choices", back=self.p_welcome, next_text="Install", next_cmd=self.install)
+        ways = {m: note for m, _, note in modes()}
+        verb = {"update": "Update", "repair": "Repair", "fresh": "Reinstall"}.get(self.mode.get(), "Install")
+        self.page("Your choices", back=self.p_mode if ways else self.p_welcome, next_text=verb, next_cmd=self.install)
+        if ways:
+            ttk.Label(self.body, text={"update": f"Updating SkyScope {INSTALLED} to {VERSION}",
+                                       "repair": f"Repairing SkyScope {INSTALLED}",
+                                       "fresh": f"Reinstalling SkyScope {VERSION} from scratch"}.get(
+                self.mode.get(), f"Installing SkyScope {VERSION} over {INSTALLED}"),
+                font=("Helvetica", 13, "bold")).pack(anchor="w", pady=(4, 0))
+            ttk.Label(self.body, text=ways[self.mode.get()] + " (Back to choose differently.)", style="Note.TLabel",
+                      wraplength=WRAP).pack(anchor="w")
+            ttk.Separator(self.body).pack(fill="x", pady=(12, 0))
         for var, label, note in (
                 (self.phones, "Phones, tablets and SkyScope Satellite displays on my Wi-Fi can open it",
                  "Otherwise only this Mac can. The settings page's About tab shows the address to use."),
@@ -366,15 +437,22 @@ class Installer:
         self.fit()
 
     def install(self):
-        env = dict(os.environ, SS_PY=sys.executable, SS_PHONES="yes" if self.phones.get() else "no",
+        mode = self.mode.get() if modes() else "install"
+        self.done_mode = mode
+        env = dict(os.environ, SS_PY=sys.executable, SS_MODE=mode, SS_PHONES="yes" if self.phones.get() else "no",
                    SS_AUTOSTART="yes" if self.autostart.get() else "no", SS_DESKTOP="yes" if self.desktop.get() else "no")
-        self.work(f"Installing SkyScope {VERSION}", os.path.join(HERE, "install.sh"), env, INSTALL_STEPS, self.p_installed)
+        head = {"update": f"Updating SkyScope to {VERSION}", "repair": "Repairing SkyScope",
+                "fresh": f"Reinstalling SkyScope {VERSION}"}.get(mode, f"Installing SkyScope {VERSION}")
+        self.work(head, os.path.join(HERE, "install.sh"), env, INSTALL_STEPS, self.p_installed)
 
     def p_installed(self, ok, tail):
         if not ok:
             return self.p_failed("SkyScope wasn't installed", tail)
-        was = f"updated from {INSTALLED} to {VERSION}" if INSTALLED and INSTALLED != VERSION else "installed"
-        self.page(f"SkyScope is {was.split(' ')[0]}", next_text="Finish", next_cmd=self.finish)
+        head, was = {"update": ("SkyScope is updated", f"updated from {INSTALLED} to {VERSION}"),
+                     "repair": ("SkyScope is repaired", "repaired"),
+                     "fresh": ("SkyScope is reinstalled", "reinstalled from scratch")}.get(
+            self.done_mode, ("SkyScope is installed", "installed"))
+        self.page(head, next_text="Finish", next_cmd=self.finish)
         self.back_b.pack_forget()
         self.cancel_b.pack_forget()
         self.text(f"SkyScope {VERSION} is {was}, and running.")

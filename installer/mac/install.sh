@@ -1,6 +1,14 @@
 #!/bin/bash
 # The Mac installer's work, run by its window (installer/mac/window.py, in "Install SkyScope.app") with the answers
 # already given: SS_PY=<python 3.10+> SS_PHONES=yes|no SS_AUTOSTART=yes|no SS_DESKTOP=yes|no
+#   SS_MODE=install|update|repair|fresh
+#     install/update: compares the installed program's files with this installer's and copies only the ones that
+#                     differ (and removes those it no longer has); pygame-ce and the others change only if missing.
+#     repair:         checks every installed file (the program's against this installer's, the Python parts against
+#                     the fingerprints pip wrote down) and puts back any that are damaged or missing; then makes the
+#                     apps and the service again.
+#     fresh:          removes everything SkyScope put on this Mac (program, settings, Python parts, apps, service,
+#                     Desktop icons, log) except the FlightAware API key, then installs it new.
 # Each step prints "@@ <percent> <what's happening>" for the window's progress bar; everything else goes to its log.
 # It installs the program in ~/Library/Application Support/SkyScope, sets it up as a background service (started
 # last, by the window), and puts Start, Stop and Uninstall SkyScope in Applications › SkyScope (Start and Stop on the
@@ -10,28 +18,77 @@ SRC="$(cd "$(dirname "$0")/../.." && pwd)"           # the program's files (insi
 set -e
 step() { echo "@@ $1 $2"; }
 PIP=(--disable-pip-version-check --no-input --progress-bar off)   # pip says what it fetches (for the details box)
-PY=${SS_PY:?}; PHONES=${SS_PHONES:-yes}; AUTOSTART=${SS_AUTOSTART:-no}; DESKTOP=${SS_DESKTOP:-yes}
+PY=${SS_PY:?}; PHONES=${SS_PHONES:-yes}; AUTOSTART=${SS_AUTOSTART:-no}; DESKTOP=${SS_DESKTOP:-yes}; MODE=${SS_MODE:-install}
+CHECK="$SRC/installer/filecheck.py"
+export FC_APP=SkyScope
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+VPY="$APPDIR/venv/bin/python"
+new_venv() {
+  rm -rf "$APPDIR/venv"
+  echo "Making SkyScope's own Python environment (venv)..."
+  "$PY" -m venv "$APPDIR/venv"
+  "$VPY" -m pip install --quiet "${PIP[@]}" --upgrade pip || true
+}
 
 step 3 "Stopping SkyScope, if it's running..."
 if launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1; then echo "Stopped the running SkyScope."; else echo "SkyScope wasn't running."; fi
+if [ "$MODE" = fresh ]; then
+  echo "Reinstalling from scratch: removing everything SkyScope put on this Mac..."
+  # the FlightAware key stays (it's put back below, as after an uninstall that kept it); everything else goes
+  [ -f "$APPDIR/settings.json" ] && "$PY" "$SRC/installer/keep_key.py" save "$APPDIR/settings.json" "$KEPT_KEY"
+  rm -rf "$APPDIR" && echo "Removed the program, its settings and Python environment ($APPDIR)"
+  rm -f "$PLIST" "$LOG" && echo "Removed the background service and its log"
+  rm -rf "/Applications/SkyScope" "$HOME/Applications/SkyScope" && echo "Removed Start, Stop and Uninstall SkyScope"
+  rm -f "$HOME/Desktop/Start SkyScope" "$HOME/Desktop/Stop SkyScope" "$HOME/Desktop/Uninstall SkyScope" 2>/dev/null || true
+  if [ -f "$KEPT_KEY" ]; then
+    echo "@! Reinstalled from scratch: everything was removed and installed new, with SkyScope's own settings, except your FlightAware API key."
+  else
+    echo "@! Reinstalled from scratch: everything was removed and installed new, with SkyScope's own settings."
+  fi
+fi
 mkdir -p "$APPDIR" "$APPS" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 echo "Program folder: $APPDIR"
 echo "Apps folder: $APPS"
 
 step 8 "Setting up Python for SkyScope..."
 echo "Using $("$PY" -c 'import sys; print("Python", sys.version.split()[0])') ($PY)"
-# a fresh environment if there's none, or its Python was removed or is too old
-"$APPDIR/venv/bin/python" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null || {
-  rm -rf "$APPDIR/venv"
-  echo "Making SkyScope's own Python environment (venv)..."
-  "$PY" -m venv "$APPDIR/venv"
-} && echo "SkyScope's Python environment: $APPDIR/venv"
-"$APPDIR/venv/bin/python" -m pip install --quiet "${PIP[@]}" --upgrade pip || true
+# a fresh environment if there's none, its Python was removed or is too old, or it can't run its own pip
+if "$VPY" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null && "$VPY" -m pip --version >/dev/null 2>&1; then
+  echo "Using SkyScope's Python environment: $APPDIR/venv"
+else
+  [ -d "$APPDIR/venv" ] && echo "SkyScope's Python environment can't run: making it again."
+  new_venv
+fi
+NOTE=""
+if [ "$MODE" = repair ]; then
+  step 12 "Checking SkyScope's Python parts..."
+  # every file of every package against the fingerprint pip wrote down; packages with damaged or missing files are
+  # installed again (all of the environment, if that doesn't fix them)
+  if "$VPY" "$CHECK" check > "$WORK/check.txt" 2>&1; then
+    cat "$WORK/check.txt"
+  else
+    cat "$WORK/check.txt"
+    fixed=yes
+    while read -r _ want; do
+      "$VPY" -m pip install "${PIP[@]}" --force-reinstall --no-deps "$want" || fixed=""
+    done < <(grep '^REPAIR ' "$WORK/check.txt")
+    if [ -z "$fixed" ] || ! "$VPY" "$CHECK" check > "$WORK/check2.txt" 2>&1; then
+      echo "Some files couldn't be fixed in place: making SkyScope's Python environment again."
+      new_venv
+      NOTE=" SkyScope's Python parts were set up again to fix them."
+    else
+      NOTE=" They were installed again."
+    fi
+  fi
+  NOTE="Repair $(tail -1 "$WORK/check.txt" | sed 's/^Checked/checked/')$NOTE"
+fi
 step 20 "Installing pygame-ce (it draws the radar)..."
-"$APPDIR/venv/bin/python" -m pip install "${PIP[@]}" --upgrade pygame-ce
+# (only if it's missing: an update or repair keeps the one that's there)
+"$VPY" -m pip install "${PIP[@]}" pygame-ce
 step 45 "Installing the menu bar icon (pystray, Pillow)..."
 # pystray and Pillow (with PyObjC) put SkyScope's icon in the menu bar; without them it runs without the icon
-"$APPDIR/venv/bin/python" -m pip install "${PIP[@]}" --upgrade pystray pillow ||
+"$VPY" -m pip install "${PIP[@]}" pystray pillow ||
   echo "(Couldn't install pystray and Pillow: SkyScope will run without its menu bar icon.)"
 
 step 68 "Naming SkyScope for Activity Monitor..."
@@ -49,12 +106,21 @@ else
   echo "(Activity Monitor will show SkyScope as Python.)"
 fi
 
-step 74 "Copying SkyScope..."
-# the program: replaced on every install; your settings, logo cache and FlightAware count stay
-( cd "$APPDIR" && rm -rf web data docs installer ./*.py )
-cp "$SRC"/*.py "$APPDIR/"
-cp -R "$SRC/web" "$SRC/data" "$SRC/docs" "$APPDIR/"
-cp "$SRC/README.md" "$SRC/LICENSE" "$APPDIR/" 2>/dev/null || true
+if [ "$MODE" = repair ]; then step 74 "Checking SkyScope's program files..."; else step 74 "Copying SkyScope..."; fi
+# the program: each file compared with this installer's, and only those that are damaged, missing or different are
+# copied (installed-files.json lists them, so files a new version doesn't have go); your settings, logo cache and
+# FlightAware count stay. (An install from before that list was kept: its program files are all replaced.)
+[ -f "$APPDIR/installed-files.json" ] || ( cd "$APPDIR" && rm -rf web data docs ./*.py )
+rc=0
+"$VPY" "$CHECK" sync "$([ "$MODE" = repair ] && echo repair || echo update)" "$SRC" "$APPDIR" '*.py' web data docs README.md LICENSE > "$WORK/sync.txt" 2>&1 || rc=$?
+cat "$WORK/sync.txt"
+[ "$rc" -le 1 ] || { echo "Couldn't copy SkyScope's files."; exit 1; }
+rm -rf "$APPDIR/installer"
+if [ "$MODE" = repair ]; then
+  echo "@! $NOTE $(tail -1 "$WORK/sync.txt")"
+elif [ "$MODE" = update ] || { [ "$MODE" = install ] && [ -f "$APPDIR/settings.sh" ]; }; then   # (over an install)
+  echo "@! $(tail -1 "$WORK/sync.txt")"
+fi
 # the uninstaller's window and work, run by Uninstall SkyScope
 mkdir -p "$APPDIR/installer/mac"
 cp "$SRC/installer/mac/window.py" "$SRC/installer/mac/uninstall.sh" "$SRC/installer/mac/common.sh" "$APPDIR/installer/mac/"

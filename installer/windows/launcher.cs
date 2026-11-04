@@ -18,7 +18,7 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("SkyScope")]
 [assembly: AssemblyCompany("Project Moon Pi")]
 [assembly: AssemblyCopyright("Designed and Created by Project Moon Pi")]
-[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
 
 static class Launcher
 {
@@ -69,12 +69,13 @@ static class Launcher
         var p = Process.Start(start);
         // The window takes a few seconds to open. If PowerShell stops before it does, say so with the end of the
         // installer's log: a hidden PowerShell has no other way to tell anyone, and the click would seem to do nothing.
-        if (p.WaitForExit(30000) && p.ExitCode != 0 && !WindowOpened())
+        // (Not for Uninstall: it lives in the folder the uninstaller removes, so it must be gone by then.)
+        if (!uninstall && p.WaitForExit(30000) && p.ExitCode != 0 && !WindowOpened())
         {
-            string what = uninstall ? "The uninstaller" : "The installer";
+            string what = "The installer";
             MessageBox.Show(what + " stopped before its window opened (exit code " + p.ExitCode + ")." +
                             (Tail() == "" ? "" : "\n\n" + Tail()) + "\n\nThe details are in " + LogFile +
-                            ". Please send that file to Project Moon Pi.", (uninstall ? "Uninstall " : "Install ") + Product,
+                            ". Please send that file to Project Moon Pi.", "Install " + Product,
                             MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return 1;
         }
