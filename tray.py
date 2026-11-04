@@ -161,12 +161,11 @@ class Tray:
                                     for base in ("/Applications", Path.home() / "Applications")
                                     for run in ("Resources/run.sh", "MacOS/run")) if p.exists()),
                        Path("/nonexistent"))
-        win_script = HERE / "stop.ps1"
+        win_exe = HERE / "SkyScope.exe"   # (the installed copy's own program: Stop SkyScope's shortcut opens it too)
         if sys.platform == "darwin" and mac_app.exists() and HERE == Path.home() / "Library/Application Support/SkyScope":
             subprocess.Popen([str(mac_app)], start_new_session=True)
-        elif sys.platform == "win32" and win_script.exists():
-            subprocess.Popen(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-                              "-File", str(win_script)], creationflags=0x08000000)  # no console window
+        elif sys.platform == "win32" and win_exe.exists():
+            subprocess.Popen([str(win_exe), "--stop"], creationflags=0x00000008)  # DETACHED_PROCESS: it outlives this one
         else:
             try:
                 req = urllib.request.Request(self.base + "/api/shutdown", data=b"", method="POST",

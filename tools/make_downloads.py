@@ -59,7 +59,7 @@ Designed and Created by Project Moon Pi
    displays on your Wi-Fi may open it, whether it starts when you sign in, and whether Start and Stop
    go on the Desktop, then click Install. If this PC doesn't have Python 3.10 or newer, it installs
    Python from python.org for you too (no admin permission needed).
-   If you chose phones, a note comes up before Windows asks to allow Windows PowerShell to make changes:
+   If you chose phones, a note comes up before Windows asks to allow Install SkyScope.exe to make changes:
    click Yes (that opens the firewall for them).
 3. Click Finish. Leave "Open the radar now" ticked to see the radar.
 
@@ -161,7 +161,8 @@ def build(platform: str) -> Path:
         program.append(ROOT / "installer/filecheck.py")   # (both installers: Repair and Update check files with it)
     launcher = ROOT / "tools" / "launcher"
     if windows:
-        extra = sorted(f for f in (ROOT / "installer/windows").iterdir() if f.is_file() and f.name != "Install SkyScope.exe")
+        # the Windows programs (built from installer/windows/src by build.sh) and Python's side of running it
+        extra = [ROOT / "installer/windows" / n for n in ("SkyScope.exe", "Uninstall SkyScope.exe", "run.py")]
         extra += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico")]
     else:
         extra = []        # (the program and the installer go inside Install SkyScope.app)
@@ -189,7 +190,7 @@ def build(platform: str) -> Path:
             if f.suffix in (".bat", ".ps1"):              # Windows line endings, whatever the checkout has
                 data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
             add(z, f.relative_to(ROOT).as_posix(), data, executable=f.suffix == ".sh")
-        if windows:   # the launchers, with their icons, open the installer's or uninstaller's window (build_launcher.ps1)
+        if windows:   # the installer and uninstaller, at the top of the folder (built by installer/windows/build.sh)
             for exe in ("Install SkyScope.exe", "Uninstall SkyScope.exe"):
                 add(z, exe, (ROOT / "installer/windows" / exe).read_bytes())
         add(z, "SkyScope Guide.pdf", GUIDE.read_bytes())

@@ -426,20 +426,25 @@ The installers live in `installer/` (`mac/`, `windows/`). On a Mac,
 `osacompile`, the program inside it), which opens the installer's window
 (`installer/mac/window.py`, Tk, made like the M.O.S.S. SD Card Creator's; try it
 with `python3 installer/mac/window.py --dry-run`, `--uninstall --dry-run`); its work
-is `install.sh` / `uninstall.sh`. On Windows, `installer/windows/Install SkyScope.exe` (a small launcher
-with the SkyScope icon that opens the installer's window, `ui.ps1`, without a
-console; rebuild it from `launcher.cs` with `build_launcher.ps1` on Windows, or on
-a Mac with Mono: `csc -target:winexe -reference:System.Windows.Forms.dll
--win32icon:tools/launcher/skyscope.ico ...`); the icons are in
+is `install.sh` / `uninstall.sh`. On Windows, the installer is a compiled C#
+program with no PowerShell anywhere (antivirus programs such as Bitdefender
+block a hidden PowerShell that downloads, compiles and asks for admin rights as
+malware): `installer/windows/src/*.cs`, built three times, by
+`installer/windows/build.sh` on a Mac with Mono (against .NET Framework 4.8's
+reference assemblies) or `build.ps1` on Windows, into **Install SkyScope.exe**,
+**Uninstall SkyScope.exe** and **SkyScope.exe** (one program; what it does goes
+by its name). SkyScope.exe is Start (`--no-browser`), Stop (`--stop`) and
+SkyScope's own process while it runs (`--run`, Python hidden beneath it, so Task
+Manager shows SkyScope); the firewall change runs the same program with admin
+rights (`--firewall`). Commit the rebuilt .exe files. The icons are in
 `tools/launcher/` (`make_icon.py --start` / `--stop`). For unattended test
 installs, answer the questions ahead: `SS_PHONES=yes|no`, `SS_AUTOSTART=yes|no`,
 `SS_OPEN=no`, `SS_PYTHON=yes|no` (install Python if it's missing; and
 `SS_UNATTENDED=1` for the uninstaller). The Python they install is pinned
-(`PY_VERSION` in `installer/mac/get_python.sh`, `$PyVersion` in
-`installer/windows/install.ps1`): move it on once pygame-ce, Pillow and PyObjC
+(`PY_VERSION` in `installer/mac/get_python.sh`, `PyVersion` in
+`installer/windows/src/App.cs`): move it on once pygame-ce, Pillow and PyObjC
 have packages for a newer one. The menu bar / taskbar icon is `tray.py`,
-started by `skyscope.py --web-only --tray`; on Windows, `brand_exe.py` makes
-`SkyScope.exe` so Task Manager shows SkyScope.
+started by `skyscope.py --web-only --tray`.
 
 ## Testing on a desktop
 
@@ -547,6 +552,7 @@ scope design, range presets and colours were the starting point.
 |----------|--------|---------|
 | Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
 | Menu bar / taskbar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
+| Windows installer | C# on Microsoft's .NET Framework 4.8 (Windows Forms), built with [Mono](https://www.mono-project.com)'s C# compiler (Roslyn) | .NET Framework: part of Windows; Mono and Roslyn: MIT |
 | Built with | [Claude Code](https://claude.com/claude-code) (Anthropic): designed, written and tested with Claude | |
 
 **Not for navigation.** Map layers are approximations for watching traffic;
