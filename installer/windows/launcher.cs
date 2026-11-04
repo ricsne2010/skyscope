@@ -8,6 +8,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -65,7 +66,40 @@ static class Launcher
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(script)
         };
-        Process.Start(start);
+        var p = Process.Start(start);
+        // The window takes a few seconds to open. If PowerShell stops before it does, say so with the end of the
+        // installer's log: a hidden PowerShell has no other way to tell anyone, and the click would seem to do nothing.
+        if (p.WaitForExit(30000) && p.ExitCode != 0 && !WindowOpened())
+        {
+            string what = uninstall ? "The uninstaller" : "The installer";
+            MessageBox.Show(what + " stopped before its window opened (exit code " + p.ExitCode + ")." +
+                            (Tail() == "" ? "" : "\n\n" + Tail()) + "\n\nThe details are in " + LogFile +
+                            ". Please send that file to Project Moon Pi.", (uninstall ? "Uninstall " : "Install ") + Product,
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return 1;
+        }
         return 0;
+    }
+
+    static readonly string LogFile = Path.Combine(Path.GetTempPath(), App + " install.log");
+
+    // the log's lines since the installer last started ("== <date> ... installer")
+    static string[] LastRun()
+    {
+        try
+        {
+            var lines = File.ReadAllLines(LogFile);
+            int from = Array.FindLastIndex(lines, l => l.StartsWith("== "));
+            return from < 0 ? lines : lines.Skip(from).ToArray();
+        }
+        catch { return new string[0]; }
+    }
+
+    static bool WindowOpened() { return LastRun().Any(l => l.EndsWith(" window shown")); }
+
+    static string Tail()
+    {
+        var run = LastRun();
+        return string.Join("\n", run.Skip(Math.Max(0, run.Length - 6)));
     }
 }

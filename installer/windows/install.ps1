@@ -20,6 +20,14 @@ $AppDir = $DefaultDir      # (the folder chosen in the window)
 $UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ProjectMoonPi.SkyScope'
 $Log = Join-Path $env:TEMP 'SkyScope install.log'
 $UI_Unattended = [bool]$env:SS_PHONES
+"== $(Get-Date) SkyScope installer" | Out-File $Log -Append -Encoding utf8    # (Install SkyScope.exe reads from here)
+# anything that stops it before its window is up goes in the log too; "Install SkyScope.exe" then shows it (a hidden
+# PowerShell has no other way to tell anyone)
+trap {
+    "$(Get-Date -Format 'HH:mm:ss') ERROR before the window opened: $_ $($_.InvocationInfo.PositionMessage)" |
+        Out-File $Log -Append -Encoding utf8
+    exit 2
+}
 . (Join-Path $PSScriptRoot 'ui.ps1')
 
 function Log($text) { "$(Get-Date -Format 'HH:mm:ss') $text" | Out-File $Log -Append -Encoding utf8 }
@@ -174,8 +182,8 @@ function Newer($a, $b) {
 }
 
 function Main {
-    "== $(Get-Date) SkyScope installer" | Out-File $Log -Append -Encoding utf8
     UI-Open 'Install SkyScope' (Join-Path $Src 'docs\images\moon-pi-logo-128.png') (Join-Path $Src 'tools\launcher\skyscope.ico') 'SkyScope'
+    Log 'window shown'
 
     $py = Find-Python
     $intro = "A live aircraft radar, in your web browser. This installs SkyScope for you on this PC; it runs quietly in the background, with a radar icon by the clock."
