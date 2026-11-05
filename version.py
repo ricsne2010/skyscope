@@ -1,2 +1,2 @@
 """SkyScope's version, shown on the settings page's About tab."""
-VERSION = "1.8.3"
+VERSION = "1.8.4"
