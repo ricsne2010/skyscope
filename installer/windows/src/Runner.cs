@@ -53,7 +53,7 @@ static class Runner
     // Open, and Start (--no-browser)
     public static int Start(string dir, bool browser)
     {
-        Tray.Ensure(dir);                 // (it shows the app starting, then running: no notices of our own then)
+        if (App.TrayIcon) Tray.Ensure(dir);   // (it shows the app starting, then running: no notices of our own then)
         int port = App.InstalledPort(dir);
         string url = "http://127.0.0.1:" + port + App.OpenPath;
         bool installing = Environment.GetEnvironmentVariable("SS_INSTALLING") == "1";
