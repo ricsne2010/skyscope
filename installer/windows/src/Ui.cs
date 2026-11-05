@@ -38,7 +38,7 @@ static class Ui
     public static bool WentBack;
     static Form form;
     static Label text, detail;
-    static ProgressBar bar;
+    static MoonBar bar;
     static Button ok, cancel, back;
     static Panel body;
     static TextBox folderBox;
@@ -85,7 +85,8 @@ static class Ui
         // page: its text, then whatever the page needs; buttons at the bottom right
         body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 18, 24, 0) };
         text = new Label { Left = 24, Top = 18, Width = 512, Height = 96, UseMnemonic = false };   // (an & is shown, not a shortcut)
-        bar = new ProgressBar { Left = 24, Top = 120, Width = 512, Height = 20, Style = ProgressBarStyle.Continuous, Maximum = 1000, Visible = false };
+        // the progress bar, as the Mac installer's: the Project Moon Pi patch on its leading edge, the app's rider behind
+        bar = new MoonBar(App.BarRider) { Left = 24, Top = 120, Width = 512, Height = MoonBar.Tall, Maximum = 1000, Visible = false, Logo = img };
         detail = new Label { Left = 24, Top = 148, Width = 512, Height = 40, Visible = false, UseMnemonic = false, ForeColor = Color.FromArgb(100, 100, 110) };
         ok = new Button { Width = 104, Height = 32, Left = 432, Top = 380, Visible = false };
         cancel = new Button { Width = 104, Height = 32, Left = 316, Top = 380, Text = "Cancel", Visible = false };
@@ -272,7 +273,7 @@ static class Ui
         if (form == null) return;
         if (ok.Visible || boxes.Count > 0 || extra.Count > 0) Clear();
         text.Text = message;
-        text.Height = 30; bar.Top = 58; detail.Top = 86;        // text, bar and hint together
+        text.Height = 30; bar.Top = 46; detail.Top = 46 + MoonBar.Tall + 8;     // text, bar and hint together
         bar.Visible = true;
         detail.Text = hint; detail.Visible = !string.IsNullOrEmpty(hint);
         target = (int)(Math.Min(100, percent) * 10);

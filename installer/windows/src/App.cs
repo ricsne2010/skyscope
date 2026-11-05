@@ -41,6 +41,9 @@ static partial class App
         new[] { "Stop SkyScope Service", "--stop", "stop", "Stop SkyScope's service" },
     };
 
+    // what rides the installer's progress bar (MoonBar.cs): a plane, as on the Mac
+    public const string BarRider = "plane";
+
     // the Python that runs it: its own Python set-up's (venv), without a console window
     public static string PythonW(string dir) { return Path.Combine(dir, @"venv\Scripts\pythonw.exe"); }
 
