@@ -567,6 +567,7 @@ scope design, range presets and colours were the starting point.
 |----------|--------|---------|
 | Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
 | Menu bar / taskbar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
+| Secure connections (installed copies) | [truststore](https://github.com/sethmlarson/truststore) by Seth Larson: HTTPS checked with the computer's own certificates | MIT |
 | QR codes for phones | [QR Code Generator for JavaScript](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (`web/qrcode.js`, 1.4.4) | MIT |
 | Windows installer | C# on Microsoft's .NET Framework 4.8 (Windows Forms), built with [Mono](https://www.mono-project.com)'s C# compiler (Roslyn) | .NET Framework: part of Windows; Mono and Roslyn: MIT |
 | Built with | [Claude Code](https://claude.com/claude-code) (Anthropic): designed, written and tested with Claude | |

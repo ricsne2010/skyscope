@@ -90,6 +90,8 @@ step 45 "Installing the menu bar icon (pystray, Pillow)..."
 # pystray and Pillow (with PyObjC) put SkyScope's icon in the menu bar; without them it runs without the icon
 "$VPY" -m pip install "${PIP[@]}" pystray pillow ||
   echo "(Couldn't install pystray and Pillow: SkyScope will run without its menu bar icon.)"
+# truststore: HTTPS sites checked with the Mac's own certificates (skyscope.py system_trust)
+"$VPY" -m pip install "${PIP[@]}" truststore || echo "(Couldn't install truststore: Python's own certificates are used.)"
 
 step 68 "Naming SkyScope for Activity Monitor..."
 # venv/bin/SkyScope: Python under SkyScope's own name, so Activity Monitor shows "SkyScope". It's a copy of

@@ -1309,6 +1309,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         'Drawn with <a href="https://www.pygame.org" target="_blank" rel="noopener">pygame</a> (LGPL) in Python',
         'QR codes: <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">'
         "QR Code Generator for JavaScript</a> by Kazuhiko Arase (MIT)",
+        'Secure connections (installed copies): <a href="https://github.com/sethmlarson/truststore" target="_blank" '
+        'rel="noopener">truststore</a> by Seth Larson (MIT)',
         'Menu bar / taskbar icon (installed copies): <a href="https://github.com/moses-palmer/pystray" '
         'target="_blank" rel="noopener">pystray</a> (LGPL 3), <a href="https://python-pillow.org" target="_blank" '
         'rel="noopener">Pillow</a> (MIT-CMU) and, on a Mac, <a href="https://github.com/ronaldoussoren/pyobjc" '

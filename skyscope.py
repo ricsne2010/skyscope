@@ -1585,7 +1585,20 @@ def show_splash(screen: pygame.Surface, seconds: float = 4.2) -> bool:
     return True
 
 
+def system_trust() -> None:
+    """Checks HTTPS sites with the computer's own certificate verifier (truststore), where it's installed: on
+    Windows, Python only trusts the root certificates Windows already holds, and Windows fetches a missing one only
+    when its own software needs it, so on a PC with only Firefox, GitHub's (the update check) could be missing and
+    refused. The installers install truststore; without it, Python's own checking is used as before."""
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except Exception:   # (not installed, or this Python is too old for it)
+        pass
+
+
 def main() -> int:
+    system_trust()
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--window", type=parse_size, metavar="WxH",
                     help="run in a window of this size instead of fullscreen")

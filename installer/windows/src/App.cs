@@ -79,6 +79,10 @@ static partial class App
     public static readonly string[][] Packages = {
         new[] { "pygame-ce", "Installing what SkyScope runs on...", "yes", "Downloading pygame-ce; about a minute." },
         new[] { "pystray pillow", "Installing the icon by the clock...", "no", "" },   // without them: no icon by the clock
+        // truststore: HTTPS sites checked with Windows' own verifier, which fetches a root certificate Windows doesn't
+        // hold yet (Python alone refuses it: the update check failed on a PC with only Firefox); skyscope.py
+        // system_trust() uses it when it's there
+        new[] { "truststore", "Installing what SkyScope runs on...", "no", "" },
     };
 
     // the program's files, copied from the installer's folder (filecheck.py sync compares them)

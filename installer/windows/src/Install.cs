@@ -394,7 +394,7 @@ static class Install
         foreach (var pkg in App.Packages)
         {
             Ui.Progress(pkg[1], at, pkg[3]);
-            double upTo = at + (pkg[2] == "yes" ? 8 : 8);
+            double upTo = at + 16.0 / App.Packages.Length;      // (the packages share 60% to 76%)
             try { Run(venvPy, new[] { "-m", "pip", "install" }.Concat(pkg[0].Split(' ')).Concat(pipArgs), "Installing " + pkg[0], upTo, 60); }
             catch (Exception e) { if (pkg[2] == "yes") throw; App.Log(e.Message + " - carrying on without " + pkg[0]); }
             at = upTo;
