@@ -39,6 +39,11 @@ def platform_name():
     return {"darwin": "Mac", "win32": "Windows"}.get(sys.platform)
 
 
+def download_name(version: str, want: str) -> str:
+    """The one-file download for a computer (from 1.9.0): the Mac's disk image, Windows' installer."""
+    return f"SkyScope-{version}-for-Mac.dmg" if want == "Mac" else f"Install-SkyScope-{version}-for-Windows.exe"
+
+
 def _ask() -> dict:
     req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest",
                                  headers={"Accept": "application/vnd.github+json",
@@ -47,7 +52,9 @@ def _ask() -> dict:
         rel = json.load(r)
     latest = str(rel.get("tag_name", "")).lstrip("vV")
     want = platform_name()
-    asset = next((a for a in rel.get("assets", []) if want and a.get("name", "").endswith(f"-for-{want}.zip")), {})
+    names = [download_name(latest, want), f"SkyScope-{latest}-for-{want}.zip"] if want else []
+    assets = {a.get("name"): a for a in rel.get("assets", [])}
+    asset = next((assets[n] for n in names if n in assets), {})      # (the zip: a release from before 1.9.0)
     return {"latest": latest, "newer": numbers(latest) > numbers(VERSION), "page": rel.get("html_url"),
             "download": asset.get("browser_download_url"), "error": None,
             "size": asset.get("size"), "digest": asset.get("digest")}     # (digest: "sha256:...", for checking it)
@@ -70,7 +77,7 @@ def _ask_page() -> dict:
             raise
     latest = where.rsplit("/releases/tag/", 1)[1].lstrip("vV")
     want = platform_name()
-    download = (f"https://github.com/{REPO}/releases/download/v{latest}/SkyScope-{latest}-for-{want}.zip"
+    download = (f"https://github.com/{REPO}/releases/download/v{latest}/{download_name(latest, want)}"
                 if want else None)
     return {"latest": latest, "newer": numbers(latest) > numbers(VERSION), "page": where, "download": download,
             "error": None}
@@ -100,9 +107,10 @@ def _refresh():
 
 
 # --- updating from inside SkyScope --------------------------------------------------------
-# Update to <version> (Settings › About, on the computer running SkyScope): the new version's zip is downloaded in the
-# background, checked against the SHA-256 GitHub publishes for it (or at least its size), unpacked into a folder in
-# the temporary folder, and its installer opened in front, ready for "Update to <version>". The installer does the
+# Update to <version> (Settings › About, on the computer running SkyScope): the new version's download is fetched in
+# the background into a folder in the temporary folder, checked against the SHA-256 GitHub publishes for it (or at
+# least its size), and its installer opened in front, ready for "Update to <version>" (on a Mac, the installer app is
+# copied out of the disk image first). The installer does the
 # rest, as when it's run by hand: it stops this SkyScope, updates it (settings kept) and starts it again.
 
 _job = {"stage": "idle", "pct": 0, "text": "", "error": None, "version": None}
@@ -176,27 +184,41 @@ def _update(info: dict):
         if not digest and info.get("size") and os.path.getsize(zpath) != info["size"]:
             raise ValueError("the download is incomplete, so it wasn't used")
         _say("unpacking", "Unpacking it...", 88)
-        if sys.platform == "darwin":
-            # (ditto keeps the installer app whole: its permissions and signature)
-            subprocess.run(["ditto", "-x", "-k", zpath, work], check=True, capture_output=True)
-        else:
-            with zipfile.ZipFile(zpath) as z:
-                z.extractall(work)
-        folder = next((os.path.join(work, d) for d in os.listdir(work)
-                       if d.startswith("SkyScope ") and os.path.isdir(os.path.join(work, d))), None)
-        if not folder:
-            raise ValueError("the download didn't hold the installer")
-        _say("opening", "Opening the installer...", 95)
         # the installer gets a clean environment: none of the installers' own answers (SS_PHONES and the like make
         # it install without asking) or notes (SS_INSTALLING) that this SkyScope may have been started with
         env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("SS_", "TT_", "AT_", "FC_"))}
-        if sys.platform == "darwin":
-            app = os.path.join(folder, "Install SkyScope.app")
-            subprocess.run(["open", app], check=True, env=env)
+        if zpath.endswith(".zip"):          # (a release from before 1.9.0)
+            if sys.platform == "darwin":
+                # (ditto keeps the installer app whole: its permissions and signature)
+                subprocess.run(["ditto", "-x", "-k", zpath, work], check=True, capture_output=True)
+            else:
+                with zipfile.ZipFile(zpath) as z:
+                    z.extractall(work)
+            folder = next((os.path.join(work, d) for d in os.listdir(work)
+                           if d.startswith("SkyScope ") and os.path.isdir(os.path.join(work, d))), None)
+            if not folder:
+                raise ValueError("the download didn't hold the installer")
+            installer = os.path.join(folder, "Install SkyScope.app" if sys.platform == "darwin" else "Install SkyScope.exe")
+        elif zpath.endswith(".dmg"):
+            # the installer app is copied out of the disk image (ditto keeps it whole) and the image put away
+            mount = os.path.join(work, "disk image")
+            os.makedirs(mount, exist_ok=True)
+            subprocess.run(["hdiutil", "attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mount, zpath],
+                           check=True, capture_output=True)
+            try:
+                installer = os.path.join(work, "Install SkyScope.app")
+                subprocess.run(["ditto", os.path.join(mount, "Install SkyScope.app"), installer],
+                               check=True, capture_output=True)
+            finally:
+                subprocess.run(["hdiutil", "detach", "-force", mount], capture_output=True)
         else:
-            exe = os.path.join(folder, "Install SkyScope.exe")
+            installer = zpath               # Windows: the download is the installer
+        _say("opening", "Opening the installer...", 95)
+        if sys.platform == "darwin":
+            subprocess.run(["open", installer], check=True, env=env)
+        else:
             # on its own, not as part of SkyScope: the installer stops this SkyScope and starts the new one
-            subprocess.Popen([exe], cwd=folder, close_fds=True, env=env,
+            subprocess.Popen([installer], cwd=work, close_fds=True, env=env,
                              creationflags=0x00000008 | 0x00000200)   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
         _say("open", f"The installer is open: click Update to {version} in its window. SkyScope restarts when "
                      "it's done.", 100)

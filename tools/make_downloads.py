@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Build the two downloads attached to each GitHub release (as the US Train Tracker's):
+"""Build the downloads attached to each GitHub release, one file for each computer (as Aviator Trail's):
 
-  dist/SkyScope-<version>-for-Mac.zip       Install SkyScope.app (the program inside it: build_mac_app())
-  dist/SkyScope-<version>-for-Windows.zip   Install SkyScope.exe + the Windows installer pieces
+  dist/SkyScope-<version>-for-Mac.dmg                 Install SkyScope.app (the program inside it: build_mac_app()),
+                                                      the guide and a READ ME FIRST note
+  dist/Install-SkyScope-<version>-for-Windows.exe     the installer, carrying the program (Payload.cs)
 
-(named with the version, as is the folder inside, so a download says what it is). It also points the README's
-download links at this version's files.
+and, for SkyScope 1.8.5's Update button (it looks for zips), SkyScope-<version>-for-Mac.zip and -for-Windows.zip.
+Each is named with the version, so a download says what it is. It also points the README's download links at this
+version's files.
 
-Each holds the program (copied into place by the installer), the guide and a READ ME FIRST note. Only files
-tracked by git go in, so a working copy's settings, logo cache and logs never end up in a download.
+Only files tracked by git go in, so a working copy's settings, logo cache and logs never end up in a download.
 
     python3 tools/make_downloads.py
 """
@@ -32,7 +33,7 @@ READ_ME = {
     "Mac": """SkyScope {v} for Mac
 Designed and Created by Project Moon Pi
 
-1. Double-click "Install SkyScope" (the radar icon).
+1. Double-click "Install SkyScope" (the radar icon) in this window.
    The first time, macOS may say it can't check the developer: open System Settings > Privacy & Security,
    scroll down to the message about Install SkyScope and click Open Anyway.
    If this Mac hasn't got Python yet, it offers to install it from python.org first (click Install Python;
@@ -48,29 +49,7 @@ chose). While SkyScope runs, its radar icon is in the menu bar: click it for the
 Uninstall SkyScope asks whether to delete your FlightAware API key (if you added one) or keep it for the next
 install.
 To update, run the installer of a newer version: your settings are kept.
-You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
-""",
-    "Windows": """SkyScope {v} for Windows
-Designed and Created by Project Moon Pi
-
-1. Extract this zip (right-click it, Extract All), then double-click "Install SkyScope" (the radar icon).
-   If Windows says it protected your PC: More info > Run anyway.
-2. Choose where to install it (or keep the folder it suggests), whether phones and SkyScope Satellite
-   displays on your Wi-Fi may open it, whether it starts when you sign in, and whether Start and Stop
-   go on the Desktop, then click Install. If this PC doesn't have Python 3.10 or newer, it installs
-   Python from python.org for you too (no admin permission needed).
-   If you chose phones, a note comes up before Windows asks to allow Install SkyScope.exe to make changes:
-   click Yes (that opens the firewall for them).
-3. Click Finish. Leave "Open the radar now" ticked to see the radar.
-
-Afterwards use Start SkyScope and Stop SkyScope in the Start menu (and on your Desktop if you chose).
-To remove it: Remove SkyScope in the Start menu, or Uninstall SkyScope in the folder it's installed in
-or beside the installer in this folder; or Settings > Apps. It asks whether to delete your FlightAware API key
-(if you added one) or keep it for the next install.
-While SkyScope runs, its green radar icon is by the clock (click ^ if it's hidden): click it for the
-radar, right-click for the settings or Stop.
-To update, run the installer of a newer version: your settings are kept.
-You can delete this folder once it's installed. The full guide is "SkyScope Guide.pdf".
+Once it's installed you can eject this disk image and delete the download. The full guide is "SkyScope Guide.pdf".
 """,
 }
 
@@ -146,12 +125,10 @@ def tracked() -> list[Path]:
     return [ROOT / line for line in out.splitlines()]
 
 
-def build(platform: str) -> Path:
-    top = f"SkyScope {VERSION} for {platform}"
-    out = DIST / f"SkyScope-{VERSION}-for-{platform}.zip"
-    for old in DIST.glob(f"SkyScope-*for-{platform}.zip"):   # earlier versions' builds
-        old.unlink()
-    windows = platform == "Windows"
+MARK = b"MOONPI-PAYLOAD-1"      # (installer/windows/src/Payload.cs reads it)
+
+
+def program_files(windows: bool) -> list[Path]:
     files = tracked()
     program = [f for f in files if (f.parent == ROOT and f.suffix == ".py")
                or f.relative_to(ROOT).parts[0] in ("web", "data", "docs")
@@ -159,43 +136,73 @@ def build(platform: str) -> Path:
                or f.relative_to(ROOT).as_posix() == "installer/keep_key.py"]   # (both installers)
     if ROOT / "installer/filecheck.py" not in program:
         program.append(ROOT / "installer/filecheck.py")   # (both installers: Repair and Update check files with it)
-    launcher = ROOT / "tools" / "launcher"
     if windows:
         # the Windows programs (built from installer/windows/src by build.sh) and Python's side of running it
-        extra = [ROOT / "installer/windows" / n for n in ("SkyScope.exe", "Uninstall SkyScope.exe", "run.py")]
-        extra += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico")]
-    else:
-        extra = []        # (the program and the installer go inside Install SkyScope.app)
+        launcher = ROOT / "tools" / "launcher"
+        program += [ROOT / "installer/windows" / n for n in ("SkyScope.exe", "Uninstall SkyScope.exe", "run.py")]
+        program += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico")]
+    return program
 
-    def add(z, name, data, executable=False):
-        info = zipfile.ZipInfo(f"{top}/{name}", date_time=time.localtime()[:6])
-        info.compress_type = zipfile.ZIP_DEFLATED
-        info.external_attr = ((0o755 if executable else 0o644) | stat.S_IFREG) << 16
-        z.writestr(info, data)
 
-    DIST.mkdir(exist_ok=True)
+def zip_entry(z, name, data, mode=0o644):
+    info = zipfile.ZipInfo(name, date_time=time.localtime()[:6])
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = (mode | stat.S_IFREG) << 16
+    z.writestr(info, data)
+
+
+def build_windows() -> Path:
+    """Install-SkyScope-<version>-for-Windows.exe: the installer with the program's files (a zip) added to its end,
+    as NSIS and Inno Setup installers carry theirs (Payload.cs unpacks them). One file: download it, double-click it."""
+    out = DIST / f"Install-SkyScope-{VERSION}-for-Windows.exe"
+    for old in DIST.glob("Install-SkyScope-*-for-Windows.exe"):
+        old.unlink()
+    with tempfile.SpooledTemporaryFile() as buf:
+        with zipfile.ZipFile(buf, "w") as z:
+            for f in program_files(True):
+                zip_entry(z, f.relative_to(ROOT).as_posix(), f.read_bytes())
+        buf.seek(0)
+        payload = buf.read()
+    exe = (ROOT / "installer/windows/Install SkyScope.exe").read_bytes()
+    out.write_bytes(exe + payload + len(payload).to_bytes(8, "little") + MARK)
+    print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
+    return out
+
+
+def build_mac() -> Path:
+    """SkyScope-<version>-for-Mac.dmg: a disk image holding Install SkyScope.app, the guide and a READ ME. One file:
+    download it, double-click it, double-click Install SkyScope."""
+    out = DIST / f"SkyScope-{VERSION}-for-Mac.dmg"
+    for old in DIST.glob("SkyScope-*-for-Mac.dmg"):
+        old.unlink()
+    with tempfile.TemporaryDirectory() as tmp:
+        stage = Path(tmp) / f"SkyScope {VERSION}"
+        stage.mkdir()
+        build_mac_app(stage, program_files(False))
+        shutil.copy2(GUIDE, stage / "SkyScope Guide.pdf")
+        (stage / "READ ME FIRST.txt").write_text(READ_ME["Mac"].format(v=VERSION))
+        subprocess.run(["hdiutil", "create", "-quiet", "-volname", f"Install SkyScope {VERSION}", "-srcfolder", str(stage),
+                        "-fs", "HFS+", "-format", "UDZO", "-ov", str(out)], check=True)
+    print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
+    return out
+
+
+def build_old_zip(platform: str) -> Path:
+    """SkyScope-<version>-for-<platform>.zip: for SkyScope 1.8.5's Update button, which looks for a zip holding a
+    "SkyScope <version> ..." folder with the installer in it (the one-file installer, on Windows)."""
+    top = f"SkyScope {VERSION} for {platform}"
+    out = DIST / f"SkyScope-{VERSION}-for-{platform}.zip"
+    for old in DIST.glob(f"SkyScope-*for-{platform}.zip"):
+        old.unlink()
     with zipfile.ZipFile(out, "w") as z:
-        if not windows:
+        if platform == "Windows":
+            zip_entry(z, f"{top}/Install SkyScope.exe", (DIST / f"Install-SkyScope-{VERSION}-for-Windows.exe").read_bytes())
+        else:
             with tempfile.TemporaryDirectory() as tmp:
-                app = build_mac_app(Path(tmp), program)
+                app = build_mac_app(Path(tmp), program_files(False))
                 for f in sorted(app.rglob("*")):
                     if f.is_file():
-                        info = zipfile.ZipInfo(f"{top}/{f.relative_to(tmp).as_posix()}", date_time=time.localtime()[:6])
-                        info.compress_type = zipfile.ZIP_DEFLATED
-                        info.external_attr = (stat.S_IMODE(f.stat().st_mode) | stat.S_IFREG) << 16
-                        z.writestr(info, f.read_bytes())
-            program = []
-        for f in program + extra:
-            data = f.read_bytes()
-            if f.suffix in (".bat", ".ps1"):              # Windows line endings, whatever the checkout has
-                data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
-            add(z, f.relative_to(ROOT).as_posix(), data, executable=f.suffix == ".sh")
-        if windows:   # the installer and uninstaller, at the top of the folder (built by installer/windows/build.sh)
-            for exe in ("Install SkyScope.exe", "Uninstall SkyScope.exe"):
-                add(z, exe, (ROOT / "installer/windows" / exe).read_bytes())
-        add(z, "SkyScope Guide.pdf", GUIDE.read_bytes())
-        note = READ_ME[platform].format(v=VERSION)
-        add(z, "READ ME FIRST.txt", note.replace("\n", "\r\n") if windows else note)
+                        zip_entry(z, f"{top}/{f.relative_to(tmp).as_posix()}", f.read_bytes(), stat.S_IMODE(f.stat().st_mode))
     print(f"wrote {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
     return out
 
@@ -204,9 +211,12 @@ def update_readme() -> None:
     """The README's download links: this version's files on its GitHub release."""
     readme = ROOT / "README.md"
     text = readme.read_text()
-    new = re.sub(r"https://github\.com/projectmoonpi/skyscope/releases/[^)\s]*?SkyScope-[^)\s]*?for-(Mac|Windows)\.zip",
-                 lambda m: f"https://github.com/projectmoonpi/skyscope/releases/download/v{VERSION}/SkyScope-{VERSION}-for-{m.group(1)}.zip",
-                 text)
+    def link(m):
+        name = (f"SkyScope-{VERSION}-for-Mac.dmg" if m.group(1) == "Mac"
+                else f"Install-SkyScope-{VERSION}-for-Windows.exe")
+        return f"https://github.com/projectmoonpi/skyscope/releases/download/v{VERSION}/{name}"
+    new = re.sub(r"https://github\.com/projectmoonpi/skyscope/releases/[^)\s]*?SkyScope-[^)\s]*?for-(Mac|Windows)\.(?:zip|dmg|exe)",
+                 link, text)
     new = re.sub(r"SkyScope [\d.]+ for (Mac|Windows)\]", lambda m: f"SkyScope {VERSION} for {m.group(1)}]", new)
     if new != text:
         readme.write_text(new)
@@ -214,6 +224,8 @@ def update_readme() -> None:
 
 
 if __name__ == "__main__":
+    DIST.mkdir(exist_ok=True)
     for p in (sys.argv[1:] or ["Mac", "Windows"]):
-        build(p)
+        (build_mac if p == "Mac" else build_windows)()
+        build_old_zip(p)
     update_readme()

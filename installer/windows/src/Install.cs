@@ -190,12 +190,19 @@ static class Install
 
     public static int Begin()
     {
-        Src = App.Here;
         App.LogHeader("installer");
+        // the one-file download carries the program's files (Payload.cs); a folder beside it has them otherwise
+        try { Src = Payload.Unpack() ?? App.Here; }
+        catch (Exception e)
+        {
+            App.Log("ERROR: " + e);
+            Ui.Error("The installer couldn't unpack " + App.Name + "'s files.\n\n" + e.Message + "\n\nWhat the installer did is in " + App.LogFile + ".");
+            return 1;
+        }
         Ui.Unattended = !string.IsNullOrEmpty(Env("SS_PHONES"));
         if (!File.Exists(Path.Combine(Src, "version.py")))
         {
-            // run straight from the zip: Windows copies only this file out
+            // an installer without the program's files, away from its folder
             Ui.Say("Extract the zip first: right-click it, choose Extract All, then open Install " + App.Name +
                    " in the extracted folder.");
             return 1;

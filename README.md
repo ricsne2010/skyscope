@@ -19,10 +19,10 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.8.5 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Mac.zip)** ·
-**[SkyScope 1.8.5 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Windows.zip)**
-(or the [latest release](../../releases/latest) page). Unzip it and double-click
-**Install SkyScope**; the [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
+**[SkyScope 1.9.0 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/SkyScope-1.9.0-for-Mac.dmg)** ·
+**[SkyScope 1.9.0 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/Install-SkyScope-1.9.0-for-Windows.exe)**
+(or the [latest release](../../releases/latest) page): one file. On a Mac, open it and double-click
+**Install SkyScope**; on Windows, double-click it. The [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
 code as `skyscope-main.zip`, which isn't the installer.)
 
@@ -358,10 +358,10 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Mac.zip)**
-or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Windows.zip)**
-(also on the [latest release](../../releases/latest)), unzip it and double-click
-**Install SkyScope**. It runs on Python 3.10 or newer from
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/SkyScope-1.9.0-for-Mac.dmg)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/Install-SkyScope-1.9.0-for-Windows.exe)**
+(also on the [latest release](../../releases/latest)): one file. On a Mac, open the disk image and
+double-click **Install SkyScope**; on Windows, double-click the downloaded installer. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
 it, the installer offers to download and install it (checking it's signed by
 the Python Software Foundation). The installer:
@@ -433,10 +433,14 @@ an HDMI TV or monitor isn't affected: one drawn pixel is one screen pixel.
 
 ## Building the downloads
 
-`python3 tools/make_downloads.py` writes `dist/SkyScope-<version>-for-Mac.zip` and
-`dist/SkyScope-<version>-for-Windows.zip` (named with the version, and it points
-this README's download links at them; the installer, the program, the guide and a
-READ ME FIRST note; only files tracked by git) for attaching to a release.
+`python3 tools/make_downloads.py` writes `dist/SkyScope-<version>-for-Mac.dmg` (a disk
+image: Install SkyScope.app with the program inside it, the guide and a READ ME FIRST note)
+and `dist/Install-SkyScope-<version>-for-Windows.exe` (the installer with the program's
+files added to its end, as NSIS and Inno Setup installers carry theirs;
+`installer/windows/src/Payload.cs` unpacks them), named with the version, and points this
+README's download links at them; only files tracked by git go in. It also writes
+`SkyScope-<version>-for-Mac.zip` and `-for-Windows.zip`, for SkyScope 1.8.5's Update button,
+which looks for zips. Attach all of them to the release.
 The installers live in `installer/` (`mac/`, `windows/`). On a Mac,
 `make_downloads.py` builds **Install SkyScope.app** (an AppleScript app made with
 `osacompile`, the program inside it), which opens the installer's window

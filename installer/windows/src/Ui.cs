@@ -84,9 +84,9 @@ static class Ui
 
         // page: its text, then whatever the page needs; buttons at the bottom right
         body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 18, 24, 0) };
-        text = new Label { Left = 24, Top = 18, Width = 512, Height = 96 };
+        text = new Label { Left = 24, Top = 18, Width = 512, Height = 96, UseMnemonic = false };   // (an & is shown, not a shortcut)
         bar = new ProgressBar { Left = 24, Top = 120, Width = 512, Height = 20, Style = ProgressBarStyle.Continuous, Maximum = 1000, Visible = false };
-        detail = new Label { Left = 24, Top = 148, Width = 512, Height = 40, Visible = false, ForeColor = Color.FromArgb(100, 100, 110) };
+        detail = new Label { Left = 24, Top = 148, Width = 512, Height = 40, Visible = false, UseMnemonic = false, ForeColor = Color.FromArgb(100, 100, 110) };
         ok = new Button { Width = 104, Height = 32, Left = 432, Top = 380, Visible = false };
         cancel = new Button { Width = 104, Height = 32, Left = 316, Top = 380, Text = "Cancel", Visible = false };
         back = new Button { Width = 104, Height = 32, Left = 24, Top = 380, Text = "< Back", Visible = false };
@@ -157,6 +157,24 @@ static class Ui
         form.AcceptButton = null;
         clicked = null;
         WentBack = false;
+    }
+
+    // the last page's text as tall as it needs (the window grows if it and the boxes would reach the buttons);
+    // where its boxes go
+    static int Fit(int boxCount)
+    {
+        float scale = text.Width / 512f;                       // (sizes here are the screen's: scaled with its DPI)
+        int need = TextRenderer.MeasureText(text.Text, text.Font, new Size(text.Width, int.MaxValue),
+                                            TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height + (int)(6 * scale);
+        int below = (int)((boxCount * 30 + 20) * scale);       // the boxes, and a gap above the buttons
+        int over = text.Top + need + below - ok.Top;
+        if (over > 0)
+        {
+            form.ClientSize = new Size(form.ClientSize.Width, form.ClientSize.Height + over);
+            foreach (var b in new[] { ok, cancel, back }) b.Top += over;
+        }
+        text.Height = need;
+        return text.Top + need + (int)(8 * scale);
     }
 
     static void AddBoxes(IEnumerable<Box> specs, int top)
@@ -236,7 +254,7 @@ static class Ui
             var b = new Button { Left = 26, Top = top, Width = 180, Height = 44, Text = choices[i].Label,
                                  Font = new Font("Segoe UI Semibold", 10.5f) };
             b.Click += (s, e) => clicked = "mode" + n;
-            var note = new Label { Left = 222, Top = top - 2, Width = 316, Height = 88, Text = choices[i].Note,
+            var note = new Label { UseMnemonic = false, Left = 222, Top = top - 2, Width = 316, Height = 88, Text = choices[i].Note,
                                    ForeColor = Color.FromArgb(80, 80, 90) };
             extra.AddRange(new Control[] { b, note });
             body.Controls.AddRange(new Control[] { b, note });
@@ -304,8 +322,7 @@ static class Ui
         Clear();
         target = 1000; bar.Value = 1000;
         text.Text = message;
-        text.Height = 236;
-        AddBoxes(specs, 262);
+        AddBoxes(specs, Fit(specs == null ? 0 : specs.Count));
         ok.Text = okText; ok.Visible = true;
         form.AcceptButton = ok;
         if (!Unattended) WaitClick();
@@ -324,7 +341,7 @@ static class Ui
         }
         Clear();
         text.Text = message;
-        text.Height = 300;
+        Fit(0);
         ok.Text = "Close"; ok.Visible = true;
         WaitClick();
         Close();

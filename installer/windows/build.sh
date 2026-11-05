@@ -15,7 +15,7 @@ for spec in "Install SkyScope.exe:skyscope.ico" "Uninstall SkyScope.exe:skyscope
   "$CSC" -nologo -target:winexe -optimize+ -platform:anycpu -langversion:7.3 -nostdlib -noconfig \
     -reference:"$API/mscorlib.dll" -reference:"$API/System.dll" -reference:"$API/System.Core.dll" \
     -reference:"$API/System.Windows.Forms.dll" -reference:"$API/System.Drawing.dll" \
-    -reference:"$API/System.Web.Extensions.dll" -reference:"$API/Microsoft.CSharp.dll" \
+    -reference:"$API/System.Web.Extensions.dll" -reference:"$API/Microsoft.CSharp.dll" -reference:"$API/System.IO.Compression.dll" \
     -win32icon:"$ICONS/$ico" -out:"$out" src/*.cs
   echo "built $out"
 done
