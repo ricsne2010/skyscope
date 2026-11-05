@@ -808,6 +808,45 @@ def access_banner(access: str) -> str:
     return ""
 
 
+# Another device's way into the settings when changes need the PIN: the PIN first. The right PIN opens the
+# settings page (and is remembered on this device); Cancel goes back to the radar, and nothing is changed.
+PIN_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyScope settings</title><link rel="icon" href="/docs/images/moon-pi-logo-128.png">
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #040a1c; color: #e8ecf2;
+         font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .box { width: min(360px, calc(100vw - 32px)); background: #0a1530; border: 1px solid #1d2f55; border-radius: 14px;
+         padding: 22px; text-align: center; }
+  img { width: 72px; height: 72px; }
+  h1 { margin: 6px 0 4px; font-size: 1.15rem; color: #46ff78; letter-spacing: .05em; }
+  p { color: #8a9abb; margin: 0 0 14px; font-size: .95rem; }
+  input { width: 100%; box-sizing: border-box; padding: 12px; font: inherit; font-size: 1.4rem; letter-spacing: .3em;
+          text-align: center; border-radius: 10px; border: 1px solid #1d2f55; background: #071028; color: #e8ecf2; }
+  .btns { display: flex; gap: 10px; margin-top: 14px; }
+  button, a { flex: 1; padding: 11px; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer;
+              text-decoration: none; text-align: center; }
+  button { background: #46ff78; color: #04110a; border: 0; }
+  a { border: 1px solid #46ff78; color: #46ff78; }
+  #say { color: #ff5a5a; min-height: 1.5em; margin-top: 10px; font-size: .9rem; }
+</style></head><body>
+<form class="box" id="f"><img src="/docs/images/moon-pi-logo-128.png" alt="Project Moon Pi">
+  <h1>SKYSCOPE SETTINGS</h1>
+  <p>Enter the PIN to change settings from this device. It's set on the computer running SkyScope.</p>
+  <input type="password" inputmode="numeric" id="pin" maxlength="8" autocomplete="off" autofocus placeholder="PIN">
+  <div class="btns"><a href="/radar">Cancel</a><button type="submit">Unlock</button></div>
+  <div id="say"></div></form>
+<script>
+  document.getElementById('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    const r = await fetch('/api/pin', { method: 'POST', body: document.getElementById('pin').value }).catch(() => null);
+    if (r && r.ok) location.reload();
+    else { document.getElementById('say').textContent = "That PIN isn\u2019t right."; document.getElementById('pin').select(); }
+  });
+</script></body></html>
+"""
+
+
 # --- parsing ---------------------------------------------------------------------
 
 def parse_form(form: dict[str, list[str]]) -> tuple[dict, list[str]]:
@@ -1459,10 +1498,20 @@ class SettingsServer:
                 if path != CONFIG_PATH:
                     self.send_error(404)
                     return
+                access = self.access()
+                if access == "view":
+                    # another device, view only: no settings page for it (the radar shows no Settings button)
+                    self.send_response(303)
+                    self.send_header("Location", "/radar")
+                    self.end_headers()
+                    return
+                if access == "pin":
+                    self._send(PIN_PAGE)     # the PIN first; Cancel goes back to the radar
+                    return
                 query = self.path.partition("?")[2]
                 notice = next((text for key, text in NOTICES.items() if key in query), "")
                 self._send(render_page(server_ref.settings, "", server_ref.statuses(), notice,
-                                       server_ref.procedure_rows(), self.access()))
+                                       server_ref.procedure_rows(), access))
 
             def access(self) -> str:
                 return access_for(self.client_address[0], self.headers.get("Cookie", ""), server_ref.settings)

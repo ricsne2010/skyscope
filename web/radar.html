@@ -149,6 +149,16 @@
   .ph-url { color: var(--green); font-weight: 700; font-size: 17px; word-break: break-all; margin-bottom: 8px; }
   .ph-note { color: #ffcc66; font-size: 13px; margin-top: 8px; }
   .ph-tip { color: var(--dim); font-size: 13px; }
+  /* Settings on another device when changes need the PIN: the PIN first, over the radar */
+  #pin-panel { position: absolute; left: calc(var(--u) * 36); right: calc(var(--u) * 36); bottom: calc(var(--u) * 70);
+    z-index: 4; background: #0b1735; border: 1px solid var(--grid); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6); font-size: 15px; }
+  .pin-form { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 10px; }
+  .pin-form input { flex: 1 1 140px; min-width: 0; padding: 10px; font: inherit; font-size: 20px; letter-spacing: .3em;
+    text-align: center; border-radius: 8px; border: 1px solid #1d2f55; background: #071028; color: #fff; }
+  .pin-form button { padding: 10px 18px; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; }
+  .pin-ok { background: var(--green); color: var(--bg); border: 0; }
+  .pin-cancel { background: none; color: var(--green); border: 1px solid var(--green); }
   .fp-foot a { color: var(--green); }
   footer select { background: var(--panel); color: var(--green); border: 1px solid var(--grid); border-radius: 6px;
     font: inherit; padding: 1px 4px; max-width: 40%; }
@@ -219,13 +229,22 @@
       <div id="fp-procs-wrap"><div class="fp-label">SIDs / STARs</div><div class="fp-seg" id="fp-procs"></div></div>
       <div class="fp-foot">Applies at once. Types, airlines and countries: <a href="/radar_config">Settings</a>.</div>
     </div>
+    <div id="pin-panel" hidden>
+      <div class="fp-head"><b>Enter the PIN to change settings</b><button type="button" id="pin-close" title="Cancel (Esc)">✕</button></div>
+      <form id="pin-form" class="pin-form">
+        <input type="password" inputmode="numeric" id="pin-entry" maxlength="8" autocomplete="off" placeholder="PIN">
+        <button type="button" id="pin-cancel" class="pin-cancel">Cancel</button><button type="submit" class="pin-ok">Unlock</button>
+      </form>
+      <div class="ph-tip">The PIN is set on the computer running SkyScope. Cancel goes back to the radar; nothing is changed.</div>
+      <div class="ph-note" id="pin-wrong" hidden>That PIN isn’t right.</div>
+    </div>
     <div id="phone-panel" hidden>
       <div class="fp-head"><b>Open the radar on a phone or tablet</b><button id="ph-close" title="Close (Esc)">✕</button></div>
       <div class="ph-body"><div class="ph-qr" id="ph-qr"></div>
         <div class="ph-text"><div class="ph-url" id="ph-url">…</div><div class="ph-tip" id="ph-tip"></div><div id="ph-notes"></div></div></div>
     </div>
     <footer><div class="foot-btns"><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
-      <button class="btn" id="phone-btn" title="Open this radar on a phone or tablet">Phone</button><a class="btn" href="/radar_config">Settings</a><a class="btn" href="/guide" target="_blank">Guide</a><button class="btn" id="fs">Fullscreen (F)</button></div>
+      <button class="btn" id="phone-btn" title="Open this radar on a phone or tablet">Phone</button><a class="btn" href="/radar_config" id="settings-btn">Settings</a><a class="btn" href="/guide" target="_blank">Guide</a><button class="btn" id="fs">Fullscreen (F)</button></div>
       <div class="foot-hint">Click a plane or row to select · R: next range</div></footer>
   </div>
 </div>
@@ -1019,6 +1038,8 @@ function canChange() { return !state || ["local", "on", "pin-ok"].includes(state
 const FOOT = $("filter-panel").querySelector(".fp-foot").innerHTML;
 function showAccess() {
   const ok = canChange();
+  // Settings: not offered at all to a device that's view only; behind the PIN when changes need one
+  $("settings-btn").hidden = !!state && state.access === "view";
   for (const el of document.querySelectorAll("#filter-panel input, #filter-panel button[data-procs], #preset")) el.disabled = !ok;
   $("filter-panel").querySelector(".fp-foot").innerHTML = ok ? FOOT : state.access === "pin"
     ? 'Locked on this device: enter the PIN in <a href="/radar_config">Settings</a> to make changes.'
@@ -1074,6 +1095,23 @@ async function togglePhonePanel(open) {
   } catch { $("ph-url").textContent = "SkyScope isn't answering."; }
 }
 $("phone-btn").addEventListener("click", () => togglePhonePanel());
+// Settings on another device that needs the PIN: ask for it here first. The right PIN opens the settings page;
+// Cancel (or Esc) closes this and goes back to the radar, with nothing changed.
+function closePin() { $("pin-panel").hidden = true; $("pin-entry").value = ""; $("pin-wrong").hidden = true; }
+$("settings-btn").addEventListener("click", e => {
+  if (!state || state.access !== "pin") return;   // (everyone else goes straight to the settings)
+  e.preventDefault();
+  $("phone-panel").hidden = true; $("filter-panel").hidden = true;
+  $("pin-panel").hidden = false; $("pin-wrong").hidden = true; $("pin-entry").focus();
+});
+$("pin-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const r = await fetch("/api/pin", { method: "POST", body: $("pin-entry").value }).catch(() => null);
+  if (r && r.ok) location.href = "/radar_config";
+  else { $("pin-wrong").hidden = false; $("pin-entry").select(); }
+});
+$("pin-cancel").addEventListener("click", closePin);
+$("pin-close").addEventListener("click", closePin);
 // A newer SkyScope? A quiet note (Settings › About has the download), until it's dismissed for that version
 async function checkUpdate() {
   try {
@@ -1094,7 +1132,8 @@ checkUpdate();
 $("ph-close").addEventListener("click", () => togglePhonePanel(false));
 $("fp-close").addEventListener("click", () => toggleFilterPanel(false));
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && !$("phone-panel").hidden) togglePhonePanel(false);
+  if (e.key === "Escape" && !$("pin-panel").hidden) closePin();
+  else if (e.key === "Escape" && !$("phone-panel").hidden) togglePhonePanel(false);
   else if (e.key === "Escape" && !$("filter-panel").hidden) toggleFilterPanel(false);
   else if (e.key === "Escape" && selectedId) select(null);
   else if (e.key === "f" || e.key === "F") toggleFullscreen();

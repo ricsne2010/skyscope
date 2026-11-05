@@ -311,9 +311,10 @@ settings page.
   note under the code says when something keeps phones out: the network set
   to Public, or SkyScope's firewall opening missing (`/api/connect`).
 - **Changes from other devices** (Settings › General): phones, tablets and
-  other computers can always look; *View only* (the default), *With a PIN*
-  (entered once per device) or *Allowed* decides whether they can also change
-  settings, filters and the range. The computer running SkyScope can always
+  other computers can always look at the radar; *View only* (the default:
+  no Settings button on them), *With a PIN* (Settings asks for it first, once
+  per device; Cancel goes back to the radar) or *Allowed* decides whether they
+  can also change settings, filters and the range. The computer running SkyScope can always
   change everything, and only it can change this choice or the PIN.
 - **Updates:** SkyScope asks GitHub a few times a day for a newer release
   (`updates.py`; off with *Check for a newer SkyScope* in About). A note on
