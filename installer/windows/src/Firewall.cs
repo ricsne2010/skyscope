@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using Microsoft.Win32;
 
 static class Firewall
 {
@@ -84,9 +87,20 @@ static class Firewall
 
     static bool Elevated(string what, int port, string program, bool quiet, string why)
     {
-        if (!quiet)
-            Ui.Say("Next, Windows asks: \"Do you want to allow this app to make changes to your device?\" for " +
-                   System.IO.Path.GetFileName(App.Exe) + ".\n\nClick Yes: " + why);
+        string ask = WindowsWillAsk();
+        App.Log("firewall " + what + ": Windows' admin question: " + ask);
+        if (!quiet && ask != "no")
+        {
+            string exe = System.IO.Path.GetFileName(App.Exe);
+            Ui.Say(ask == "password"
+                ? "Next, Windows asks for an administrator's password, to let " + exe + " make changes to this PC. Ask " +
+                  "someone with an administrator account on it to type theirs: " + why
+                : ask == "yes"
+                ? "Next, Windows asks: \"Do you want to allow this app to make changes to your device?\" for " + exe +
+                  ".\n\nClick Yes: " + why
+                : "If Windows asks \"Do you want to allow this app to make changes to your device?\" for " + exe +
+                  ", click Yes: " + why + "\n\n(If it doesn't ask, it's set to allow it without asking: carry on.)");
+        }
         try
         {
             var args = new List<string> { "--firewall", what, port.ToString() };
@@ -138,6 +152,44 @@ static class Firewall
             App.Log("firewall change failed: " + e.Message);
             return 1;
         }
+    }
+
+    // Will Windows ask before giving this program admin rights (User Account Control)? "no" (it's set never to ask
+    // here, it's off, or this program already has them), "yes" (Yes/No, or Windows' own password check for an
+    // admin), "password" (this account isn't an administrator: an administrator's password) or "maybe" (it can't
+    // tell). It only reads the setting Windows keeps for it (the "Change User Account Control settings" slider) and
+    // this program's own sign-in token: nothing is changed.
+    [DllImport("advapi32.dll", SetLastError = true)]
+    static extern bool GetTokenInformation(IntPtr token, int infoClass, out int info, int length, out int returned);
+
+    public static string WindowsWillAsk()
+    {
+        try
+        {
+            int type = 0, got;                                                    // TokenElevationType (18)
+            GetTokenInformation(WindowsIdentity.GetCurrent().Token, 18, out type, 4, out got);
+            if (type == 2) return "no";                                           // already running with admin rights
+            int lua = 1, admin = 5, user = 3;
+            using (var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"))
+            {
+                if (k != null)
+                {
+                    lua = Convert.ToInt32(k.GetValue("EnableLUA", 1));
+                    admin = Convert.ToInt32(k.GetValue("ConsentPromptBehaviorAdmin", 5));
+                    user = Convert.ToInt32(k.GetValue("ConsentPromptBehaviorUser", 3));
+                }
+            }
+            if (lua == 0) return "no";                                            // User Account Control is off
+            if (type == 3) return admin == 0 ? "no" : "yes";                      // an administrator (0: never notify)
+            if (type == 1)
+            {
+                // the built-in Administrator account (no split token), or an account that isn't an administrator
+                if (new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) return "no";
+                return user == 0 ? "maybe" : "password";                         // (0: Windows refuses without asking)
+            }
+        }
+        catch (Exception e) { App.Log("couldn't read the User Account Control setting: " + e.Message); }
+        return "maybe";
     }
 
     // Is this PC on a network Windows calls Public (where it keeps other devices out)?
