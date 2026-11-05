@@ -176,7 +176,7 @@ PAGE = """<!doctype html>
   section.tab { display: none; }
   section.tab.on { display: block; }
   .tab-intro { color: var(--dim); margin: -4px 0 16px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; align-items: start; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; align-items: stretch; }
   .about-head { display: flex; gap: 22px; align-items: center; margin-bottom: 18px; }
   .about-head img { width: 132px; height: 132px; flex: none; }
   .about-head h2 { margin: 0; font-size: 1.9rem; color: var(--green); letter-spacing: .05em; }
@@ -202,7 +202,7 @@ PAGE = """<!doctype html>
   .ph-body { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
   .ph-qr { background: #fff; border-radius: 8px; padding: 6px; width: 170px; height: 170px; flex: none; }
   .ph-qr svg { width: 100%; height: 100%; display: block; }
-  .ph-text { flex: 1 1 200px; min-width: 0; }
+  .ph-text { flex: 1 1 260px; min-width: 0; max-width: 760px; }
   .ph-url { font-weight: 700; font-size: 1.05rem; word-break: break-all; margin-bottom: 6px; }
   /* Updates (About) */
   .up-btns { display: flex; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap; }
@@ -1190,6 +1190,10 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         "aircraft around you with a sweeping beam, runways, airspace and procedures, filters and alerts.</p>"
         "</div></div>"
         '<div class="grid">'
+        + card("Phones and tablets",
+               '<div id="ph-card" class="ph-body"><div class="ph-qr" id="ph-qr"></div>'
+               '<div class="ph-text"><div class="ph-url" id="ph-url">…</div><div class="hint" id="ph-tip"></div>'
+               '<div id="ph-notes"></div></div></div>', wide=True)
         + card("Updates",
                '<div id="up-card"><div class="ph-url" id="up-line">You have SkyScope ' + esc(VERSION) + '.</div>'
                '<div class="hint" id="up-more"></div>'
@@ -1198,10 +1202,6 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                + toggle("check_updates", st)
                + '<div class="hint">To update, download the new version, open its zip and run Install SkyScope: '
                  'choose Update, and your settings are kept.</div>')
-        + card("Phones and tablets",
-               '<div id="ph-card" class="ph-body"><div class="ph-qr" id="ph-qr"></div>'
-               '<div class="ph-text"><div class="ph-url" id="ph-url">…</div><div class="hint" id="ph-tip"></div>'
-               '<div id="ph-notes"></div></div></div>')
         + card("This SkyScope",
                '<dl class="facts">'
                f"<dt>Version</dt><dd>{esc(VERSION)}</dd>"
@@ -1211,8 +1211,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                f"<dt>Satellite address</dt><dd>{esc(sat_where)} &middot; port {st.web_port}</dd>"
                "</dl>"
                '<div class="hint">Enter the Satellite address on a SkyScope Satellite\'s setup page '
-               "to mirror this radar on it.</div>"
-               + vm_note(address))
+               "to mirror this radar on it.</div>")
         + card("Guide and projects", f'<ul class="links">{links}</ul>')
         + card("Data and credits", f'<ul class="links">{credits}</ul>'
                + '<div class="hint">Not for navigation or air traffic control. ADS-B shows only aircraft that '
