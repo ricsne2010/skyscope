@@ -705,8 +705,9 @@ def windows_network_notes() -> list[str]:
         notes.append("Windows calls this computer's network Public, and keeps phones and other devices out on "
                      "Public networks. On your home Wi-Fi, make it Private: Settings › Network & internet › "
                      "Wi-Fi (or Ethernet) › your network › Network profile type › Private.")
+    # (netsh says "No rules match" but still exits 0 when there's none: its answer is what counts)
     code, out = netsh("firewall", "show", "rule", f"name={FIREWALL_RULE}")
-    if code is not None and code != 0 and "Rule Name" not in out:
+    if code is not None and out.strip() and "Rule Name" not in out:
         notes.append("Windows' firewall has no opening for SkyScope, so phones can't reach it. Run Install SkyScope "
                      "again, choose Repair with \"Let phones…\" ticked, and click Yes when Windows asks.")
     _windows_seen.update(at=time.time(), notes=notes)

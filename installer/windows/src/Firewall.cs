@@ -36,7 +36,7 @@ static class Firewall
         return list;
     }
 
-    class State { public int Ours, Blocks; public bool Home, Public; }
+    class State { public int Ours, Blocks; public bool OursHome, Home, Public; }
 
     static State Look(string program)
     {
@@ -48,6 +48,7 @@ static class Firewall
         return new State
         {
             Ours = ours.Count,
+            OursHome = ours.Any(r => r.Enabled && r.Action == Allow && (r.Profiles & (Domain | Private)) != 0),
             Blocks = mine.Count(r => r.Action == Block),
             Home = allows.Any(r => (r.Profiles & (Domain | Private)) != 0),
             Public = allows.Any(r => (r.Profiles & Public) != 0),
@@ -58,15 +59,17 @@ static class Firewall
     public static string Ensure(int port, string program, bool quiet)
     {
         var s = Look(program);
-        // already fine: an allow rule for home networks, at most one of ours, and nothing blocking the program
-        if (!(s.Home && s.Ours <= 1 && s.Blocks == 0))
+        // already fine: our own rule, for home networks, just one of it, and nothing blocking the program. (Another
+        // program's or Windows' own "allow this app" rule isn't enough: it can be for other networks, ports or
+        // addresses, so phones still time out and Windows was never asked: found on a Windows 10 PC.)
+        if (!(s.OursHome && s.Ours == 1 && s.Blocks == 0))
         {
             Elevated("allow", port, program, quiet,
                      "That lets " + App.PhonesWho + " on your home network reach " + App.Name + ". It opens only " +
                      App.Name + "'s port, and only on home (Private) networks.");
             s = Look(program);
         }
-        if (!s.Home || s.Blocks > 0) return "Declined";
+        if (!s.OursHome || s.Blocks > 0) return "Declined";
         return s.Public ? "AllowedPublic" : "Allowed";
     }
 
