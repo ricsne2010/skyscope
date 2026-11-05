@@ -3,13 +3,16 @@ one's version. Shown in Settings › About (with Check now), as a notice on the 
 icon's menu; updating is the new version's installer (its Update keeps your settings).
 
 It asks at most every 6 hours (every 30 minutes after a failed try), in the background, and only while the
-check_updates setting is on: the request goes to api.github.com and says only which SkyScope version is asking.
+check_updates setting is on: the request goes to api.github.com (or, if that can't be reached, github.com's page for
+the newest release) and says only which SkyScope version is asking. A failure says why ("timed out", "certificate
+verify failed"...).
 Designed and Created by Project Moon Pi.
 """
 import json
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from version import VERSION
@@ -50,12 +53,48 @@ def _ask() -> dict:
             "download": download, "error": None}
 
 
+def _ask_page() -> dict:
+    """The second way: GitHub's ordinary page for the newest release redirects to /releases/tag/v<version>. (Some
+    networks and antivirus programs let github.com through but not api.github.com.)"""
+    class Stay(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None                                   # (the redirect's address is the answer)
+    req = urllib.request.Request(f"https://github.com/{REPO}/releases/latest", method="HEAD",
+                                 headers={"User-Agent": f"SkyScope/{VERSION} (update check)"})
+    try:
+        urllib.request.build_opener(Stay).open(req, timeout=10)
+        raise ValueError("no redirect from the releases page")
+    except urllib.error.HTTPError as exc:
+        where = exc.headers.get("Location", "") if exc.code in (301, 302, 303, 307, 308) else ""
+        if "/releases/tag/" not in where:
+            raise
+    latest = where.rsplit("/releases/tag/", 1)[1].lstrip("vV")
+    want = platform_name()
+    download = (f"https://github.com/{REPO}/releases/download/v{latest}/SkyScope-{latest}-for-{want}.zip"
+                if want else None)
+    return {"latest": latest, "newer": numbers(latest) > numbers(VERSION), "page": where, "download": download,
+            "error": None}
+
+
+def why(exc: Exception) -> str:
+    """A failed request's reason in words ("certificate verify failed", "timed out"...), not just its kind."""
+    reason = getattr(exc, "reason", None) or exc
+    text = str(getattr(reason, "reason", None) or getattr(reason, "strerror", None) or reason).strip()
+    return text or exc.__class__.__name__
+
+
 def _refresh():
     try:
         info = _ask()
-    except (OSError, ValueError) as exc:
-        info = {"latest": None, "newer": False, "page": f"https://github.com/{REPO}/releases", "download": None,
-                "error": f"Couldn't reach GitHub to check ({exc.__class__.__name__})."}
+    except (OSError, ValueError) as first:
+        try:
+            info = _ask_page()
+        except (OSError, ValueError) as exc:
+            info = {"latest": None, "newer": False, "page": f"https://github.com/{REPO}/releases", "download": None,
+                    "error": f"Couldn't reach GitHub to check: {why(first)}"
+                             + (f"; the releases page: {why(exc)}" if why(exc) != why(first) else "") + ". "
+                             "If this computer's antivirus or network filters web traffic, allow SkyScope "
+                             "(Python) to reach github.com, or see the releases page."}
     with _lock:
         _state.update(at=time.time(), info=info, busy=False)
 
