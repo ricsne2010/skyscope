@@ -318,9 +318,10 @@ settings page.
   change everything, and only it can change this choice or the PIN.
 - **Updates:** SkyScope asks GitHub a few times a day for a newer release
   (`updates.py`; off with *Check for a newer SkyScope* in About). A note on
-  the radar, the tray icon's menu and About's **Updates** card (with the
-  download for this computer and **Check now**) say when there is one; the new
-  installer's **Update** keeps your settings.
+  the radar, the tray icon's menu and About's **Updates** card say when there
+  is one. **Update to <version>** (on the computer running SkyScope) downloads
+  it in the background, checks its SHA-256 against GitHub's, unpacks it and
+  opens its installer in front; its **Update** keeps your settings.
 - **Click a plane** (its symbol or label) **or a row in the table** to select
   it: cyan brackets on the scope, its label outlined and always shown, its row
   highlighted, and the card shows its details as "SELECTED" instead of the

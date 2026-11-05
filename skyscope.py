@@ -342,8 +342,19 @@ class SkyScope:
 
     def web_statuses(self) -> dict[str, str]:
         """Status lines for the settings page, by section."""
-        return {"Location": self.location_status(), "Aircraft data": self.feed.sdr_status(),
+        return {"Location": self.location_status(), "Aircraft data": self.feed.sdr_status(), "Feed": self.feed_status(),
                 "Flight routes": self.flightaware.status(), "Elevation": self.elevation_status()}
+
+    def feed_status(self) -> str:
+        """Settings › About's Data feed line: where aircraft come from, how many it last sent, how long ago, and
+        the last error (the radar's status line shows only the count, unless something's wrong)."""
+        planes, base_time, error = self.feed.snapshot()
+        if base_time == 0:
+            text = f"{self.feed.source_label()}: no data yet"
+        else:
+            age = int(time.monotonic() - base_time)
+            text = f"{self.feed.source_label()}: {len(planes)} aircraft received, last update {age} s ago"
+        return text + (f". Last error: {error}" if error else "")
 
     def update_query(self) -> None:
         s = self.settings
@@ -882,9 +893,13 @@ class SkyScope:
         elif base_time == 0:
             status, color = "Waiting for data...", PANEL_DIM
         else:
+            # just the count; the source and its age are in Settings › About (Data feed), and show here only
+            # when something's wrong: an error, or no new data for half a minute
             age = int(time.monotonic() - base_time)
-            status = f"{self.count_text()}  ·  {self.feed.source_label()}  ·  {age}s ago"
-            color = ERROR if error else LABEL
+            stale = age >= 30
+            status = (f"{self.count_text()}  ·  {self.feed.source_label()}  ·  {age}s ago" if error or stale
+                      else self.count_text())
+            color = ERROR if error else HIGHLIGHT if stale else LABEL   # (HIGHLIGHT: the amber of the card's labels)
         t.draw(self.screen, status, round(30 * s), color, (x, y))
         preset = matching_preset(st)
         rng = f"{preset}  ·  Range {st.range_label()}" if preset and preset != "Everything" \

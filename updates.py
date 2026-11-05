@@ -47,10 +47,10 @@ def _ask() -> dict:
         rel = json.load(r)
     latest = str(rel.get("tag_name", "")).lstrip("vV")
     want = platform_name()
-    download = next((a.get("browser_download_url") for a in rel.get("assets", [])
-                     if want and a.get("name", "").endswith(f"-for-{want}.zip")), None)
+    asset = next((a for a in rel.get("assets", []) if want and a.get("name", "").endswith(f"-for-{want}.zip")), {})
     return {"latest": latest, "newer": numbers(latest) > numbers(VERSION), "page": rel.get("html_url"),
-            "download": download, "error": None}
+            "download": asset.get("browser_download_url"), "error": None,
+            "size": asset.get("size"), "digest": asset.get("digest")}     # (digest: "sha256:...", for checking it)
 
 
 def _ask_page() -> dict:
@@ -97,6 +97,112 @@ def _refresh():
                              "(Python) to reach github.com, or see the releases page."}
     with _lock:
         _state.update(at=time.time(), info=info, busy=False)
+
+
+# --- updating from inside SkyScope --------------------------------------------------------
+# Update to <version> (Settings › About, on the computer running SkyScope): the new version's zip is downloaded in the
+# background, checked against the SHA-256 GitHub publishes for it (or at least its size), unpacked into a folder in
+# the temporary folder, and its installer opened in front, ready for "Update to <version>". The installer does the
+# rest, as when it's run by hand: it stops this SkyScope, updates it (settings kept) and starts it again.
+
+_job = {"stage": "idle", "pct": 0, "text": "", "error": None, "version": None}
+
+
+def job() -> dict:
+    with _lock:
+        return dict(_job)
+
+
+def _say(stage, text, pct=None, error=None):
+    with _lock:
+        _job.update(stage=stage, text=text, error=error)
+        if pct is not None:
+            _job["pct"] = pct
+
+
+def start() -> dict:
+    """Begins the update (once at a time): False with why when there's nothing to update to here."""
+    import os
+    info = status(True)
+    if not info.get("latest") or not info.get("digest"):
+        info = status(True, now=True)              # (nothing heard from GitHub yet, or only from its plain page)
+    if not info.get("newer") or not info.get("download"):
+        return {"ok": False, "why": "There's no newer SkyScope to install on this computer."}
+    if os.name != "nt" and sys.platform != "darwin":
+        return {"ok": False, "why": "On this computer, update from the release page."}
+    with _lock:
+        if _job["stage"] in ("downloading", "checking", "unpacking", "opening"):
+            return {"ok": True}
+        _job.update(stage="downloading", pct=0, text="Downloading...", error=None, version=info["latest"])
+    threading.Thread(target=_update, args=(info,), name="update", daemon=True).start()
+    return {"ok": True}
+
+
+def _update(info: dict):
+    import hashlib
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+    import zipfile
+    version = info["latest"]
+    base = tempfile.gettempdir()
+    try:
+        # earlier updates' folders go (they were only needed until their installer ran)
+        for old in os.listdir(base):
+            if old.startswith("SkyScope update "):
+                shutil.rmtree(os.path.join(base, old), ignore_errors=True)
+        work = os.path.join(base, f"SkyScope update {version}")
+        os.makedirs(work, exist_ok=True)
+        zpath = os.path.join(work, os.path.basename(info["download"]))
+        req = urllib.request.Request(info["download"], headers={"User-Agent": f"SkyScope/{VERSION} (update)"})
+        sha = hashlib.sha256()
+        with urllib.request.urlopen(req, timeout=30) as r, open(zpath, "wb") as f:
+            total = int(r.headers.get("Content-Length") or info.get("size") or 0)
+            got = 0
+            while True:
+                chunk = r.read(256 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                sha.update(chunk)
+                got += len(chunk)
+                _say("downloading", f"Downloading SkyScope {version}... {got // 1048576} of {max(1, total // 1048576)} MB",
+                     int(got * 80 / total) if total else 40)
+        _say("checking", "Checking the download...", 82)
+        digest = (info.get("digest") or "").lower()
+        if digest.startswith("sha256:") and sha.hexdigest() != digest[7:]:
+            raise ValueError("the download isn't the file GitHub published (its checksum differs), so it wasn't used")
+        if not digest and info.get("size") and os.path.getsize(zpath) != info["size"]:
+            raise ValueError("the download is incomplete, so it wasn't used")
+        _say("unpacking", "Unpacking it...", 88)
+        if sys.platform == "darwin":
+            # (ditto keeps the installer app whole: its permissions and signature)
+            subprocess.run(["ditto", "-x", "-k", zpath, work], check=True, capture_output=True)
+        else:
+            with zipfile.ZipFile(zpath) as z:
+                z.extractall(work)
+        folder = next((os.path.join(work, d) for d in os.listdir(work)
+                       if d.startswith("SkyScope ") and os.path.isdir(os.path.join(work, d))), None)
+        if not folder:
+            raise ValueError("the download didn't hold the installer")
+        _say("opening", "Opening the installer...", 95)
+        # the installer gets a clean environment: none of the installers' own answers (SS_PHONES and the like make
+        # it install without asking) or notes (SS_INSTALLING) that this SkyScope may have been started with
+        env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("SS_", "TT_", "AT_", "FC_"))}
+        if sys.platform == "darwin":
+            app = os.path.join(folder, "Install SkyScope.app")
+            subprocess.run(["open", app], check=True, env=env)
+        else:
+            exe = os.path.join(folder, "Install SkyScope.exe")
+            # on its own, not as part of SkyScope: the installer stops this SkyScope and starts the new one
+            subprocess.Popen([exe], cwd=folder, close_fds=True, env=env,
+                             creationflags=0x00000008 | 0x00000200)   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        _say("open", f"The installer is open: click Update to {version} in its window. SkyScope restarts when "
+                     "it's done.", 100)
+    except Exception as exc:
+        _say("error", "", error=f"The update couldn't be prepared: {why(exc) if isinstance(exc, OSError) else exc}. "
+                                f"You can download it yourself instead.")
 
 
 def status(enabled: bool = True, now: bool = False) -> dict:

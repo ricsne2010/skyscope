@@ -222,6 +222,9 @@ PAGE = """<!doctype html>
     text-decoration: none; }
   .up-get { background: var(--green); color: #04110a; border: 1px solid var(--green); }
   .up-now { background: none; color: var(--green); border: 1px solid var(--green); }
+  .up-bar { height: 8px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); margin: 8px 0 2px; overflow: hidden; }
+  .up-bar div { height: 100%; width: 0; background: var(--green); transition: width .3s; }
+  a.up-self { display: inline-block; color: var(--green); }
   .vm-note { margin-top: 10px; padding: 10px 12px; border-radius: 8px; line-height: 1.5; font-size: .92rem;
     background: rgba(245, 158, 11, .14); border: 1px solid rgba(245, 158, 11, .45); }
   .hint a { color: var(--green); font-weight: 600; }
@@ -512,27 +515,45 @@ PAGE = """<!doctype html>
   });
 
   // Updates (About): is there a newer SkyScope? (Check now asks GitHub at once)
+  let upTimer = null;
   async function showUpdate(now) {
     const line = document.getElementById('up-line');
     if (!line) return;
     const more = document.getElementById('up-more'), get = document.getElementById('up-get');
+    const go = document.getElementById('up-go'), bar = document.getElementById('up-bar');
+    const fill = document.getElementById('up-fill'), jobText = document.getElementById('up-job');
     if (now) more.textContent = 'Checking…';
     try {
       const u = await (await fetch('/api/update' + (now ? '?now=1' : ''), { cache: 'no-store' })).json();
+      const j = u.job || {}, busy = ['downloading', 'checking', 'unpacking', 'opening'].includes(j.stage);
       if (u.newer) {
         line.textContent = `SkyScope ${u.latest} is available (you have ${u.current}).`;
-        get.href = u.download || u.page; get.hidden = false;
-        get.textContent = u.download ? `Download ${u.latest}` : 'See the new version';
+        // this computer: Update does it all; another device: it's done on the computer running SkyScope
+        go.hidden = !(u.here && u.download); go.textContent = `Update to ${u.latest}`; go.disabled = busy;
+        get.href = u.download || u.page; get.hidden = !u.here && !!u.download;
+        get.textContent = u.here && u.download ? 'Or download it yourself' : 'See the new version';
+        if (!u.here) jobText.textContent = 'Update from the computer running SkyScope.';
       } else {
         line.textContent = u.latest ? `You have SkyScope ${u.current}, the newest.` : `You have SkyScope ${u.current}.`;
-        get.hidden = true;
+        go.hidden = true; get.hidden = true;
       }
+      if (u.here) {
+        bar.hidden = !(busy || j.stage === 'open'); fill.style.width = (j.pct || 0) + '%';
+        jobText.textContent = j.error || j.text || '';
+      }
+      clearTimeout(upTimer);
+      if (busy) upTimer = setTimeout(() => showUpdate(false), 600);   // (follow the update until the installer's open)
       more.textContent = u.error ? u.error : u.checked ? `Checked ${u.checked}.` :
         (u.enabled ? 'Checking in the background…' : 'Checking for updates is off: Check now asks once.');
     } catch (e) { more.textContent = "SkyScope isn't answering."; }
   }
   showUpdate(false);
   document.getElementById('up-now')?.addEventListener('click', () => showUpdate(true));
+  document.getElementById('up-go')?.addEventListener('click', async () => {
+    const r = await (await fetch('/api/update/start', { method: 'POST' })).json().catch(() => ({ ok: false }));
+    if (!r.ok) document.getElementById('up-job').textContent = r.why || "The update couldn't start.";
+    showUpdate(false);
+  });
 
   // Phones and tablets (About): the radar's address on the home Wi-Fi as a QR code, and why a phone might not
   // get through (asked of SkyScope, which checks this computer's network)
@@ -1332,16 +1353,20 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         + card("Updates",
                '<div id="up-card"><div class="ph-url" id="up-line">You have SkyScope ' + esc(VERSION) + '.</div>'
                '<div class="hint" id="up-more"></div>'
-               '<div class="up-btns"><a class="up-get" id="up-get" hidden target="_blank" rel="noopener">Download</a>'
-               '<button type="button" class="up-now" id="up-now">Check now</button></div></div>'
+               '<div class="up-btns"><button type="button" class="up-get" id="up-go" hidden>Update</button>'
+               '<button type="button" class="up-now" id="up-now">Check now</button></div>'
+               '<div class="up-bar" id="up-bar" hidden><div id="up-fill"></div></div>'
+               '<div class="hint" id="up-job"></div>'
+               '<a class="hint up-self" id="up-get" hidden target="_blank" rel="noopener">Or download it yourself</a></div>'
                + toggle("check_updates", st)
-               + '<div class="hint">To update, download the new version, open its zip and run Install SkyScope: '
-                 'choose Update, and your settings are kept.</div>')
+               + '<div class="hint">Update downloads the new version, checks it and opens its installer: click '
+                 'Update there, and your settings are kept.</div>')
         + card("This SkyScope",
                '<dl class="facts">'
                f"<dt>Version</dt><dd>{esc(VERSION)}</dd>"
                f"<dt>Centre</dt><dd>{esc(centre)}</dd>"
                f"<dt>Aircraft data</dt><dd>{esc(source)}</dd>"
+               + (f"<dt>Data feed</dt><dd>{esc(statuses['Feed'])}</dd>" if statuses.get("Feed") else "") +
                f"<dt>Radar</dt><dd>http://{esc(host)}.local:{st.web_port}/radar</dd>"
                f"<dt>Satellite address</dt><dd>{esc(sat_where)} &middot; port {st.web_port}</dd>"
                "</dl>"
@@ -1417,7 +1442,10 @@ class SettingsServer:
                 if path == "/api/update":    # a newer SkyScope? (?now=1: ask GitHub now, for Check now)
                     import updates
                     now = "now=1" in self.path.partition("?")[2]
-                    self._send_json(updates.status(server_ref.settings.check_updates, now=now))
+                    info = updates.status(server_ref.settings.check_updates, now=now)
+                    info["job"] = updates.job()                 # (Update to <version>: how far it's got)
+                    info["here"] = self.access() == "local"     # (only this computer can start an update)
+                    self._send_json(info)
                     return
                 if radar is not None:
                     if path == "/radar":
@@ -1538,6 +1566,14 @@ class SettingsServer:
                     else:
                         _time.sleep(1.0)    # (slows down guessing)
                         self._send_json({"ok": False}, 403)
+                    return
+                if path == "/api/update/start":
+                    # Update to <version>: only from this computer (it opens the installer here)
+                    import updates
+                    if self.access() != "local":
+                        self._send_json({"ok": False, "why": "Update from the computer running SkyScope."}, 403)
+                    else:
+                        self._send_json(updates.start())
                     return
                 changing = path in ("/api/next-range", "/api/quick", "/api/preset", CONFIG_PATH, GPS_NOW_PATH)
                 access = self.access()

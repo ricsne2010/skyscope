@@ -920,6 +920,7 @@ function fitRows() {
   $("more").textContent = hidden ? `+ ${hidden} more` : "";
 }
 
+const STALE_S = 30;   // data this old (seconds) gets a warning on the status line
 function updateStatus() {
   if (!state) return;
   const s = state.status, el = $("status");
@@ -928,9 +929,12 @@ function updateStatus() {
     el.textContent = s.error ? `No data: ${s.error}`.slice(0, 70) : "Waiting for data…";
     el.style.color = s.error ? "var(--error)" : "var(--dim)"; return;
   }
+  // just the count; the source and how fresh the data is are in Settings › About (Data feed), and show here only
+  // when something's wrong: an error, or no new data for half a minute
   const age = Math.round(s.age_s + (performance.now() - stateAt) / 1000);
-  el.textContent = `${s.count_text} · ${s.source} · ${age}s ago`;
-  el.style.color = s.error ? "var(--error)" : "var(--label)";
+  const stale = age >= STALE_S;
+  el.textContent = s.error || stale ? `${s.count_text} · ${s.source} · ${age}s ago` : s.count_text;
+  el.style.color = s.error ? "var(--error)" : stale ? "var(--amber)" : "var(--label)";
 }
 
 function tickClock() {

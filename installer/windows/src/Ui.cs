@@ -110,8 +110,41 @@ static class Ui
         };
         timer.Start();
         form.Show();
+        // In front: opened by a program in the background (SkyScope's Update to <version>), Windows would leave the
+        // window behind the browser, flashing on the taskbar. It stays on top until it's first clicked (or for 20
+        // seconds), and asks for the keyboard as Windows allows: through the window that has it now.
+        form.TopMost = true;
+        Front(form.Handle);
+        var ends = DateTime.Now.AddSeconds(20);
+        var topTimer = new System.Windows.Forms.Timer { Interval = 250 };
+        topTimer.Tick += (s, e) =>
+        {
+            if (form.ContainsFocus || DateTime.Now > ends || closed) { form.TopMost = false; topTimer.Stop(); }
+        };
+        topTimer.Start();
         Pump();
     }
+
+    static void Front(IntPtr window)
+    {
+        try
+        {
+            IntPtr fore = GetForegroundWindow();
+            uint foreThread = GetWindowThreadProcessId(fore, IntPtr.Zero), mine = GetCurrentThreadId();
+            if (foreThread != 0 && foreThread != mine) AttachThreadInput(mine, foreThread, true);
+            BringWindowToTop(window);
+            SetForegroundWindow(window);
+            if (foreThread != 0 && foreThread != mine) AttachThreadInput(mine, foreThread, false);
+        }
+        catch { }
+    }
+
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, IntPtr processId);
+    [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] static extern bool AttachThreadInput(uint from, uint to, bool attach);
+    [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr window);
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr window);
 
     public static void Pump() { Application.DoEvents(); }
 
