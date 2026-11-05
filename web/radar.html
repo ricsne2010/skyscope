@@ -21,6 +21,11 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
   #app { display: flex; width: 100vw; height: 100vh; }
   #scope { position: relative; flex: 0 0 var(--scope-w); height: 100vh; cursor: default; }
+  /* the height a browser actually shows (on phones and tablets, 100vh runs on under its toolbars) */
+  @supports (height: 100dvh) {
+    :root { --scope-w: min(100dvh, 60vw); --u: min(calc(100dvh / 1080), calc(var(--panel-w) / 840)); }
+    #app, #scope { height: 100dvh; }
+  }
   #scope canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   #panel { flex: 1; min-width: 0; background: var(--panel); border-left: 2px solid var(--grid);
     padding: calc(var(--u) * 36); display: flex; flex-direction: column; box-sizing: border-box; }
@@ -157,16 +162,19 @@
   footer .btn { flex: none; }
   footer .foot-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* its own last line, unbroken */
   footer a, footer button { color: var(--green); background: none; border: 0; font: inherit; cursor: pointer; padding: 0; text-decoration: none; }
-  /* Portrait / narrow windows: scope on top, panel underneath. */
-  @media (max-aspect-ratio: 3/2) {
+  /* Portrait / narrow windows, and short ones (a phone on its side): scope on top, panel underneath, and the
+     page scrolls (and can be zoomed). The side-by-side layout fills exactly one screen and doesn't scroll, so on a
+     phone in landscape it was cut off. */
+  @media (max-aspect-ratio: 3/2), (max-height: 560px) {
     :root { --u: 1px; }
-    html, body { overflow: auto; }
+    html, body { overflow: auto; overflow-x: hidden; }
     #app { flex-direction: column; height: auto; }
-    #scope { flex: none; width: 100vw; height: min(100vw, 85vh); }
+    #scope { flex: none; width: 100%; height: min(100vw, 85vh); }
+    @supports (height: 100dvh) { #app { height: auto; } #scope { height: min(100vw, 85dvh); } }
     th, td { padding-left: 6px; }
     #panel { border-left: 0; border-top: 2px solid var(--grid); padding: 16px; }
     .row { flex-wrap: wrap; white-space: normal; }
-    #app, #panel { width: 100vw; max-width: 100%; box-sizing: border-box; }
+    #app, #panel { width: 100%; max-width: 100%; box-sizing: border-box; }   /* (100vw would count the scroll bar) */
     #listwrap { overflow: visible; }
     h1, #clock { font-size: 28px; } .callsign { font-size: 34px; } #card .logo { width: 64px; height: 64px; }
     .small, .status, .line, td { font-size: 16px; } .reg, .desc { font-size: 18px; }
