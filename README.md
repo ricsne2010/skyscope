@@ -310,6 +310,11 @@ settings page.
   network, to open it on a phone or tablet on the same Wi-Fi. On Windows, a
   note under the code says when something keeps phones out: the network set
   to Public, or SkyScope's firewall opening missing (`/api/connect`).
+- **Changes from other devices** (Settings › General): phones, tablets and
+  other computers can always look; *View only* (the default), *With a PIN*
+  (entered once per device) or *Allowed* decides whether they can also change
+  settings, filters and the range. The computer running SkyScope can always
+  change everything, and only it can change this choice or the PIN.
 - **Updates:** SkyScope asks GitHub a few times a day for a newer release
   (`updates.py`; off with *Check for a newer SkyScope* in About). A note on
   the radar, the tray icon's menu and About's **Updates** card (with the

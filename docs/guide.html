@@ -257,7 +257,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <h2 id="settings">7. The settings page</h2>
 <table>
   <tr><th>Tab</th><th>What's on it</th></tr>
-  <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS), where aircraft data comes from (internet or your own receiver), and flight routes (optionally with a FlightAware key).</td></tr>
+  <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS), where aircraft data comes from (internet or your own receiver), flight routes (optionally with a FlightAware key), and whether other devices may change settings (see below).</td></tr>
   <tr><td><b>Display</b></td><td>Range; aircraft symbols (silhouettes or simple triangles); colouring aircraft by kind; airline logos; the aircraft photo; rim dots; aircraft on the ground; units; the sweep.</td></tr>
   <tr><td><b>Map</b></td><td>Airports and runways, extended centrelines, airspace, and SIDs/STARs per airport. See <a href="#map">section 8</a>.</td></tr>
   <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
@@ -265,7 +265,15 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
   <tr><td><b>Alerts</b></td><td>Emergency highlighting and the watchlist. See <a href="#alerts">section 10</a>.</td></tr>
   <tr><td><b>About</b></td><td>Updates (is there a newer SkyScope?), a QR code for phones and tablets, SkyScope's version, the addresses of this radar (including the one to give a <a href="#displays">Satellite display</a>), links to this guide and the project pages, data sources and credits.</td></tr>
 </table>
-<p>The page works on phones as well as computers. Anyone on your network can open it; there is no password.</p>
+<p>The page works on phones as well as computers. Anyone on your network can open it and look.</p>
+<h3 id="other-devices">Changes from other devices</h3>
+<p>The computer running SkyScope can always change everything. Phones, tablets and other computers on your network can always look at the radar and the settings; whether they can also change settings, filters and the range is up to <b>Changes from other devices</b> on the General tab:</p>
+<ul>
+  <li><b>View only</b> (the starting choice): they can look, but nothing they do changes SkyScope. The settings page says so on them, and the radar's Filters panel is greyed out.</li>
+  <li><b>With a PIN</b>: set a PIN of 4 to 8 digits. On another device, the settings page asks for it once; after that the device can make changes (it remembers the PIN for a year).</li>
+  <li><b>Allowed</b>: any device on your network can make changes.</li>
+</ul>
+<p>Only the computer running SkyScope can change this choice or the PIN.</p>
 <h3 id="updates">Updates</h3>
 <p>SkyScope asks GitHub a few times a day whether there's a newer version (only while <b>Check for a newer SkyScope</b> is on, in About; the request says only which version is asking). When there is, a note appears on the radar, the menu bar or taskbar icon's menu offers it, and the <b>Updates</b> card in About has a <b>Download</b> button for your computer. <b>Check now</b> asks at once. To update, open the downloaded zip and run <b>Install SkyScope</b>: choose <b>Update</b>, and your settings are kept. On a Raspberry Pi, the card links to the release page.</p>
 

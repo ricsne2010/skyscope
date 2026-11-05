@@ -96,6 +96,9 @@ FIELDS = [
     ("watchlist", "Watchlist", "watch", 1000),
     ("watch_notice", "Show a notice when a watched aircraft is in range", "bool", None),
     ("check_updates", "Check for a newer SkyScope (asks GitHub a few times a day)", "bool", None),
+    ("remote_changes", "Changes from other devices", "access",
+     [("off", "View only"), ("pin", "With a PIN"), ("on", "Allowed")]),
+    ("remote_pin", "PIN for other devices", "pin", None),
     ("hidden_classes", "Kinds of aircraft", "classes", CLASSES),
     ("hidden_alt_bands", "Altitude", "bands", ALT_BANDS),
     ("type_mode", "Aircraft types", "choice", FILTER_MODES),
@@ -129,6 +132,7 @@ CHOICE_HINTS = {
 }
 # Fields shown only while another field has a given value.
 SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_source=sdr",
+             "remote_pin": "remote_changes=pin",
              "ground_elevation_ft": "elevation_source=manual",
              "sweep_period_s": "sweep_enabled=on",
              "sweep_trail_deg": "sweep_enabled=on", "runway_types": "show_runways=on",
@@ -173,6 +177,14 @@ PAGE = """<!doctype html>
   main { max-width: 1240px; margin: 0 auto; padding: 22px 24px 110px; }
   .banner { padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; }
   .banner.err { background: #64101088; border: 1px solid var(--red); }
+  .banner.lock { background: rgba(90, 200, 255, .12); border: 1px solid rgba(90, 200, 255, .45); line-height: 1.6; }
+  .pin-row { display: inline-flex; gap: 8px; align-items: center; margin-left: 8px; flex-wrap: wrap; }
+  .pin-row input { width: 7em; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+    color: var(--text); font: inherit; }
+  .pin-row button { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--green); background: none;
+    color: var(--green); font: inherit; font-weight: 700; cursor: pointer; }
+  .savebar.locked button.save { display: none; }
+  .facts-line { font-weight: 700; margin-bottom: 4px; }
   section.tab { display: none; }
   section.tab.on { display: block; }
   .tab-intro { color: var(--dim); margin: -4px 0 16px; }
@@ -489,6 +501,16 @@ PAGE = """<!doctype html>
     });
   }
 
+  // Another device's PIN: unlocks changes from this device (SkyScope remembers it in a cookie)
+  document.getElementById('pin-go')?.addEventListener('click', async () => {
+    const say = document.getElementById('pin-say');
+    const r = await fetch('/api/pin', { method: 'POST', body: document.getElementById('pin-box').value }).catch(() => null);
+    if (r && r.ok) location.reload(); else say.textContent = "That PIN isn\u2019t right.";
+  });
+  document.getElementById('pin-box')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('pin-go').click(); }
+  });
+
   // Updates (About): is there a newer SkyScope? (Check now asks GitHub at once)
   async function showUpdate(now) {
     const line = document.getElementById('up-line');
@@ -737,6 +759,55 @@ def connect_info(host: str, port: int) -> dict:
                    "the address into its browser."}
 
 
+# --- changes from other devices -----------------------------------------------------
+# The computer running SkyScope can change everything. Other devices (phones, tablets, other computers) can look at
+# everything, and change things only as Settings › General › Changes from other devices allows: View only (the
+# default), With a PIN (entered once on each device, remembered in a cookie), or Allowed. Only this computer can
+# change that setting or the PIN.
+
+ACCESS_OK = ("local", "on", "pin-ok")
+LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+
+def pin_hash(pin: str) -> str:
+    import hashlib
+    return hashlib.sha256(("skyscope-pin:" + pin).encode()).hexdigest()
+
+
+def access_for(client: str, cookie_header: str, st: Settings) -> str:
+    """'local' (this computer), 'on' (changes allowed), 'pin-ok' (PIN entered), 'pin' (PIN needed) or 'view'."""
+    from http.cookies import CookieError, SimpleCookie
+    if client in LOOPBACK or client.replace("::ffff:", "") == lan_address():
+        return "local"
+    if st.remote_changes == "on":
+        return "on"
+    if st.remote_changes == "pin":
+        try:
+            c = SimpleCookie(cookie_header or "")
+        except CookieError:
+            c = {}
+        given = c["skyscope_pin"].value if "skyscope_pin" in c else ""
+        return "pin-ok" if st.remote_pin_hash and given == st.remote_pin_hash else "pin"
+    return "view"
+
+
+VIEW_ONLY = ("This device can look but not change anything: changes are made on the computer running SkyScope "
+             "(Settings › General › Changes from other devices).")
+
+
+def access_banner(access: str) -> str:
+    """The settings page's note for another device: view only, or the PIN to unlock it."""
+    if access == "view":
+        return f'<div class="banner lock">{esc(VIEW_ONLY)}</div>'
+    if access == "pin":
+        return ('<div class="banner lock">Enter the PIN to make changes from this device '
+                '(it\'s set on the computer running SkyScope). '
+                '<span class="pin-row"><input type="password" inputmode="numeric" id="pin-box" maxlength="8" '
+                'autocomplete="off" placeholder="PIN"><button type="button" id="pin-go">Unlock</button>'
+                '<span id="pin-say"></span></span></div>')
+    return ""
+
+
 # --- parsing ---------------------------------------------------------------------
 
 def parse_form(form: dict[str, list[str]]) -> tuple[dict, list[str]]:
@@ -809,6 +880,15 @@ def parse_form(form: dict[str, list[str]]) -> tuple[dict, list[str]]:
                     changes["lat"], changes["lon"] = ap["lat"], ap["lon"]
         elif kind == "countries":
             changes[name] = [c for c in form.get("country", []) if c in COUNTRY_NAMES]
+        elif kind == "access":
+            if raw in [value for value, _ in extra]:   # (not on other devices' pages: then it's left as it is)
+                changes[name] = raw
+        elif kind == "pin":
+            if raw:   # a blank box keeps the PIN
+                if not re.fullmatch(r"\d{4,8}", raw):
+                    errors.append(f"{label}: 4 to 8 digits")
+                    continue
+                changes["remote_pin_hash"] = pin_hash(raw)
         elif kind == "choice":
             if raw not in [value for value, _ in extra]:
                 errors.append(f"{label}: invalid choice")
@@ -939,7 +1019,7 @@ def tab(tab_id: str, intro: str, cards: str) -> str:
 
 
 def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None = None,
-                notice: str = "", proc_rows: list[dict] | None = None) -> str:
+                notice: str = "", proc_rows: list[dict] | None = None, access: str = "local") -> str:
     """statuses: card title → status line. notice: text for the save bar.
     proc_rows: airports offered for SIDs/STARs (see SkyScope.procedure_table)."""
     statuses = statuses or {}
@@ -986,11 +1066,25 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
           '($10 if you feed FlightAware). SkyScope looks up only the aircraft on the card, once per flight, '
           'and stops at the daily limit. Check FlightAware\'s fee table to set a limit that stays inside '
           'your allowance.</div></div>')
+    # other devices: only this computer sees the controls (and only its changes to them count: do_POST)
+    names = dict(BY_NAME["remote_changes"][3])
+    if access == "local":
+        devices = (field("remote_changes", seg("remote_changes", BY_NAME["remote_changes"][3], st.remote_changes))
+                   + field("remote_pin", '<input type="password" name="remote_pin" inputmode="numeric" maxlength="8" '
+                           'autocomplete="new-password" placeholder="'
+                           + ("Saved: leave blank to keep it" if st.remote_pin_hash else "4 to 8 digits") + '">')
+                   + '<div class="hint">Phones, tablets and other computers on your network can always look at '
+                     'the radar and these pages. This decides whether they can also change settings, filters and '
+                     'the range. This computer can always change everything, and only it can change this.</div>')
+    else:
+        devices = (f'<div class="facts-line">{esc(names.get(st.remote_changes, "View only"))}</div>'
+                   '<div class="hint">Set on the computer running SkyScope.</div>')
     general = tab("general", "Where the radar is centred and where its aircraft and route data come from.",
                   card("Location", location, statuses.get("Location", ""))
                   + '<div class="stack">'  # routes directly under the data source
                   + card("Aircraft data", data, statuses.get("Aircraft data", ""))
-                  + card("Flight routes", flight_routes, statuses.get("Flight routes", "")) + "</div>")
+                  + card("Flight routes", flight_routes, statuses.get("Flight routes", ""))
+                  + card("Changes from other devices", devices) + "</div>")
 
     # --- Display: units, scope, sweep ----------------------------------------------
     units = (choice("distance_unit", st) + choice("speed_unit", st) + choice("altitude_unit", st))
@@ -1226,6 +1320,9 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
     bar_class, state_text = "", notice or "All changes saved"
     if banner:
         bar_class, state_text = " error", "Not saved: see the message above"
+    if access not in ACCESS_OK:      # another device that can't change things: say so, and no Save
+        banner = access_banner(access) + banner
+        bar_class, state_text = bar_class + " locked", "View only on this device" if access == "view" else "Locked: enter the PIN above"
     return (PAGE.replace("%%TABS%%", nav).replace("%%BANNER%%", banner).replace("%%BODY%%", body)
             .replace("%%BARCLASS%%", bar_class).replace("%%STATE%%", esc(state_text)))
 
@@ -1258,17 +1355,17 @@ class SettingsServer:
                 self.end_headers()
                 self.wfile.write(data)
 
-            def _send_bytes(self, data: bytes, content_type: str, cache: str = "no-store"):
-                self.send_response(200)
+            def _send_bytes(self, data: bytes, content_type: str, cache: str = "no-store", status: int = 200):
+                self.send_response(status)
                 self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(data)))
                 self.send_header("Cache-Control", cache)
                 self.end_headers()
                 self.wfile.write(data)
 
-            def _send_json(self, obj):
+            def _send_json(self, obj, status: int = 200):
                 self._send_bytes(json.dumps(obj, separators=(",", ":")).encode("utf-8"),
-                                 "application/json")
+                                 "application/json", status=status)
 
             def do_GET(self):
                 path = self.path.split("?")[0]
@@ -1286,7 +1383,9 @@ class SettingsServer:
                         self._send_bytes(RADAR_PAGE.read_bytes(), "text/html; charset=utf-8")
                         return
                     if path == "/api/state":
-                        self._send_json(radar.web_state())
+                        st = radar.web_state()
+                        st["access"] = self.access()   # (what this device may change: the radar page greys out the rest)
+                        self._send_json(st)
                         return
                     if path == "/api/status":  # the menu bar / taskbar icon
                         self._send_json(radar.web_status())
@@ -1363,10 +1462,42 @@ class SettingsServer:
                 query = self.path.partition("?")[2]
                 notice = next((text for key, text in NOTICES.items() if key in query), "")
                 self._send(render_page(server_ref.settings, "", server_ref.statuses(), notice,
-                                       server_ref.procedure_rows()))
+                                       server_ref.procedure_rows(), self.access()))
+
+            def access(self) -> str:
+                return access_for(self.client_address[0], self.headers.get("Cookie", ""), server_ref.settings)
 
             def do_POST(self):
                 path = self.path.split("?")[0]
+                if path == "/api/pin":
+                    # another device's PIN (when changes need one): right, and it's remembered in a cookie
+                    import time as _time
+                    length = min(int(self.headers.get("Content-Length") or 0), 64)
+                    pin = self.rfile.read(length).decode("utf-8", "replace").strip()
+                    st = server_ref.settings
+                    if st.remote_changes == "pin" and st.remote_pin_hash and pin_hash(pin) == st.remote_pin_hash:
+                        body = b'{"ok": true}'
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Set-Cookie", f"skyscope_pin={st.remote_pin_hash}; Path=/; Max-Age=31536000; "
+                                                       "SameSite=Strict; HttpOnly")
+                        self.send_header("Content-Length", str(len(body)))
+                        self.end_headers()
+                        self.wfile.write(body)
+                    else:
+                        _time.sleep(1.0)    # (slows down guessing)
+                        self._send_json({"ok": False}, 403)
+                    return
+                changing = path in ("/api/next-range", "/api/quick", "/api/preset", CONFIG_PATH, GPS_NOW_PATH)
+                access = self.access()
+                if changing and access not in ACCESS_OK:
+                    # another device, and changes from it aren't allowed (or need the PIN first)
+                    if path.startswith("/api/"):
+                        self._send_json({"ok": False, "error": VIEW_ONLY}, 403)
+                    else:
+                        self._send(render_page(server_ref.settings, "", server_ref.statuses(), "",
+                                               server_ref.procedure_rows(), access), 403)
+                    return
                 if path == "/api/shutdown":
                     # Only from this computer, and only with the launcher's header:
                     # a web page can't send a custom header to another site
@@ -1414,6 +1545,9 @@ class SettingsServer:
                 length = min(int(self.headers.get("Content-Length") or 0), 65536)
                 form = parse_qs(self.rfile.read(length).decode("utf-8", "replace"))
                 changes, errors = parse_form(form)
+                if access != "local":   # who may change things, and the PIN: this computer only
+                    changes.pop("remote_changes", None)
+                    changes.pop("remote_pin_hash", None)
                 if not errors:
                     errors = apply_preset_action(form, changes, server_ref.settings)
                 if errors:

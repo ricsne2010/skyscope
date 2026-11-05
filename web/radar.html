@@ -131,6 +131,7 @@
   .fp-tick:hover { background: #13284a; }
   .fp-tick:has(input:checked) { border-color: #46ff7899; background: #10642040; }
   .fp-tick input { width: 17px; height: 17px; margin: 0; accent-color: #46ff78; cursor: pointer; }
+  .fp-tick:has(input:disabled), .fp-seg button:disabled, #preset:disabled { opacity: .45; cursor: default; }
   .fp-seg { display: flex; border: 1px solid #1d2f55; border-radius: 8px; overflow: hidden; }
   .fp-seg button { flex: 1; background: #071028; color: var(--dim); border: 0; border-right: 1px solid #1d2f55;
     padding: 7px; font: inherit; font-weight: 700; cursor: pointer; }
@@ -930,8 +931,10 @@ async function poll() {
       staticData = await (await fetch("/api/static", { cache: "no-store" })).json();
       staticKey = next.static_key;
     }
+    const was = state && state.access;
     state = next; stateAt = performance.now(); connectionLost = false;
     updatePanel();
+    if (state.access !== was) showAccess();
     splashReady("data");
   } catch (e) {
     connectionLost = true; updateStatus();
@@ -939,6 +942,7 @@ async function poll() {
 }
 
 async function nextRange() {
+  if (!canChange()) return;                     // (another device that may not change things)
   await fetch("/api/next-range", { method: "POST" }).catch(() => {});
   poll();
 }
@@ -1006,6 +1010,19 @@ function buildFilterPanel(st) {
   $("fp-procs-wrap").hidden = !st.has_procedures;
   $("fp-procs").innerHTML = [["both", "As set"], ["sid", "SIDs"], ["star", "STARs"], ["off", "Off"]].map(([v, l]) =>
     `<button data-procs="${v}" class="${st.procedure_mode === v ? "on" : ""}">${l}</button>`).join("");
+  showAccess();
+}
+
+// Another device that may not change things (Settings › General › Changes from other devices): the Filters panel
+// and preset picker are greyed out, with a note saying why (the computer running SkyScope can always change them)
+function canChange() { return !state || ["local", "on", "pin-ok"].includes(state.access); }
+const FOOT = $("filter-panel").querySelector(".fp-foot").innerHTML;
+function showAccess() {
+  const ok = canChange();
+  for (const el of document.querySelectorAll("#filter-panel input, #filter-panel button[data-procs], #preset")) el.disabled = !ok;
+  $("filter-panel").querySelector(".fp-foot").innerHTML = ok ? FOOT : state.access === "pin"
+    ? 'Locked on this device: enter the PIN in <a href="/radar_config">Settings</a> to make changes.'
+    : "View only on this device: changes are made on the computer running SkyScope.";
 }
 
 async function quick(change) {

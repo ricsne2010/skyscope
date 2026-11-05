@@ -87,6 +87,10 @@ class Settings:
     watchlist: str = ""
     watch_notice: bool = True  # banner when a watched aircraft is in range
     check_updates: bool = True  # ask GitHub now and then for a newer SkyScope (updates.py)
+    # changes from other devices (phones, tablets, other computers): "off" view only, "pin" after the PIN, "on"
+    # allowed. The computer running SkyScope can always change everything, and only it can change these two.
+    remote_changes: str = "off"
+    remote_pin_hash: str = ""   # the PIN, hashed (web.pin_hash)
     filter_presets: dict = field(default_factory=dict)  # your saved presets: name → filter values
     aircraft_symbol: str = "silhouette"  # "silhouette" or "triangle" (the ESP32 look)
     airline_logos: str = "all"  # "off", "panel" (side panel only) or "all" (panel + radar tags)
