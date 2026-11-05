@@ -19,8 +19,8 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.8.4 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.4/SkyScope-1.8.4-for-Mac.zip)** ·
-**[SkyScope 1.8.4 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.4/SkyScope-1.8.4-for-Windows.zip)**
+**[SkyScope 1.8.5 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Mac.zip)** ·
+**[SkyScope 1.8.5 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Windows.zip)**
 (or the [latest release](../../releases/latest) page). Unzip it and double-click
 **Install SkyScope**; the [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
@@ -358,8 +358,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.4/SkyScope-1.8.4-for-Mac.zip)**
-or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.4/SkyScope-1.8.4-for-Windows.zip)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Mac.zip)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.8.5/SkyScope-1.8.5-for-Windows.zip)**
 (also on the [latest release](../../releases/latest)), unzip it and double-click
 **Install SkyScope**. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
