@@ -79,7 +79,7 @@ static class Uninstall
         else if (key != "") Files.TryDelete(App.KeptKey);       // (one kept from an earlier uninstall goes too)
 
         Ui.Progress("Stopping " + App.Name + "...", 10);
-        Runner.Stop(dir, true);
+        Runner.Stop(dir, true, true);
         int port = App.InstalledPort(dir);
 
         // close the port for phones and Satellites (Windows asks for permission only if there's a rule to remove)

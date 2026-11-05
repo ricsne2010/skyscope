@@ -1,8 +1,8 @@
-// SkyScope.exe, in the install folder: starts and stops the app, and is the app's own process while it runs.
 // <App>.exe, in the install folder: starts and stops the app, and is the app's own process while it runs.
-//   <App>.exe                 Start: starts it in the background if it isn't running, then opens it in the browser
-//   <App>.exe --no-browser    Start without opening the browser (at sign-in, and by the installer)
+//   <App>.exe                 Open: starts it in the background if it isn't running, then opens it in the browser
+//   <App>.exe --no-browser    Start: starts it without opening the browser (also at sign-in, and by the installer)
 //   <App>.exe --stop [--quiet]   Stop (--quiet: no message afterwards)
+//   <App>.exe --tray          the icon by the clock (Tray.cs): opened by Start and Open, there until you sign out
 //   <App>.exe --uninstall     opens Uninstall <App>.exe beside it (the Start menu's Remove <App>)
 //   <App>.exe --run           the app itself: runs its Python program hidden and stays while it runs, so Task
 //                                Manager lists it under the app's own name and icon (Python's own files are never
@@ -50,21 +50,22 @@ static class Runner
         return p.ExitCode;
     }
 
-    // Start (and --no-browser)
+    // Open, and Start (--no-browser)
     public static int Start(string dir, bool browser)
     {
+        Tray.Ensure(dir);                 // (it shows the app starting, then running: no notices of our own then)
         int port = App.InstalledPort(dir);
         string url = "http://127.0.0.1:" + port + App.OpenPath;
         bool installing = Environment.GetEnvironmentVariable("SS_INSTALLING") == "1";
         if (Web.Up(port))
         {
             // (no notices for an app with no StartingNote: a game opened from its icon just opens)
-            if (browser && !installing && App.StartingNote != null) { using (Note(App.Name + " is already running. Opening " + App.PageName + "...")) { Proc.Open(url); Sleep(3000); } }
+            if (browser && !installing && App.StartingNote != null && !Tray.Running) { using (Note(App.Name + " is already running. Opening " + App.PageName + "...")) { Proc.Open(url); Sleep(3000); } }
             else if (browser) Proc.Open(url);
             return 0;
         }
         var host = Process.Start(new ProcessStartInfo(App.Exe, "--run") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir });
-        using (installing || App.StartingNote == null ? null : Note(App.StartingNote))
+        using (installing || App.StartingNote == null || Tray.Running ? null : Note(App.StartingNote))
         {
             for (int i = 0; i < App.StartSeconds * 2 && !host.HasExited; i++)
             {
@@ -84,8 +85,10 @@ static class Runner
 
     // Stop: the app's own shutdown request first (its icon by the clock then goes by itself), then firmer if needed.
     // Also stops an install from before <App>.exe (any program running from the install folder).
-    public static int Stop(string dir, bool quiet)
+    // closeTray (the installer and uninstaller): the icon by the clock goes too; otherwise it stays, red
+    public static int Stop(string dir, bool quiet, bool closeTray = false)
     {
+        if (closeTray) Tray.Close(dir);
         int port = App.InstalledPort(dir);
         bool wasUp = Web.Up(port, 1500);
         if (wasUp && Web.AskToStop(port))
@@ -106,12 +109,12 @@ static class Runner
         if (!quiet)
         {
             if (still) MessageBox.Show(App.Name + " is still running: something else may be using port " + port + ".", App.Name, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            else using (Note(wasUp ? App.Name + " has stopped." : App.Name + " wasn't running.")) Sleep(3500);
+            else if (!Tray.Running) using (Note(wasUp ? App.Name + " has stopped." : App.Name + " wasn't running.")) Sleep(3500);
         }
         return still ? 1 : 0;
     }
 
-    static Process HostProcess(string dir)
+    public static Process HostProcess(string dir)
     {
         try
         {
@@ -123,13 +126,14 @@ static class Runner
         catch { return null; }
     }
 
-    // programs running from the install folder (but not this one)
+    // programs running from the install folder (but not this one, nor the icon by the clock)
     static Process[] RunningFrom(string dir)
     {
-        int me = Process.GetCurrentProcess().Id;
+        int me = Process.GetCurrentProcess().Id, tray = -1;
+        try { tray = int.Parse(File.ReadAllText(Tray.PidFile(dir)).Trim()); } catch { }
         return Process.GetProcesses().Where(p =>
         {
-            if (p.Id == me) return false;
+            if (p.Id == me || p.Id == tray) return false;
             string at = Proc.PathOf(p);
             return at != null && at.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase)
                    && !Path.GetFileName(at).StartsWith("Uninstall", StringComparison.OrdinalIgnoreCase)

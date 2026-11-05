@@ -1,6 +1,6 @@
-// The app's shortcuts (App.Links: Start and Stop, or Play) in the Start menu and on the Desktop if wanted, Remove <App>
-// in the Start menu, and Start at sign-in in the Startup folder when it should. All of them open <App>.exe in the
-// install folder.
+// The app's shortcuts (App.Links: Open, Start and Stop, or Play) in the Start menu and on the Desktop if wanted, and
+// Start at sign-in in the Startup folder when it should. All of them open <App>.exe in the install folder. No Remove
+// shortcut: it's removed from Settings > Apps, as other programs are.
 // Designed and Created by Project Moon Pi.
 using System;
 using System.IO;
@@ -25,29 +25,25 @@ static class Shortcuts
 
     public static void Make(string dir, bool onDesktop, bool atSignIn)
     {
+        // the Start menu folder made new (so earlier versions' shortcuts, Remove <App> and Start <App>, go), and
+        // earlier versions' Start and Stop <App> on the Desktop
+        Files.TryDeleteDir(Menu);
         Directory.CreateDirectory(Menu);
+        foreach (var old in new[] { "Start " + App.Name, "Stop " + App.Name }) Files.TryDelete(Path.Combine(Desktop, old + ".lnk"));
         var places = onDesktop ? new[] { Menu, Desktop } : new[] { Menu };
         if (!onDesktop) foreach (var l in App.Links) Files.TryDelete(Path.Combine(Desktop, l[0] + ".lnk"));
         Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));     // (earlier versions put one there)
         foreach (var place in places)
             foreach (var l in App.Links) Make(Path.Combine(place, l[0] + ".lnk"), dir, l[1], App.Icon(l[2]), l[3]);
-        // Remove <App>: two things keep Windows' Start menu from hiding it (found in the Win11 VM): no description
-        // (one about removing the program hides it), and a new command on every install (--installed <time>), made
-        // as a new shortcut: Windows remembers a Remove shortcut that went with an uninstall and hides any later one
-        // with the same command. It opens <App>.exe, which opens the uninstaller: a shortcut straight to a program
-        // named Uninstall... is hidden too.
-        Files.TryDelete(Path.Combine(Menu, "Uninstall " + App.Name + ".lnk"));
-        Files.TryDelete(Path.Combine(Menu, "Remove " + App.Name + ".lnk"));
-        Make(Path.Combine(Menu, "Remove " + App.Name + ".lnk"), dir, "--uninstall --installed " + DateTime.Now.ToString("yyyyMMddHHmmss"),
-             App.Icon("uninstall"), "");
-        if (atSignIn) Make(Startup, dir, "--no-browser", App.Icon(App.Links[0][2]), "Start " + App.Display + " at sign-in");
+        if (atSignIn) Make(Startup, dir, "--no-browser", App.Icon("start"), "Start " + App.Display + " at sign-in");
         else Files.TryDelete(Startup);
     }
 
     public static void RemoveAll()
     {
         foreach (var l in App.Links) Files.TryDelete(Path.Combine(Desktop, l[0] + ".lnk"));
-        Files.TryDelete(Path.Combine(Desktop, "Uninstall " + App.Name + ".lnk"));
+        foreach (var old in new[] { "Start " + App.Name, "Stop " + App.Name, "Uninstall " + App.Name })
+            Files.TryDelete(Path.Combine(Desktop, old + ".lnk"));
         Files.TryDelete(Startup);
         Files.TryDeleteDir(Menu);
     }

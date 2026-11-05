@@ -19,8 +19,8 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.9.0 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/SkyScope-1.9.0-for-Mac.dmg)** ·
-**[SkyScope 1.9.0 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/Install-SkyScope-1.9.0-for-Windows.exe)**
+**[SkyScope 1.9.1 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.1/SkyScope-1.9.1-for-Mac.dmg)** ·
+**[SkyScope 1.9.1 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.1/Install-SkyScope-1.9.1-for-Windows.exe)**
 (or the [latest release](../../releases/latest) page): one file. On a Mac, open it and double-click
 **Install SkyScope**; on Windows, double-click it. The [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
@@ -358,8 +358,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/SkyScope-1.9.0-for-Mac.dmg)**
-or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.0/Install-SkyScope-1.9.0-for-Windows.exe)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.1/SkyScope-1.9.1-for-Mac.dmg)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.1/Install-SkyScope-1.9.1-for-Windows.exe)**
 (also on the [latest release](../../releases/latest)): one file. On a Mac, open the disk image and
 double-click **Install SkyScope**; on Windows, double-click the downloaded installer. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
@@ -373,22 +373,24 @@ the Python Software Foundation). The installer:
   it (otherwise it listens to this computer only), whether it should start
   when you log in, and whether Start and Stop go on the Desktop,
 * puts **Start SkyScope**, **Stop SkyScope** and **Uninstall SkyScope** in
-  Applications › SkyScope (Mac) or the Start menu (Windows, where it's called
-  **Remove SkyScope**: Windows hides Start menu items named Uninstall). On
-  Windows, **Uninstall SkyScope** is also in the install folder and beside the
-  installer, and SkyScope is listed in **Settings › Apps**, whose Uninstall
-  button does the same. Uninstalling removes your settings too; if you've
+  Applications › SkyScope (Mac). On Windows it puts **Open SkyScope** (opens
+  the radar, starting SkyScope first if it isn't running), **Start SkyScope
+  Service** and **Stop SkyScope Service** (they only start and stop it in the
+  background) in the Start menu, and lists SkyScope in **Settings › Apps**,
+  where it's uninstalled (**Uninstall SkyScope** is also in the install folder). Uninstalling removes your settings too; if you've
   added a FlightAware API key, it asks whether to delete that as well (keep
   it, and installing SkyScope again puts it back).
 
-**Is it running?** While SkyScope runs in the background, its radar icon
-sits in the Mac menu bar (black or white like the icons beside it; faint if
-SkyScope stops answering) or by the Windows clock (green; grey if SkyScope
-stops answering; under the **^** until you drag it onto the taskbar). It goes
-away when SkyScope stops. Click it for the radar, the settings or **Stop
-SkyScope**; its menu also shows the version, when it started and how many
-aircraft are in range. Activity Monitor and Task Manager list it as
-**SkyScope**. Start SkyScope says so if it's already running.
+**Is it running?** On a Mac, while SkyScope runs in the background, its radar
+icon sits in the menu bar (black or white like the icons beside it; faint if
+SkyScope stops answering) and goes away when SkyScope stops. Click it for the
+radar, the settings or **Stop SkyScope**; its menu also shows the version, when
+it started and how many aircraft are in range. On Windows its radar icon is by
+the clock (under the **^** until you drag it onto the taskbar) and stays there:
+green while SkyScope runs, red when it's stopped. Click it for the radar;
+right-click it for **Open the radar**, **Start SkyScope Service** and **Stop
+SkyScope Service**. Activity Monitor and Task Manager list it as
+**SkyScope**.
 
 Run the installer again to update or to change your answers. When SkyScope is
 already installed it offers **Update** (compares the installed files with the new
@@ -571,7 +573,7 @@ scope design, range presets and colours were the starting point.
 | Software | Source | Licence |
 |----------|--------|---------|
 | Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
-| Menu bar / taskbar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
+| Mac menu bar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
 | Secure connections (installed copies) | [truststore](https://github.com/sethmlarson/truststore) by Seth Larson: HTTPS checked with the computer's own certificates | MIT |
 | QR codes for phones | [QR Code Generator for JavaScript](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (`web/qrcode.js`, 1.4.4) | MIT |
 | Windows installer | C# on Microsoft's .NET Framework 4.8 (Windows Forms), built with [Mono](https://www.mono-project.com)'s C# compiler (Roslyn) | .NET Framework: part of Windows; Mono and Roslyn: MIT |

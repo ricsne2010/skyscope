@@ -26,6 +26,7 @@ static class Program
 
             string dir = App.Here;
             if (args.Contains("--run")) return Runner.Run(dir);
+            if (args.Contains("--tray")) return Tray.Run(dir);
             if (args.Contains("--stop")) return Runner.Stop(dir, args.Contains("--quiet"));
             if (args.Contains("--uninstall"))
             {

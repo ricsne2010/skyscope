@@ -177,7 +177,7 @@ echo "python3 $HOME/skyscope/skyscope.py &amp;" &gt;&gt; ~/.config/labwc/autosta
 chromium --kiosk http://localhost:7700/radar</code></pre>
 
 <h2 id="install-computer">4. Installing on a Mac or Windows PC</h2>
-<p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the radar in your browser. An installer sets it up as a background program with <b>Start SkyScope</b> and <b>Stop SkyScope</b> icons, the same way as the US Train Tracker.</p>
+<p>SkyScope runs on a Mac or a Windows 10/11 PC as well as a Pi. On a computer you use the radar in your browser. An installer sets it up as a background program (a service) with icons to start and stop it, the same way as the US Train Tracker.</p>
 <h3>Step 1: Python (the installer sees to it)</h3>
 <p>SkyScope runs on Python 3.10 or newer. If the computer doesn't have it, SkyScope's installer offers to download it from python.org and install it: click <b>Install Python</b> (Mac; it asks for your Mac password) or <b>Yes</b> (Windows; installed for you only, no password). It checks the download is signed by the Python Software Foundation first.</p>
 <p>To install Python yourself instead: <a href="https://www.python.org/downloads/">python.org/downloads</a>, then on a Mac open the downloaded <code>.pkg</code> and click through it; on Windows tick <b>Add python.exe to PATH</b> on the installer's first screen, then click <b>Install Now</b>.</p>
@@ -191,24 +191,25 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
     <ul>
       <li><b>Where?</b> (Windows) <b>Install in</b> suggests a SkyScope folder of your own; type another or click <b>Browse…</b>. It can't go in Program Files (SkyScope installs just for you, without admin permission). A folder that already holds other things gets a SkyScope folder inside it.</li>
       <li><b>Phones too, or this computer only?</b> Choose phones if you'll open SkyScope on a phone or tablet, or use a <a href="#displays">SkyScope Satellite</a> display. On Windows, a note then explains Windows' "allow this app to make changes" question for Install SkyScope.exe: click <b>Yes</b>. That opens the firewall for them, on home (private) networks only.</li>
-      <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you click Start SkyScope.</li>
+      <li><b>Start when you log in?</b> <b>Yes</b> keeps SkyScope running whenever you're logged in; <b>No</b> starts it only when you start it (Start SkyScope on a Mac; Open SkyScope or Start SkyScope Service on Windows).</li>
       <li><b>Start and Stop on the Desktop?</b> They're in Applications → SkyScope (Mac) or the Start menu (Windows) either way.</li>
     </ul></li>
   <li>It installs SkyScope (about a minute), showing each step, and starts it last. Click <b>Finish</b>: with <b>Open the radar now</b> ticked, the radar opens. If the Mac asks whether SkyScope (or Python) may accept incoming network connections, click <b>Allow</b>. You can delete the download afterwards (on a Mac, eject the disk image first).</li>
 </ol>
 <h3>Using it</h3>
 <ul>
-  <li><b>Start SkyScope</b> (Applications → SkyScope or the Start menu, and the Desktop if you chose) starts it if it isn't running and opens the radar.</li>
-  <li><b>Stop SkyScope</b> shuts it down; the radar stops until you start it again.</li>
-  <li><b>Is it running?</b> Look for SkyScope's radar icon. On a Mac it's in the <b>menu bar</b> at the top of the screen, black or white like the icons beside it, and faint if SkyScope stops answering. On Windows it's green, <b>by the clock</b> (new icons start under the <b>^</b> there; drag it onto the taskbar to keep it in sight), and grey if SkyScope stops answering. It's there while SkyScope runs and goes away when SkyScope stops. Click it for a menu: the version, when it started and how many aircraft are in range, then <b>Open the radar</b>, <b>Settings</b> and <b>Stop SkyScope</b>. (On Windows, a plain click opens the radar; right-click for the menu.)</li>
-  <li>Activity Monitor (Mac) and Task Manager (Windows) list it as <b>SkyScope</b>. Start SkyScope says so if it's already running, and Stop SkyScope if it wasn't.</li>
+  <li><b>Mac:</b> <b>Start SkyScope</b> (Applications → SkyScope, and the Desktop if you chose) starts it if it isn't running and opens the radar. <b>Stop SkyScope</b> shuts it down; the radar stops until you start it again.</li>
+  <li><b>Windows</b> (the Start menu, and the Desktop if you chose): <b>Open SkyScope</b> opens the radar, starting SkyScope first if it isn't running. <b>Start SkyScope Service</b> and <b>Stop SkyScope Service</b> only start and stop it in the background, without opening the radar.</li>
+  <li><b>Is it running?</b> Look for SkyScope's radar icon. On a Mac it's in the <b>menu bar</b> at the top of the screen, black or white like the icons beside it, and faint if SkyScope stops answering. It's there while SkyScope runs and goes away when SkyScope stops. Click it for a menu: the version, when it started and how many aircraft are in range, then <b>Open the radar</b>, <b>Settings</b> and <b>Stop SkyScope</b>.<br>
+      On Windows it's <b>by the clock</b> (new icons start under the <b>^</b> there; drag it onto the taskbar to keep it in sight), and it stays there once SkyScope has started, until you sign out: <b>green</b> while SkyScope runs, <b>red</b> when it's stopped. Click it for the radar (starting SkyScope first if it's stopped); right-click it for <b>Open the radar</b>, <b>Start SkyScope Service</b> and <b>Stop SkyScope Service</b>. A notice says when it has started or stopped.</li>
+  <li>Activity Monitor (Mac) and Task Manager (Windows) list it as <b>SkyScope</b>. On a Mac, Start SkyScope says so if it's already running, and Stop SkyScope if it wasn't.</li>
   <li><b>To update</b>, download a newer release and run its installer. When SkyScope is already installed, the installer asks what to do, with a button for each on a page of their own:
     <ul>
       <li><b>Update</b> (from an older version): compares the installed files with the new ones and copies only those that differ. Your settings, FlightAware key and logo cache are kept.</li>
       <li><b>Repair</b> (the same version): checks every installed file, SkyScope's own and its Python parts, and puts back any that are damaged or missing, then sets up its apps or shortcuts again. Your settings, FlightAware key and logo cache are kept.</li>
       <li><b>Reinstall from scratch</b>: removes everything SkyScope put on the computer, its settings and logo cache too, then installs it new with its own settings. Only your FlightAware API key is kept. Use it when something's wrong that Repair doesn't fix.</li>
     </ul></li>
-  <li><b>Uninstall SkyScope</b> removes it and its settings; Python stays. If you've added a FlightAware API key, it asks whether to delete that too: untick the box to keep it, and installing SkyScope again puts it back. On a Mac it's in Applications → SkyScope. On Windows it's <b>Remove SkyScope</b> in the Start menu (Windows hides Start menu items named Uninstall), <b>Uninstall SkyScope</b> in the folder SkyScope is installed in, and <b>Settings → Apps</b> (SkyScope, Uninstall). On a Mac, the first time, macOS asks whether <b>Uninstall SkyScope</b> may access your Desktop folder: click <b>Allow</b> so it can remove its Desktop icons too.</li>
+  <li><b>Uninstall SkyScope</b> removes it and its settings; Python stays. If you've added a FlightAware API key, it asks whether to delete that too: untick the box to keep it, and installing SkyScope again puts it back. On a Mac it's in Applications → SkyScope. On Windows, open <b>Settings → Apps → Installed apps</b>, find SkyScope and click <b>Uninstall</b>, as for any program (<b>Uninstall SkyScope</b> is also in the folder SkyScope is installed in). On a Mac, the first time, macOS asks whether <b>Uninstall SkyScope</b> may access your Desktop folder: click <b>Allow</b> so it can remove its Desktop icons too.</li>
   <li>If it won't start, a message says so. Its messages are in <code>~/Library/Logs/SkyScope.log</code> on a Mac, or <code>skyscope.log</code> in the folder it's installed in on Windows (normally <code>%LOCALAPPDATA%\Programs\Project Moon Pi\SkyScope</code>) on Windows (in the folder you chose, if you chose another).</li>
 </ul>
 <div class="note"><b>Where it goes:</b> on a Mac in <code>~/Library/Application Support/SkyScope</code>, on Windows in <code>%LOCALAPPDATA%\Programs\Project Moon Pi\SkyScope</code> (or a folder you choose), with its own copy of Python's packages (pygame-ce, the community edition of pygame, which has ready-made packages for the newest Python versions; pystray and Pillow for the icon).</div>
@@ -275,7 +276,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 </ul>
 <p>Only the computer running SkyScope can change this choice or the PIN.</p>
 <h3 id="updates">Updates</h3>
-<p>SkyScope asks GitHub a few times a day whether there's a newer version (only while <b>Check for a newer SkyScope</b> is on, in About; the request says only which version is asking). When there is, a note appears on the radar, the menu bar or taskbar icon's menu offers it, and the <b>Updates</b> card in About has an <b>Update to</b> button. <b>Check now</b> asks at once. <b>Update to</b> (on the computer running SkyScope) downloads the new version in the background, checks it is the file GitHub published, unpacks it and opens its installer in front: click <b>Update</b> there, and SkyScope is updated and started again with your settings kept. <b>Or download it yourself</b> gets the installer to run by hand. On a Raspberry Pi, the card links to the release page.</p>
+<p>SkyScope asks GitHub a few times a day whether there's a newer version (only while <b>Check for a newer SkyScope</b> is on, in About; the request says only which version is asking). When there is, a note appears on the radar, the Mac menu bar icon's menu offers it, and the <b>Updates</b> card in About has an <b>Update to</b> button. <b>Check now</b> asks at once. <b>Update to</b> (on the computer running SkyScope) downloads the new version in the background, checks it is the file GitHub published, unpacks it and opens its installer in front: click <b>Update</b> there, and SkyScope is updated and started again with your settings kept. <b>Or download it yourself</b> gets the installer to run by hand. On a Raspberry Pi, the card links to the release page.</p>
 
 <h2 id="map">8. The ATC map</h2>
 <figure><img src="images/settings-map.jpg" alt="The Map tab of the settings page">
@@ -408,7 +409,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
 <table>
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>
   <tr><td>Language and display</td><td>Python, pygame (or pygame-ce)</td><td>PSF; LGPL 2.1</td></tr>
-  <tr><td>Menu bar / taskbar icon (installed copies)</td><td>pystray, Pillow, and PyObjC on a Mac</td><td>LGPL 3; MIT-CMU; MIT</td></tr>
+  <tr><td>Mac menu bar icon (installed copies)</td><td>pystray, Pillow, and PyObjC on a Mac</td><td>LGPL 3; MIT-CMU; MIT</td></tr>
   <tr><td>Secure connections (installed copies)</td><td>truststore by Seth Larson: web connections checked with the computer's own certificates</td><td>MIT</td></tr>
   <tr><td>QR codes for phones</td><td>QR Code Generator for JavaScript by Kazuhiko Arase (qrcode-generator 1.4.4)</td><td>MIT</td></tr>
   <tr><td>Windows installer</td><td>C# on Microsoft's .NET Framework 4.8, built with Mono's C# compiler</td><td>Part of Windows; MIT</td></tr>

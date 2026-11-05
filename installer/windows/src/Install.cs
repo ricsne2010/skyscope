@@ -2,8 +2,8 @@
 // from scratch; your settings are kept). It runs from the downloaded folder, beside the program's files.
 //
 // Installs the program in %LOCALAPPDATA%\Programs\Project Moon Pi\<App> (or a folder you choose), with <App>.exe and
-// Uninstall <App>.exe in it; puts Start, Stop and Remove <App> in the Start menu, Start and Stop on the Desktop if you
-// like, and lists it in Settings > Apps. Needs Python (App.PythonMin); if it isn't there, it installs Python from
+// Uninstall <App>.exe in it; puts Open, Start and Stop <App> in the Start menu (and on the Desktop if you like), and
+// lists it in Settings > Apps, which is where it's removed. Needs Python (App.PythonMin); if it isn't there, it installs Python from
 // python.org for this user only (checked: the expected download, signed by the Python Software Foundation). What it
 // does is logged in %TEMP%\<App> install.log. Designed and Created by Project Moon Pi.
 //
@@ -288,7 +288,7 @@ static class Install
             choices = Ui.Choices(text, new[] {
                 new Box(App.PhonesText, Env("SS_PHONES") != null ? Env("SS_PHONES") != "no" : wasPhones),
                 new Box("Start " + App.Name + " when I sign in to Windows", Env("SS_AUTOSTART") != null ? Env("SS_AUTOSTART") == "yes" : wasAuto),
-                new Box("Put Start and Stop " + App.Name + " on the Desktop", Env("SS_DESKTOP") != null ? Env("SS_DESKTOP") != "no" : wasDesk) },
+                new Box("Put Open " + App.Name + ", and Start and Stop " + App.Name + " Service, on the Desktop", Env("SS_DESKTOP") != null ? Env("SS_DESKTOP") != "no" : wasDesk) },
                 okText, have != null, suggest, CheckFolder);
             if (!Ui.WentBack) break;
         }
@@ -322,7 +322,7 @@ static class Install
             if (!File.Exists(Path.Combine(d, App.InfoFile))) continue;
             if (Web.Up(App.InstalledPort(d))) WasRunning = d;     // (if this install goes wrong after this, it's started again)
             App.Log("stopping the copy in " + d);
-            Runner.Stop(d, true);
+            Runner.Stop(d, true, true);
         }
 
         var notes = new List<string>();
@@ -424,7 +424,7 @@ static class Install
         Put(Path.Combine(win, "run.py"), Path.Combine(AppDir, "run.py"));
         foreach (var exe in new[] { App.Name + ".exe", "Uninstall " + App.Name + ".exe" })
             Put(Path.Combine(win, exe), Path.Combine(AppDir, exe));
-        foreach (var ico in new[] { App.Icon("start"), App.Icon("stop"), App.Icon("uninstall"), App.Icon("app") })
+        foreach (var ico in new[] { App.Icon("start"), App.Icon("stop"), App.Icon("uninstall"), App.Icon("app"), App.Icon("tray-on"), App.Icon("tray-off") })
             Put(Path.Combine(Src, @"tools\launcher\" + ico), Path.Combine(AppDir, ico));
         Put(Path.Combine(Src, @"docs\images\moon-pi-logo-128.png"), Path.Combine(AppDir, "logo.png"));
         // what the PowerShell installers (before 1.7) left: their scripts, and Python renamed for Task Manager
@@ -496,10 +496,10 @@ static class Install
 
         string did = mode == "update" ? "is installed (updated from " + have + ")" : mode == "repair" ? "is repaired"
                    : mode == "fresh" ? "is reinstalled from scratch" : "is installed";
-        string done = App.Name + " " + version + " " + did + (up ? " and running." : ", but it didn't start yet: use Start " + App.Name + " in the Start menu.") +
-            "\n\nIts radar icon is by the clock (click ^ if Windows has tucked it away there): click it for the radar, right-click for the settings or Stop. Start and Stop " +
-            App.Name + " are in the Start menu" + (onDesktop ? ", and on your Desktop" : "") + ". To remove it, use Remove " + App.Name +
-            " in the Start menu, Uninstall " + App.Name + " in " + AppDir + ", or Settings > Apps." +
+        string done = App.Name + " " + version + " " + did + (up ? " and running." : ", but it didn't start yet: use Start " + App.Name + " Service in the Start menu.") +
+            "\n\nIts radar icon is by the clock (click ^ if Windows has tucked it away there): green while it runs, red when it's stopped. Click it for the radar; right-click it to start or stop " +
+            App.Name + "'s service. Open " + App.Name + ", and Start and Stop " + App.Name + " Service, are in the Start menu" + (onDesktop ? ", and on your Desktop" : "") +
+            ". To remove it: Settings > Apps > Installed apps, " + App.Name + ", Uninstall." +
             (networkNote != null ? "\n\n" + networkNote : "") + string.Concat(notes.Select(n => "\n\n" + n));
         var open = Ui.Done(done, "Finish", new[] { new Box("Open the radar now", up && Env("SS_OPEN") != "no") });
         if (up && open.Length > 0 && open[0] && !Ui.Unattended) Proc.Open("http://127.0.0.1:" + port + App.OpenPath);

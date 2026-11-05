@@ -140,7 +140,8 @@ def program_files(windows: bool) -> list[Path]:
         # the Windows programs (built from installer/windows/src by build.sh) and Python's side of running it
         launcher = ROOT / "tools" / "launcher"
         program += [ROOT / "installer/windows" / n for n in ("SkyScope.exe", "Uninstall SkyScope.exe", "run.py")]
-        program += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico")]
+        program += [launcher / n for n in ("skyscope-start.ico", "skyscope-stop.ico", "skyscope-uninstall.ico", "skyscope.ico",
+                                          "skyscope-tray-on.ico", "skyscope-tray-off.ico")]
     return program
 
 

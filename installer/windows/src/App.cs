@@ -36,15 +36,16 @@ static partial class App
 
     // its shortcuts in the Start menu (and on the Desktop if wanted): name, <App>.exe's arguments, icon, description
     public static readonly string[][] Links = {
-        new[] { "Start SkyScope", "", "start", "Start SkyScope and open the radar" },
-        new[] { "Stop SkyScope", "--stop", "stop", "Stop SkyScope" },
+        new[] { "Open SkyScope", "", "app", "Open the radar (starting SkyScope first if it isn't running)" },
+        new[] { "Start SkyScope Service", "--no-browser", "start", "Start SkyScope's service in the background (the radar opens with Open SkyScope)" },
+        new[] { "Stop SkyScope Service", "--stop", "stop", "Stop SkyScope's service" },
     };
 
     // the Python that runs it: its own Python set-up's (venv), without a console window
     public static string PythonW(string dir) { return Path.Combine(dir, @"venv\Scripts\pythonw.exe"); }
 
     // the icons in the install folder (copied from tools\launcher)
-    public static string Icon(string kind)                 // "app", "start", "stop", "uninstall"
+    public static string Icon(string kind)                 // "app", "start", "stop", "uninstall", "tray-on", "tray-off"
     {
         return kind == "app" ? "skyscope.ico" : "skyscope-" + kind + ".ico";
     }
@@ -70,7 +71,7 @@ static partial class App
     public static string RunArgs(string dir)
     {
         bool phones = InstalledFlag(dir, "phones", true);
-        return Proc.Quote(Path.Combine(dir, "run.py")) + " --tray" + (phones ? "" : " --host 127.0.0.1");
+        return Proc.Quote(Path.Combine(dir, "run.py")) + (phones ? "" : " --host 127.0.0.1");     // (its icon by the clock is SkyScope.exe --tray)
     }
 
     // ---- SkyScope's own, used by its Install.cs and Uninstall.cs
@@ -78,7 +79,7 @@ static partial class App
     // what pip installs into its own Python set-up: [packages, what the window says, required?, hint]
     public static readonly string[][] Packages = {
         new[] { "pygame-ce", "Installing what SkyScope runs on...", "yes", "Downloading pygame-ce; about a minute." },
-        new[] { "pystray pillow", "Installing the icon by the clock...", "no", "" },   // without them: no icon by the clock
+        // (its icon by the clock is SkyScope.exe --tray: no pystray or Pillow on Windows)
         // truststore: HTTPS sites checked with Windows' own verifier, which fetches a root certificate Windows doesn't
         // hold yet (Python alone refuses it: the update check failed on a PC with only Firefox); skyscope.py
         // system_trust() uses it when it's there
