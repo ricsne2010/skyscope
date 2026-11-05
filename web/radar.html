@@ -1012,6 +1012,13 @@ $("tbody").addEventListener("mouseover", e => {
 $("tbody").addEventListener("mouseleave", () => { hoverId = null; });
 $("cardwrap").addEventListener("click", e => { if (e.target.id === "clear-sel") select(null); });
 $("fs").addEventListener("click", toggleFullscreen);
+// Phones and tablets: no Phone button (it's already on one) and no Fullscreen (iPhones can't, and the others don't
+// need it). Desktops, laptops and a Raspberry Pi's browser keep both. (iPads say they're Macs: a touch screen gives
+// them away.)
+const MOBILE = navigator.userAgentData?.mobile
+  || /iPhone|iPad|iPod|Android|Mobile|Silk|Kindle/i.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (MOBILE) { $("fs").hidden = true; $("phone-btn").hidden = true; }
 // --- filter panel (footer button) ---------------------------------------------------
 function filterSummary(st) {
   const kinds = st.classes.filter(c => !st.hidden_classes.includes(c.id));
