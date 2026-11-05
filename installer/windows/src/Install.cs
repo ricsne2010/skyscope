@@ -476,7 +476,7 @@ static class Install
         string networkNote = null;
         if (phones)
         {
-            Ui.Progress("Letting " + App.PhonesShort + " on your home network reach " + App.Name + "...", 89);
+            Ui.Progress("Finishing setting up " + App.Name + "...", 89);     // (the firewall, for phones)
             string state = Firewall.Ensure(port, BasePythonW(AppDir), Ui.Unattended);
             App.Log("firewall: " + state);
             if (state == "Declined")
