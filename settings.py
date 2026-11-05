@@ -86,6 +86,7 @@ class Settings:
     # (wildcards allowed). Matches are highlighted and shown despite filters.
     watchlist: str = ""
     watch_notice: bool = True  # banner when a watched aircraft is in range
+    check_updates: bool = True  # ask GitHub now and then for a newer SkyScope (updates.py)
     filter_presets: dict = field(default_factory=dict)  # your saved presets: name → filter values
     aircraft_symbol: str = "silhouette"  # "silhouette" or "triangle" (the ESP32 look)
     airline_logos: str = "all"  # "off", "panel" (side panel only) or "all" (panel + radar tags)

@@ -95,6 +95,7 @@ FIELDS = [
     ("highlight_emergencies", "Highlight emergency squawks (7500 / 7600 / 7700)", "bool", None),
     ("watchlist", "Watchlist", "watch", 1000),
     ("watch_notice", "Show a notice when a watched aircraft is in range", "bool", None),
+    ("check_updates", "Check for a newer SkyScope (asks GitHub a few times a day)", "bool", None),
     ("hidden_classes", "Kinds of aircraft", "classes", CLASSES),
     ("hidden_alt_bands", "Altitude", "bands", ALT_BANDS),
     ("type_mode", "Aircraft types", "choice", FILTER_MODES),
@@ -197,6 +198,18 @@ PAGE = """<!doctype html>
   .field { margin-top: 14px; }
   .field > .label { font-weight: 600; margin-bottom: 6px; }
   .hint { color: var(--dim); font-size: .85rem; margin-top: 6px; }
+  /* Phones and tablets (About): the radar's address on the home Wi-Fi as a QR code */
+  .ph-body { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .ph-qr { background: #fff; border-radius: 8px; padding: 6px; width: 170px; height: 170px; flex: none; }
+  .ph-qr svg { width: 100%; height: 100%; display: block; }
+  .ph-text { flex: 1 1 200px; min-width: 0; }
+  .ph-url { font-weight: 700; font-size: 1.05rem; word-break: break-all; margin-bottom: 6px; }
+  /* Updates (About) */
+  .up-btns { display: flex; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap; }
+  .up-get, .up-now { border-radius: 8px; padding: 6px 14px; font: inherit; font-weight: 700; cursor: pointer;
+    text-decoration: none; }
+  .up-get { background: var(--green); color: #04110a; border: 1px solid var(--green); }
+  .up-now { background: none; color: var(--green); border: 1px solid var(--green); }
   .vm-note { margin-top: 10px; padding: 10px 12px; border-radius: 8px; line-height: 1.5; font-size: .92rem;
     background: rgba(245, 158, 11, .14); border: 1px solid rgba(245, 158, 11, .45); }
   .hint a { color: var(--green); font-weight: 600; }
@@ -312,6 +325,7 @@ PAGE = """<!doctype html>
   <a class="radar-btn" href="/radar">Open radar &rarr;</a>
   <button type="submit" class="save" name="action" value="save">Save</button></div>
 </form>
+<script src="/web/qrcode.js"></script>
 <script>
   const form = document.getElementById('form');
   const bar = document.getElementById('savebar'), state = document.getElementById('state');
@@ -475,6 +489,49 @@ PAGE = """<!doctype html>
     });
   }
 
+  // Updates (About): is there a newer SkyScope? (Check now asks GitHub at once)
+  async function showUpdate(now) {
+    const line = document.getElementById('up-line');
+    if (!line) return;
+    const more = document.getElementById('up-more'), get = document.getElementById('up-get');
+    if (now) more.textContent = 'Checking…';
+    try {
+      const u = await (await fetch('/api/update' + (now ? '?now=1' : ''), { cache: 'no-store' })).json();
+      if (u.newer) {
+        line.textContent = `SkyScope ${u.latest} is available (you have ${u.current}).`;
+        get.href = u.download || u.page; get.hidden = false;
+        get.textContent = u.download ? `Download ${u.latest}` : 'See the new version';
+      } else {
+        line.textContent = u.latest ? `You have SkyScope ${u.current}, the newest.` : `You have SkyScope ${u.current}.`;
+        get.hidden = true;
+      }
+      more.textContent = u.error ? u.error : u.checked ? `Checked ${u.checked}.` :
+        (u.enabled ? 'Checking in the background…' : 'Checking for updates is off: Check now asks once.');
+    } catch (e) { more.textContent = "SkyScope isn't answering."; }
+  }
+  showUpdate(false);
+  document.getElementById('up-now')?.addEventListener('click', () => showUpdate(true));
+
+  // Phones and tablets (About): the radar's address on the home Wi-Fi as a QR code, and why a phone might not
+  // get through (asked of SkyScope, which checks this computer's network)
+  (async () => {
+    const box = document.getElementById('ph-card');
+    if (!box) return;
+    try {
+      const c = await (await fetch('/api/connect', { cache: 'no-store' })).json();
+      const url = /^(localhost|127\\.)/.test(location.hostname) ? c.url : location.origin + '/radar';
+      document.getElementById('ph-url').textContent = url;
+      document.getElementById('ph-tip').textContent = c.tip;
+      const q = document.getElementById('ph-qr');
+      if (c.phones && typeof qrcode === 'function') {
+        const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+        q.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+      } else q.hidden = true;
+      document.getElementById('ph-notes').replaceChildren(...c.notes.map(n =>
+        Object.assign(document.createElement('div'), { className: 'vm-note', textContent: n })));
+    } catch (e) { document.getElementById('ph-url').textContent = "SkyScope isn't answering."; }
+  })();
+
   // "Clear filters" resets the filter controls on the page (save to apply).
   document.getElementById('clear-filters').addEventListener('click', () => {
     for (const el of form.querySelectorAll('[name^=class_], [name^=band_]')) el.checked = true;
@@ -613,6 +670,70 @@ def vm_note(address: str) -> str:
             "start SkyScope so it finds its new address.") + "</div>")
     return ('<div class="hint">' + esc(f"This computer is {what}. If a phone or Satellite can't reach it, the virtual "
                                        "machine is on a private network that they can't reach.") + "</div>")
+
+
+# --- phones and tablets ------------------------------------------------------------
+# The radar's address for a phone or tablet on the same Wi-Fi (shown as a QR code on the radar and in Settings ›
+# About), and, on Windows, the two usual reasons a phone's browser just times out: Windows calls this network Public
+# (the installer's firewall opening is for home networks only), or that opening is missing. Read with netsh, which
+# needs no admin rights; worked out at most every 30 seconds.
+
+FIREWALL_RULE = "SkyScope (phones and Satellites on your network)"   # (installer/windows/src/App.cs's FirewallRule)
+_windows_seen = {"at": 0.0, "notes": []}
+
+
+def windows_network_notes() -> list[str]:
+    import subprocess
+    import sys
+    import time
+    if sys.platform != "win32":
+        return []
+    if time.time() - _windows_seen["at"] < 30:
+        return _windows_seen["notes"]
+    notes = []
+
+    def netsh(*args):
+        try:
+            r = subprocess.run(["netsh", "advfirewall", *args], capture_output=True, text=True, timeout=8,
+                               creationflags=0x08000000)    # (no console window)
+            return r.returncode, r.stdout
+        except (OSError, subprocess.SubprocessError):
+            return None, ""
+
+    code, out = netsh("monitor", "show", "currentprofile")
+    if code == 0 and "Public Profile" in out and "Private Profile" not in out and "Domain Profile" not in out:
+        notes.append("Windows calls this computer's network Public, and keeps phones and other devices out on "
+                     "Public networks. On your home Wi-Fi, make it Private: Settings › Network & internet › "
+                     "Wi-Fi (or Ethernet) › your network › Network profile type › Private.")
+    code, out = netsh("firewall", "show", "rule", f"name={FIREWALL_RULE}")
+    if code is not None and code != 0 and "Rule Name" not in out:
+        notes.append("Windows' firewall has no opening for SkyScope, so phones can't reach it. Run Install SkyScope "
+                     "again, choose Repair with \"Let phones…\" ticked, and click Yes when Windows asks.")
+    _windows_seen.update(at=time.time(), notes=notes)
+    return notes
+
+
+def connect_info(host: str, port: int) -> dict:
+    """What a phone or tablet needs: the radar's address on the home network, whether this SkyScope answers other
+    devices at all, and why a phone might not get through (plain text, for the pages to show)."""
+    import re as _re
+    address = lan_address()
+    phones = host not in ("127.0.0.1", "localhost", "::1")
+    notes = []
+    if not phones:
+        notes.append("This SkyScope answers this computer only, so phones and tablets can't open it. To let them, "
+                     "run Install SkyScope again and tick \"Let phones, tablets and SkyScope Satellite displays on "
+                     "my Wi-Fi open it\".")
+    elif address.startswith(("127.", "169.254.")):
+        notes.append("This computer isn't connected to a network, so phones can't reach it.")
+    else:
+        notes += windows_network_notes()
+        vm = _re.sub(r"<[^>]+>", "", vm_note(address))
+        if vm:
+            notes.append(html.unescape(vm))
+    return {"url": f"http://{address}:{port}/radar", "phones": phones, "notes": notes,
+            "tip": "Phone and computer must be on the same Wi-Fi. Point the phone's camera at the code, or type "
+                   "the address into its browser."}
 
 
 # --- parsing ---------------------------------------------------------------------
@@ -1052,6 +1173,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         'Grew from <a href="https://github.com/MatixYo/ESP32-Plane-Radar" target="_blank" rel="noopener">'
         "ESP32-Plane-Radar</a> by MatixYo",
         'Drawn with <a href="https://www.pygame.org" target="_blank" rel="noopener">pygame</a> (LGPL) in Python',
+        'QR codes: <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">'
+        "QR Code Generator for JavaScript</a> by Kazuhiko Arase (MIT)",
         'Menu bar / taskbar icon (installed copies): <a href="https://github.com/moses-palmer/pystray" '
         'target="_blank" rel="noopener">pystray</a> (LGPL 3), <a href="https://python-pillow.org" target="_blank" '
         'rel="noopener">Pillow</a> (MIT-CMU) and, on a Mac, <a href="https://github.com/ronaldoussoren/pyobjc" '
@@ -1066,6 +1189,18 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         "aircraft around you with a sweeping beam, runways, airspace and procedures, filters and alerts.</p>"
         "</div></div>"
         '<div class="grid">'
+        + card("Updates",
+               '<div id="up-card"><div class="ph-url" id="up-line">You have SkyScope ' + esc(VERSION) + '.</div>'
+               '<div class="hint" id="up-more"></div>'
+               '<div class="up-btns"><a class="up-get" id="up-get" hidden target="_blank" rel="noopener">Download</a>'
+               '<button type="button" class="up-now" id="up-now">Check now</button></div></div>'
+               + toggle("check_updates", st)
+               + '<div class="hint">To update, download the new version, open its zip and run Install SkyScope: '
+                 'choose Update, and your settings are kept.</div>')
+        + card("Phones and tablets",
+               '<div id="ph-card" class="ph-body"><div class="ph-qr" id="ph-qr"></div>'
+               '<div class="ph-text"><div class="ph-url" id="ph-url">…</div><div class="hint" id="ph-tip"></div>'
+               '<div id="ph-notes"></div></div></div>')
         + card("This SkyScope",
                '<dl class="facts">'
                f"<dt>Version</dt><dd>{esc(VERSION)}</dd>"
@@ -1138,6 +1273,14 @@ class SettingsServer:
             def do_GET(self):
                 path = self.path.split("?")[0]
                 radar = server_ref.radar
+                if path == "/api/connect":   # a phone's address for the QR codes, and why one might not get through
+                    self._send_json(connect_info(server_ref.host, server_ref.port))
+                    return
+                if path == "/api/update":    # a newer SkyScope? (?now=1: ask GitHub now, for Check now)
+                    import updates
+                    now = "now=1" in self.path.partition("?")[2]
+                    self._send_json(updates.status(server_ref.settings.check_updates, now=now))
+                    return
                 if radar is not None:
                     if path == "/radar":
                         self._send_bytes(RADAR_PAGE.read_bytes(), "text/html; charset=utf-8")

@@ -72,9 +72,9 @@ Every option can be changed from a phone or laptop on the same network at
 **`http://<pi-address>:7700/radar_config`** (the address is shown at the bottom
 of the side panel). The page is arranged in tabs: **General** (location, data
 source), **Display** (scope, units, sweep), **Map** (runways, airspace,
-SIDs/STARs), **Filters**, **Presets**, **Alerts** and **About** (version,
-this radar's addresses, links to the guide and the companion displays,
-credits). Changes are kept until you press **Save** in the bar at the bottom,
+SIDs/STARs), **Filters**, **Presets**, **Alerts** and **About** (updates,
+a QR code for phones, version, this radar's addresses, links to the guide
+and the companion displays, credits). Changes are kept until you press **Save** in the bar at the bottom,
 which says when there are unsaved changes; saved changes apply to the screen
 immediately.
 
@@ -306,6 +306,15 @@ size; on a phone or a tall window the panel moves under the scope. It uses
 the same data, units, symbols and logos as the pygame display, and follows the
 settings page.
 
+- **Phone** (at the bottom) shows a QR code and the radar's address on your
+  network, to open it on a phone or tablet on the same Wi-Fi. On Windows, a
+  note under the code says when something keeps phones out: the network set
+  to Public, or SkyScope's firewall opening missing (`/api/connect`).
+- **Updates:** SkyScope asks GitHub a few times a day for a newer release
+  (`updates.py`; off with *Check for a newer SkyScope* in About). A note on
+  the radar, the tray icon's menu and About's **Updates** card (with the
+  download for this computer and **Check now**) say when there is one; the new
+  installer's **Update** keeps your settings.
 - **Click a plane** (its symbol or label) **or a row in the table** to select
   it: cyan brackets on the scope, its label outlined and always shown, its row
   highlighted, and the card shows its details as "SELECTED" instead of the
@@ -552,6 +561,7 @@ scope design, range presets and colours were the starting point.
 |----------|--------|---------|
 | Language and display | [Python](https://www.python.org) and [pygame](https://www.pygame.org) / [pygame-ce](https://pyga.me) | PSF; LGPL 2.1 |
 | Menu bar / taskbar icon (installed copies) | [pystray](https://github.com/moses-palmer/pystray), [Pillow](https://python-pillow.org), and on a Mac [PyObjC](https://github.com/ronaldoussoren/pyobjc) | LGPL 3; MIT-CMU; MIT |
+| QR codes for phones | [QR Code Generator for JavaScript](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (`web/qrcode.js`, 1.4.4) | MIT |
 | Windows installer | C# on Microsoft's .NET Framework 4.8 (Windows Forms), built with [Mono](https://www.mono-project.com)'s C# compiler (Roslyn) | .NET Framework: part of Windows; Mono and Roslyn: MIT |
 | Built with | [Claude Code](https://claude.com/claude-code) (Anthropic): designed, written and tested with Claude | |
 

@@ -1147,7 +1147,10 @@ class SkyScope:
         for ac in self.visible_planes(planes):
             dx, dy = self.offset_km(*self.extrapolate(ac, base_time))
             n += math.hypot(dx, dy) <= self.settings.outer_km
-        return {"version": VERSION, "since": self.started, "aircraft": n}
+        import updates   # (a newer SkyScope: the icon's menu offers it)
+        up = updates.status(self.settings.check_updates)
+        return {"version": VERSION, "since": self.started, "aircraft": n,
+                "update": up["latest"] if up["newer"] else None}
 
     def web_state(self) -> dict:
         """Settings, status and aircraft (positions as of now), for one poll."""

@@ -234,6 +234,8 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
   <li>The green <b>sweep</b> is decorative; its speed and trail can be changed or switched off.</li>
   <li>Optional <b>dots on the rim</b> show aircraft just outside the range, in their direction.</li>
 </ul>
+<h3>On a phone or tablet</h3>
+<p>Click <b>Phone</b> at the bottom of the radar (or open the settings page's <b>About</b> tab): it shows a QR code and the radar's address on your network, such as <code>http://192.168.1.20:7700/radar</code>. Point the phone's camera at the code, or type the address into its browser. The phone must be on the same Wi-Fi. If something stops phones getting through, a yellow note under the code says what to fix (see <a href="#troubleshooting">Troubleshooting</a>).</p>
 <h3>The panel</h3>
 <p>The top shows the centre, the number of aircraft, the data source and how fresh the data is. The <b>card</b> below shows the nearest aircraft, or the one you've selected: callsign, aircraft type and registration, the route of an airline flight (for example <i>KPHX → KOAK · Phoenix → Oakland</i>), altitude and climb or descent, distance and bearing, and ground speed. When <a href="https://www.planespotters.net/">Planespotters.net</a> has a photo of that exact aircraft, a thumbnail appears; click it to open the full photo. Otherwise the box shows a plane outline and <i>No image available</i> (or <i>Finding photo…</i> for a moment while it looks). The <b>list</b> shows every aircraft in range, nearest first, with units under each column heading.</p>
 <div class="two">
@@ -261,9 +263,11 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
   <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
   <tr><td><b>Presets</b></td><td>Named sets of filters: apply, save and delete.</td></tr>
   <tr><td><b>Alerts</b></td><td>Emergency highlighting and the watchlist. See <a href="#alerts">section 10</a>.</td></tr>
-  <tr><td><b>About</b></td><td>SkyScope's version, the addresses of this radar (including the one to give a <a href="#displays">Satellite display</a>), links to this guide and the project pages, data sources and credits.</td></tr>
+  <tr><td><b>About</b></td><td>Updates (is there a newer SkyScope?), a QR code for phones and tablets, SkyScope's version, the addresses of this radar (including the one to give a <a href="#displays">Satellite display</a>), links to this guide and the project pages, data sources and credits.</td></tr>
 </table>
 <p>The page works on phones as well as computers. Anyone on your network can open it; there is no password.</p>
+<h3 id="updates">Updates</h3>
+<p>SkyScope asks GitHub a few times a day whether there's a newer version (only while <b>Check for a newer SkyScope</b> is on, in About; the request says only which version is asking). When there is, a note appears on the radar, the menu bar or taskbar icon's menu offers it, and the <b>Updates</b> card in About has a <b>Download</b> button for your computer. <b>Check now</b> asks at once. To update, open the downloaded zip and run <b>Install SkyScope</b>: choose <b>Update</b>, and your settings are kept. On a Raspberry Pi, the card links to the release page.</p>
 
 <h2 id="map">8. The ATC map</h2>
 <figure><img src="images/settings-map.jpg" alt="The Map tab of the settings page">
@@ -330,6 +334,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><th>Problem</th><th>What to try</th></tr>
   <tr><td>The panel says "No data" or "Waiting for data"</td><td>Check the Pi's internet connection. With an SDR receiver, read the status line on the General tab: it says whether readsb was found and whether its data is current.</td></tr>
   <tr><td>"HTTP Error 429: Too Many Requests"</td><td>adsb.fi allows one request per second. Make sure only one copy of SkyScope runs per network address; it recovers by itself.</td></tr>
+  <tr><td>A phone's browser times out on the radar's address (Windows)</td><td>Windows' firewall is keeping it out. Look at the yellow note under the QR code (Phone button, or About): usually Windows calls your network <b>Public</b>; make it <b>Private</b> in Settings › Network &amp; internet › Wi-Fi (or Ethernet) › your network › Network profile type. If the note says the firewall opening is missing, run Install SkyScope again, choose <b>Repair</b> with "Let phones…" ticked, and click <b>Yes</b> when Windows asks. Some antivirus programs have a firewall of their own that needs SkyScope allowed too.</td></tr>
   <tr><td>The settings page won't open from another device</td><td>Use the address shown at the bottom of the Pi's screen. Both devices must be on the same network. <code>.local</code> names can be slow on some devices; use the numeric address instead.</td></tr>
   <tr><td>An aircraft is in the list but not on the scope</td><td>Aircraft are drawn once they're inside the outer ring; the list shows the same set. Turn on rim dots (Display tab) to see aircraft just beyond the range.</td></tr>
   <tr><td>No route for a flight</td><td>Without a FlightAware key, routes come from community databases by flight number, which don't know every flight; SkyScope shows one only when it fits where the aircraft is. A FlightAware key gives the filed route of the card's aircraft. See <a href="#routes">Flight routes</a>.</td></tr>
@@ -396,6 +401,8 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><th>Software</th><th>Source</th><th>Licence</th></tr>
   <tr><td>Language and display</td><td>Python, pygame (or pygame-ce)</td><td>PSF; LGPL 2.1</td></tr>
   <tr><td>Menu bar / taskbar icon (installed copies)</td><td>pystray, Pillow, and PyObjC on a Mac</td><td>LGPL 3; MIT-CMU; MIT</td></tr>
+  <tr><td>QR codes for phones</td><td>QR Code Generator for JavaScript by Kazuhiko Arase (qrcode-generator 1.4.4)</td><td>MIT</td></tr>
+  <tr><td>Windows installer</td><td>C# on Microsoft's .NET Framework 4.8, built with Mono's C# compiler</td><td>Part of Windows; MIT</td></tr>
   <tr><td>Built with</td><td>Claude Code (Anthropic): designed, written and tested with Claude</td><td></td></tr>
 </table>
 <div class="warn"><b>Not for navigation.</b> Aircraft positions may be delayed, incomplete or wrong, and map layers are simplified. Never use SkyScope for flight planning or navigation.</div>

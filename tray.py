@@ -149,6 +149,15 @@ class Tray:
     def open_radar(self, *_):
         webbrowser.open(self.base + "/radar")
 
+    def update_text(self, _item=None) -> str:
+        return f"Get SkyScope {(self.status or {}).get('update')}…"
+
+    def has_update(self, _item=None) -> bool:
+        return bool((self.status or {}).get("update")) and not self.stopping
+
+    def open_update(self, *_):
+        webbrowser.open(self.base + "/radar_config#about")   # (Settings › About: the download for this computer)
+
     def open_settings(self, *_):
         webbrowser.open(self.base + "/radar_config")
 
@@ -202,6 +211,7 @@ class Tray:
             Menu.SEPARATOR,
             Item("Open the radar", self.open_radar, default=True),
             Item("Settings", self.open_settings),
+            Item(self.update_text, self.open_update, visible=self.has_update),   # (a newer SkyScope)
             Menu.SEPARATOR,
             Item("Stop SkyScope", self.stop, enabled=lambda _i: not self.stopping),
         )

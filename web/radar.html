@@ -89,6 +89,12 @@
     border-radius: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .alert.emg { background: #780a0a; color: #ff5a5a; animation: blink 1s steps(2) infinite; }
   .alert.watch { background: #5a4600; color: #ffd60a; }
+  /* a newer SkyScope: a quiet note under the status line, until dismissed for that version */
+  #update-note { display: flex; align-items: center; gap: 10px; margin: 4px 0; padding: 4px 10px; border-radius: 6px;
+    background: #0e2a1a; border: 1px solid #46ff7866; color: var(--green); font-size: 13px; }
+  #update-note[hidden] { display: none; }
+  #update-note a { color: var(--green); font-weight: 700; }
+  #update-note button { margin-left: auto; background: none; border: 0; color: var(--dim); cursor: pointer; font-size: 14px; }
   @keyframes blink { 50% { background: #3c0505; } }
   td.emg { color: #ff5a5a; } td.watch { color: #ffd60a; }
   td .mark { font-size: .8em; margin-right: calc(var(--u) * 4); }
@@ -126,6 +132,17 @@
   .fp-seg button:last-child { border-right: 0; }
   .fp-seg button.on { background: #46ff78; color: #040a1c; }
   .fp-foot { color: var(--dim); font-size: 12px; margin-top: 10px; }
+  /* Phone: the radar's address on the home Wi-Fi as a QR code, styled like the Filters panel */
+  #phone-panel { position: absolute; left: calc(var(--u) * 36); right: calc(var(--u) * 36); bottom: calc(var(--u) * 70);
+    z-index: 3; background: #0b1735; border: 1px solid var(--grid); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6); font-size: 15px; }
+  .ph-body { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .ph-qr { background: #fff; border-radius: 8px; padding: 6px; width: 180px; height: 180px; flex: none; }
+  .ph-qr svg { width: 100%; height: 100%; display: block; }
+  .ph-text { flex: 1 1 200px; min-width: 0; }
+  .ph-url { color: var(--green); font-weight: 700; font-size: 17px; word-break: break-all; margin-bottom: 8px; }
+  .ph-note { color: #ffcc66; font-size: 13px; margin-top: 8px; }
+  .ph-tip { color: var(--dim); font-size: 13px; }
   .fp-foot a { color: var(--green); }
   footer select { background: var(--panel); color: var(--green); border: 1px solid var(--grid); border-radius: 6px;
     font: inherit; padding: 1px 4px; max-width: 40%; }
@@ -173,6 +190,8 @@
     <div class="row small"><span id="loc"></span><span id="locnote"></span><span id="utc" class="right"></span></div>
     <div class="row status"><span id="status">Connecting…</span><span id="range" class="right" style="color:var(--green)"></span></div>
     <hr>
+    <div id="update-note" hidden><span id="update-text"></span><a href="/radar_config#about">Get it</a>
+      <button id="update-close" title="Not now">✕</button></div>
     <div id="alerts"></div>
     <div id="cardrow"><div id="cardwrap"></div>
       <figure id="photo" hidden><a id="photo-link" target="_blank" rel="noopener" title="Open the full photo">
@@ -191,12 +210,18 @@
       <div id="fp-procs-wrap"><div class="fp-label">SIDs / STARs</div><div class="fp-seg" id="fp-procs"></div></div>
       <div class="fp-foot">Applies at once. Types, airlines and countries: <a href="/radar_config">Settings</a>.</div>
     </div>
+    <div id="phone-panel" hidden>
+      <div class="fp-head"><b>Open the radar on a phone or tablet</b><button id="ph-close" title="Close (Esc)">✕</button></div>
+      <div class="ph-body"><div class="ph-qr" id="ph-qr"></div>
+        <div class="ph-text"><div class="ph-url" id="ph-url">…</div><div class="ph-tip" id="ph-tip"></div><div id="ph-notes"></div></div></div>
+    </div>
     <footer><div class="foot-btns"><button id="filters-btn" title="Filter what's shown">⚙ Filters: <span id="filter-summary">…</span></button>
-      <a class="btn" href="/radar_config">Settings</a><a class="btn" href="/guide" target="_blank">Guide</a><button class="btn" id="fs">Fullscreen (F)</button></div>
+      <button class="btn" id="phone-btn" title="Open this radar on a phone or tablet">Phone</button><a class="btn" href="/radar_config">Settings</a><a class="btn" href="/guide" target="_blank">Guide</a><button class="btn" id="fs">Fullscreen (F)</button></div>
       <div class="foot-hint">Click a plane or row to select · R: next range</div></footer>
   </div>
 </div>
 <script src="/web/splashfx.js"></script>
+<script src="/web/qrcode.js"></script>
 <script>
 "use strict";
 // Colours: the same palette as the pygame display (radar_theme.h targets).
@@ -1001,12 +1026,51 @@ $("preset").addEventListener("change", async e => {
 function toggleFilterPanel(open) {
   const panel = $("filter-panel");
   panel.hidden = !(open ?? panel.hidden);
+  if (!panel.hidden) $("phone-panel").hidden = true;
   if (!panel.hidden && state) buildFilterPanel(state.settings);
 }
 $("filters-btn").addEventListener("click", () => toggleFilterPanel());
+// Phone: the radar's address on the home Wi-Fi, as a QR code to scan, and why a phone might not get through
+async function togglePhonePanel(open) {
+  const panel = $("phone-panel");
+  panel.hidden = !(open ?? panel.hidden);
+  if (panel.hidden) return;
+  toggleFilterPanel(false);
+  try {
+    const c = await (await fetch("/api/connect", { cache: "no-store" })).json();
+    // (opened from a phone already: its own address is the one that works)
+    const url = /^(localhost|127\.)/.test(location.hostname) ? c.url : location.origin + "/radar";
+    $("ph-url").textContent = url;
+    $("ph-tip").textContent = c.tip;
+    const qr = qrcode(0, "M"); qr.addData(url); qr.make();
+    $("ph-qr").innerHTML = c.phones ? qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }) : "";
+    $("ph-qr").hidden = !c.phones;
+    $("ph-notes").replaceChildren(...c.notes.map(n => Object.assign(document.createElement("div"), { className: "ph-note", textContent: n })));
+  } catch { $("ph-url").textContent = "SkyScope isn't answering."; }
+}
+$("phone-btn").addEventListener("click", () => togglePhonePanel());
+// A newer SkyScope? A quiet note (Settings › About has the download), until it's dismissed for that version
+async function checkUpdate() {
+  try {
+    const u = await (await fetch("/api/update", { cache: "no-store" })).json();
+    let gone = null;
+    try { gone = localStorage.getItem("skyscope-update-dismissed"); } catch {}
+    $("update-note").hidden = !(u.newer && u.latest !== gone);
+    if (u.newer) $("update-text").textContent = `SkyScope ${u.latest} is available.`;
+    $("update-close").onclick = () => {
+      $("update-note").hidden = true;
+      try { localStorage.setItem("skyscope-update-dismissed", u.latest); } catch {}
+    };
+  } catch {}
+}
+setTimeout(checkUpdate, 15000);                  // (the first check runs in the background: ask again shortly)
+setInterval(checkUpdate, 3 * 3600 * 1000);
+checkUpdate();
+$("ph-close").addEventListener("click", () => togglePhonePanel(false));
 $("fp-close").addEventListener("click", () => toggleFilterPanel(false));
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && !$("filter-panel").hidden) toggleFilterPanel(false);
+  if (e.key === "Escape" && !$("phone-panel").hidden) togglePhonePanel(false);
+  else if (e.key === "Escape" && !$("filter-panel").hidden) toggleFilterPanel(false);
   else if (e.key === "Escape" && selectedId) select(null);
   else if (e.key === "f" || e.key === "F") toggleFullscreen();
   else if (e.key === "r" || e.key === "R" || e.key === " ") { e.preventDefault(); nextRange(); }
