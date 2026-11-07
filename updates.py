@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 
-from version import VERSION
+from version import DOWNLOADS, VERSION
 
 REPO = "projectmoonpi/skyscope"
 EVERY = 6 * 3600
@@ -101,7 +101,7 @@ def _refresh():
                     "error": f"Couldn't reach GitHub to check: {why(first)}"
                              + (f"; the releases page: {why(exc)}" if why(exc) != why(first) else "") + ". "
                              "If this computer's antivirus or network filters web traffic, allow SkyScope "
-                             "(Python) to reach github.com, or see the releases page."}
+                             "(Python) to reach github.com, or download it from projectmoonpi.com/downloads."}
     with _lock:
         _state.update(at=time.time(), info=info, busy=False)
 
@@ -242,7 +242,7 @@ def status(enabled: bool = True, now: bool = False) -> dict:
             threading.Thread(target=_refresh, name="update-check", daemon=True).start()
     with _lock:
         info, at = _state["info"], _state["at"]
-    out = {"current": VERSION, "enabled": enabled, "latest": None, "newer": False,
+    out = {"current": VERSION, "enabled": enabled, "latest": None, "newer": False, "site": DOWNLOADS,
            "page": f"https://github.com/{REPO}/releases", "download": None, "error": None, "checked": None}
     if info and (enabled or now):
         out.update(info)

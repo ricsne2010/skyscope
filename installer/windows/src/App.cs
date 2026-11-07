@@ -20,7 +20,9 @@ static partial class App
     public const string Display = "SkyScope";              // the window's header, Settings > Apps
     public const string Id = "ProjectMoonPi.SkyScope";     // Settings > Apps, the stop signal
     public const string Slug = "skyscope";                 // <slug>.log and <slug>.pid in the install folder
-    public const string Url = "https://github.com/projectmoonpi/skyscope";
+    public const string Url = "https://www.projectmoonpi.com/skyscope/";            // Settings > Apps: its web page
+    public const string HelpUrl = "https://www.projectmoonpi.com/support/";         // and its help link
+    public const string Help = "\n\nNeed a hand? Email support@projectmoonpi.com.";   // under errors
     public const string InfoFile = "install.json";         // what the installer wrote: port, choices, version
     // where earlier versions installed it (worked out when asked: a static field here can't rely on Common.cs's)
     public static string[] OldDirs { get { return new[] { Path.Combine(LocalAppData, "SkyScope") }; } }   // (before 1.6)

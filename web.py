@@ -23,7 +23,7 @@ from filters import (ALT_BANDS, BUILTIN_PRESETS, CLASS_COLORS, CLASSES, PRESET_F
 from overlays import Overlays
 from photos import PhotoLookup
 from settings import MAX_RANGE_PRESETS, Settings
-from version import VERSION
+from version import PAGE as SITE_PAGE, SUPPORT, SUPPORT_EMAIL, VERSION, WEBSITE
 
 AIRPORT_INDEX = AirportIndex()
 OVERLAYS = Overlays()  # SID/STAR counts for the Map tab (loaded on first use)
@@ -530,7 +530,7 @@ PAGE = """<!doctype html>
         line.textContent = `SkyScope ${u.latest} is available (you have ${u.current}).`;
         // this computer: Update does it all; another device: it's done on the computer running SkyScope
         go.hidden = !(u.here && u.download); go.textContent = `Update to ${u.latest}`; go.disabled = busy;
-        get.href = u.download || u.page; get.hidden = !u.here && !!u.download;
+        get.href = u.download || u.site || u.page; get.hidden = !u.here && !!u.download;
         get.textContent = u.here && u.download ? 'Or download it yourself' : 'See the new version';
         if (!u.here) jobText.textContent = 'Update from the computer running SkyScope.';
       } else {
@@ -1304,7 +1304,11 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         for name, url, what in [
             ("SkyScope Guide", "/guide", "Setting up, using and installing SkyScope (web page)"),
             ("Guide as a PDF", "/docs/SkyScope-Guide.pdf", "The same guide, for printing or saving"),
-            ("SkyScope on GitHub", f"{REPO}/skyscope", "Source code, updates and issues"),
+            ("SkyScope at projectmoonpi.com", SITE_PAGE, "SkyScope's page, and the newest downloads"),
+            ("Help and support", SUPPORT, "Common questions, and how to reach us"),
+            (f"Email {SUPPORT_EMAIL}", f"mailto:{SUPPORT_EMAIL}?subject=SkyScope%20{VERSION}",
+             "Say which computer it runs on (Mac, Windows or Raspberry Pi) and what you saw"),
+            ("SkyScope on GitHub", f"{REPO}/skyscope", "Source code"),
             ("SkyScope Mini", f"{REPO}/skyscope-mini",
              "A standalone radar for a 4.3-inch ESP32-S3 display, no Pi needed"),
             ("SkyScope Satellite", f"{REPO}/skyscope-satellite",
@@ -1344,6 +1348,8 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
         f'<div><h2>SKYSCOPE</h2><div class="sub">Version {esc(VERSION)} &middot; Designed and Created by Project Moon Pi</div>'
         "<p>A live ADS-B radar scope for a Raspberry Pi and an HDMI screen, or any browser on your network: "
         "aircraft around you with a sweeping beam, runways, airspace and procedures, filters and alerts.</p>"
+        f'<p class="hint"><a href="{WEBSITE}" target="_blank" rel="noopener">projectmoonpi.com</a> &middot; '
+        f'Help: <a href="mailto:{SUPPORT_EMAIL}">{SUPPORT_EMAIL}</a></p>'
         "</div></div>"
         '<div class="grid">'
         + card("Phones and tablets",
@@ -1372,7 +1378,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
                "</dl>"
                '<div class="hint">Enter the Satellite address on a SkyScope Satellite\'s setup page '
                "to mirror this radar on it.</div>")
-        + card("Guide and projects", f'<ul class="links">{links}</ul>')
+        + card("Guide, help and projects", f'<ul class="links">{links}</ul>')
         + card("Data and credits", f'<ul class="links">{credits}</ul>'
                + '<div class="hint">Not for navigation or air traffic control. ADS-B shows only aircraft that '
                  "broadcast it, and public feeds can be delayed or incomplete.</div>")

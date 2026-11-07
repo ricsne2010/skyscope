@@ -631,7 +631,8 @@ class Installer:
             box.pack(anchor="w", fill="x", pady=(0, 10))
         self.text(f"The whole story is in {LOG.replace(os.path.expanduser('~'), '~')}. "
                   + ("Check the internet connection, then run the installer again." if not UNINSTALL else
-                     "You can run Uninstall SkyScope again."))
+                     "You can run Uninstall SkyScope again.")
+                  + " Need a hand? Email support@projectmoonpi.com.")
         ttk.Button(self.body, text="Show the log", command=lambda: subprocess.run(["open", "-R", LOG])).pack(anchor="w")
         self.fit()
 

@@ -50,6 +50,9 @@ Uninstall SkyScope asks whether to delete your FlightAware API key (if you added
 install.
 To update, run the installer of a newer version: your settings are kept.
 Once it's installed you can eject this disk image and delete the download. The full guide is "SkyScope Guide.pdf".
+
+Website: https://www.projectmoonpi.com/skyscope/
+Help: https://www.projectmoonpi.com/support/ or email support@projectmoonpi.com
 """,
 }
 

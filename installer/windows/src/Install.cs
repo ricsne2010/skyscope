@@ -196,7 +196,7 @@ static class Install
         catch (Exception e)
         {
             App.Log("ERROR: " + e);
-            Ui.Error("The installer couldn't unpack " + App.Name + "'s files.\n\n" + e.Message + "\n\nWhat the installer did is in " + App.LogFile + ".");
+            Ui.Error("The installer couldn't unpack " + App.Name + "'s files.\n\n" + e.Message + "\n\nWhat the installer did is in " + App.LogFile + "." + App.Help);
             return 1;
         }
         Ui.Unattended = !string.IsNullOrEmpty(Env("SS_PHONES"));
@@ -219,7 +219,7 @@ static class Install
                 again = "\n\nThe " + App.Name + " you already had is running again.";
                 App.Log("restarted " + WasRunning);
             }
-            Ui.Error(App.Name + " wasn't installed.\n\n" + e.Message + again + "\n\nWhat the installer did is in " + App.LogFile + ".");
+            Ui.Error(App.Name + " wasn't installed.\n\n" + e.Message + again + "\n\nWhat the installer did is in " + App.LogFile + "." + App.Help);
             return 1;
         }
     }
@@ -462,6 +462,8 @@ static class Install
             k.SetValue("UninstallString", uninstall);
             k.SetValue("QuietUninstallString", uninstall + " -Quiet");
             k.SetValue("URLInfoAbout", App.Url);
+            k.SetValue("HelpLink", App.HelpUrl);
+            k.SetValue("Contact", "support@projectmoonpi.com");
             k.SetValue("InstallDate", DateTime.Now.ToString("yyyyMMdd"));
             k.SetValue("NoModify", 1, RegistryValueKind.DWord);
             k.SetValue("NoRepair", 1, RegistryValueKind.DWord);

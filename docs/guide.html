@@ -73,7 +73,7 @@
   <p class="lede">A live aircraft radar styled after an air-traffic-control display, for a Raspberry Pi on a TV or monitor, or any web browser.</p>
   <figure><img src="images/radar.jpg" alt="SkyScope centred on Phoenix Sky Harbor at 25 miles, with airspace, runways and arrival routes">
     <figcaption>SkyScope centred on Phoenix Sky Harbor at 25 miles: Class B airspace, runways with extended centrelines, arrival routes (amber), aircraft coloured by kind, and the information panel.</figcaption></figure>
-  <p class="meta">Project: <a href="https://github.com/projectmoonpi/skyscope">github.com/projectmoonpi/skyscope</a> · Licence: MIT · Not for navigation.
+  <p class="meta">Website: <a href="https://www.projectmoonpi.com/skyscope/">projectmoonpi.com/skyscope</a> · Help: <a href="mailto:support@projectmoonpi.com">support@projectmoonpi.com</a> · Source: <a href="https://github.com/projectmoonpi/skyscope">github.com/projectmoonpi/skyscope</a> · Licence: MIT · Not for navigation.
     <span class="no-print"> · <a href="SkyScope-Guide.pdf">Download this guide as a PDF</a></span></p>
 </section>
 
@@ -182,7 +182,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <p>SkyScope runs on Python 3.10 or newer. If the computer doesn't have it, SkyScope's installer offers to download it from python.org and install it: click <b>Install Python</b> (Mac; it asks for your Mac password) or <b>Yes</b> (Windows; installed for you only, no password). It checks the download is signed by the Python Software Foundation first.</p>
 <p>To install Python yourself instead: <a href="https://www.python.org/downloads/">python.org/downloads</a>, then on a Mac open the downloaded <code>.pkg</code> and click through it; on Windows tick <b>Add python.exe to PATH</b> on the installer's first screen, then click <b>Install Now</b>.</p>
 <h3>Step 2: Download SkyScope</h3>
-<p>From the <a href="https://github.com/projectmoonpi/skyscope/releases/latest">latest release</a>, download one file: <b>SkyScope-<i>version</i>-for-Mac.dmg</b> (a disk image) or <b>Install-SkyScope-<i>version</i>-for-Windows.exe</b> (the installer), for example SkyScope-1.9.0-for-Mac.dmg. (The .zip files there are for SkyScope 1.8.5's Update button.) On a Mac, the disk image also has a <b>READ ME FIRST</b> note and this guide.</p>
+<p>From <a href="https://www.projectmoonpi.com/downloads/#skyscope">projectmoonpi.com/downloads</a> (or GitHub's <a href="https://github.com/projectmoonpi/skyscope/releases/latest">latest release</a>), download one file: <b>SkyScope-<i>version</i>-for-Mac.dmg</b> (a disk image) or <b>Install-SkyScope-<i>version</i>-for-Windows.exe</b> (the installer), for example SkyScope-1.9.0-for-Mac.dmg. (The .zip files there are for SkyScope 1.8.5's Update button.) On a Mac, the disk image also has a <b>READ ME FIRST</b> note and this guide.</p>
 <h3>Step 3: Run the installer</h3>
 <ol class="steps">
   <li><b>Mac:</b> double-click the downloaded disk image, then <b>Install SkyScope</b> (the radar icon) in its window. It opens the installer's window, like the M.O.S.S. SD Card Creator's: it checks the Mac, asks its questions, then shows each step of the install. If the Mac hasn't got Python yet, it first offers to install it from python.org (click <b>Install Python</b>; macOS asks for your password). If macOS says it can't check the developer, open <b>System Settings → Privacy &amp; Security</b>, scroll down to the message about it, and click <b>Open Anyway</b>. (On macOS 14 or older you can instead Control-click the file and choose <b>Open</b>.)<br>
@@ -352,6 +352,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>"Use this computer's location" puts you in the middle of town</td><td>That computer has no Wi-Fi to find itself by (a desktop on a cable, or a virtual machine), so it guessed from the internet address. Pick your airport or type the position instead.</td></tr>
   <tr><td>"Use this computer's location" is missing</td><td>Browsers only share location with the computer running SkyScope (<code>localhost</code>). On a Pi, type the position, pick an airport, or use GPS.</td></tr>
   <tr><td>The Pi display is jerky</td><td>See <a href="#install-pi">If the Pi struggles</a> in section 3.</td></tr>
+  <tr><td>Still stuck, or something else</td><td>See the common questions at <a href="https://www.projectmoonpi.com/support/">projectmoonpi.com/support</a>, or email <a href="mailto:support@projectmoonpi.com">support@projectmoonpi.com</a>: say which computer SkyScope runs on (Mac, Windows or Raspberry Pi), its version (settings page › About) and what you saw. Its log helps too (see section 4).</td></tr>
 </table>
 
 <h2 id="reference">13. Quick reference</h2>
@@ -416,7 +417,7 @@ sudo readsb-set-location &lt;your-latitude&gt; &lt;your-longitude&gt;</code></pr
   <tr><td>Built with</td><td>Claude Code (Anthropic): designed, written and tested with Claude</td><td></td></tr>
 </table>
 <div class="warn"><b>Not for navigation.</b> Aircraft positions may be delayed, incomplete or wrong, and map layers are simplified. Never use SkyScope for flight planning or navigation.</div>
-<p class="meta"><img src="images/moon-pi-logo-128.png" alt="" style="width:40px;height:40px;vertical-align:middle;margin-right:8px">SkyScope was designed and created by Project Moon Pi, built with Claude Code (Anthropic), and is free software under the MIT licence. Source: <a href="https://github.com/projectmoonpi/skyscope">github.com/projectmoonpi/skyscope</a>.</p>
+<p class="meta"><img src="images/moon-pi-logo-128.png" alt="" style="width:40px;height:40px;vertical-align:middle;margin-right:8px">SkyScope was designed and created by Project Moon Pi, built with Claude Code (Anthropic), and is free software under the MIT licence. Website: <a href="https://www.projectmoonpi.com">projectmoonpi.com</a> · Help: <a href="mailto:support@projectmoonpi.com">support@projectmoonpi.com</a> · Source: <a href="https://github.com/projectmoonpi/skyscope">github.com/projectmoonpi/skyscope</a>.</p>
 
 </main>
 </body>

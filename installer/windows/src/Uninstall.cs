@@ -48,7 +48,7 @@ static class Uninstall
         {
             App.Log("ERROR: " + e);
             if (quiet) return 1;
-            Ui.Error(App.Name + " wasn't fully removed.\n\n" + e.Message);
+            Ui.Error(App.Name + " wasn't fully removed.\n\n" + e.Message + App.Help);
             return 1;
         }
     }

@@ -3,6 +3,7 @@
 # SkyScope
 
 **Designed and Created by Project Moon Pi**
+· [projectmoonpi.com](https://www.projectmoonpi.com) · Help: [support@projectmoonpi.com](mailto:support@projectmoonpi.com)
 
 A live ADS-B radar scope styled after an ATC display: aircraft from the
 internet (adsb.fi) or your own SDR receiver, drawn over runways, airspace and
@@ -19,9 +20,10 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.9.4 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.4/SkyScope-1.9.4-for-Mac.dmg)** ·
-**[SkyScope 1.9.4 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.4/Install-SkyScope-1.9.4-for-Windows.exe)**
-(or the [latest release](../../releases/latest) page): one file. On a Mac, open it and double-click
+**[SkyScope 1.9.5 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/SkyScope-1.9.5-for-Mac.dmg)** ·
+**[SkyScope 1.9.5 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/Install-SkyScope-1.9.5-for-Windows.exe)**
+(also on [projectmoonpi.com/downloads](https://www.projectmoonpi.com/downloads/#skyscope), or the
+[latest release](../../releases/latest) page): one file. On a Mac, open it and double-click
 **Install SkyScope**; on Windows, double-click it. The [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
 has the details. (GitHub's green **Code › Download ZIP** button gives the source
 code as `skyscope-main.zip`, which isn't the installer.)
@@ -358,8 +360,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.4/SkyScope-1.9.4-for-Mac.dmg)**
-or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.4/Install-SkyScope-1.9.4-for-Windows.exe)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/SkyScope-1.9.5-for-Mac.dmg)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/Install-SkyScope-1.9.5-for-Windows.exe)**
 (also on the [latest release](../../releases/latest)): one file. On a Mac, open the disk image and
 double-click **Install SkyScope**; on Windows, double-click the downloaded installer. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got
@@ -581,6 +583,13 @@ scope design, range presets and colours were the starting point.
 
 **Not for navigation.** Map layers are approximations for watching traffic;
 procedure routes skip legs flown on a heading, and arcs are drawn as chords.
+
+## Help and support
+
+Common questions are answered on [projectmoonpi.com/support](https://www.projectmoonpi.com/support/). For anything
+else, email **[support@projectmoonpi.com](mailto:support@projectmoonpi.com)**: say which computer SkyScope runs on
+(Mac, Windows or Raspberry Pi), its version (Settings › About) and what you saw. SkyScope's page is
+[projectmoonpi.com/skyscope](https://www.projectmoonpi.com/skyscope/).
 
 ## Licence
 
