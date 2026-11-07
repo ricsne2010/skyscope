@@ -590,6 +590,8 @@ Common questions are answered on [projectmoonpi.com/support](https://www.project
 else, email **[support@projectmoonpi.com](mailto:support@projectmoonpi.com)**: say which computer SkyScope runs on
 (Mac, Windows or Raspberry Pi), its version (Settings › About) and what you saw. SkyScope's page is
 [projectmoonpi.com/skyscope](https://www.projectmoonpi.com/skyscope/).
+For anything else (business, partnerships, the press), write to
+**[sales@projectmoonpi.com](mailto:sales@projectmoonpi.com)**.
 
 ## Licence
 
