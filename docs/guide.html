@@ -232,7 +232,8 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
   <li><b>Range rings</b> are labelled with their distances along the east line. The range is the distance to the outer ring.</li>
   <li><b>Aircraft</b> are drawn with a shape for their kind and a line showing where they'll be in about a minute. Labels give callsign, type and altitude; in busy areas some labels are left off to keep things readable (every aircraft is still in the list).</li>
   <li>The <b>yellow circle</b> marks the nearest aircraft. <b>Gold rings</b> mark watched aircraft and a <b>flashing red</b> symbol marks an emergency (see <a href="#alerts">section 10</a>).</li>
-  <li>The green <b>sweep</b> is decorative; its speed and trail can be changed or switched off.</li>
+  <li>The green <b>sweep</b> is decorative; its speed and trail can be changed or switched off. On the settings page's Display tab, <b>Aircraft fade between sweeps</b> makes each aircraft brightest as the sweep passes, then dimming (never out) until it comes round again. <b>Fade rate</b> (1–100) sets how far they dim: 1 barely, 100 to a fifth. The fade takes one whole turn, so a slow sweep fades slowly; emergencies and watched aircraft never fade.</li>
+  <li><b>Radar colours</b> (Display tab): <b>Standard</b>, or <b>Green</b>, which draws the aircraft, their labels, runways, airspace and SIDs/STARs all in green, like an older ATC radar screen (emergencies and the watchlist keep their colours).</li>
   <li>Optional <b>dots on the rim</b> show aircraft just outside the range, in their direction.</li>
 </ul>
 <h3>On a phone or tablet</h3>
@@ -259,7 +260,7 @@ chromium --kiosk http://localhost:7700/radar</code></pre>
 <table>
   <tr><th>Tab</th><th>What's on it</th></tr>
   <tr><td><b>General</b></td><td>Where the radar is centred (manual, an airport, or GPS), where aircraft data comes from (internet or your own receiver), flight routes (optionally with a FlightAware key), and whether other devices may change settings (see below).</td></tr>
-  <tr><td><b>Display</b></td><td>Range; aircraft symbols (silhouettes or simple triangles); colouring aircraft by kind; airline logos; the aircraft photo; rim dots; aircraft on the ground; units; the sweep.</td></tr>
+  <tr><td><b>Display</b></td><td>Range; aircraft symbols (silhouettes or simple triangles); colouring aircraft by kind; airline logos; the aircraft photo; rim dots; aircraft on the ground; radar colours (standard or green); units; the sweep, and whether aircraft fade between sweeps (and how much).</td></tr>
   <tr><td><b>Map</b></td><td>Airports and runways, extended centrelines, airspace, and SIDs/STARs per airport. See <a href="#map">section 8</a>.</td></tr>
   <tr><td><b>Filters</b></td><td>Which aircraft appear. See <a href="#filters">section 9</a>.</td></tr>
   <tr><td><b>Presets</b></td><td>Named sets of filters: apply, save and delete.</td></tr>

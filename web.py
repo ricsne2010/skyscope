@@ -72,6 +72,7 @@ FIELDS = [
     ("aircraft_symbol", "Aircraft symbols", "choice",
      [("silhouette", "Silhouettes"), ("triangle", "Triangles")]),
     ("color_by_kind", "Colour aircraft by kind", "bool", None),
+    ("scope_style", "Radar colours", "choice", [("standard", "Standard"), ("green", "Green (older ATC screen)")]),
     ("airline_logos", "Airline logos", "choice",
      [("off", "Off"), ("panel", "Panel"), ("all", "Panel + radar")]),
     ("show_photos", "Aircraft photo on the card", "bool", None),
@@ -84,6 +85,8 @@ FIELDS = [
     ("sweep_enabled", "Radar sweep", "bool", None),
     ("sweep_period_s", "Seconds per turn", "float", (1.0, 30.0)),
     ("sweep_trail_deg", "Trail length (°)", "float", (10.0, 360.0)),
+    ("fade_enabled", "Aircraft fade between sweeps", "bool", None),
+    ("fade_rate", "Fade rate (1-100)", "float", (1.0, 100.0)),
     ("show_runways", "Show airports and runways", "bool", None),
     ("runway_types", "Airports shown", "multi",
      [("L", "Major"), ("M", "Regional"), ("S", "Small (paved)")]),
@@ -125,6 +128,11 @@ CHOICE_HINTS = {
         "gps_once": "Reads the GPS when the radar starts, then stays put: for a fixed installation.",
         "gps_live": "Keeps re-centring as the GPS moves: for a mobile radar.",
     },
+    "scope_style": {
+        "standard": "Aircraft, runways and airspace in their usual colours.",
+        "green": "Aircraft, labels, runways, airspace and SIDs/STARs all in green, like an older ATC radar "
+                 "screen. Emergencies and the watchlist keep their colours.",
+    },
     "data_source": {
         "internet": "Live data from adsb.fi. Needs a network connection.",
         "sdr": "A USB receiver on this computer, decoded by readsb or dump1090. No internet needed.",
@@ -135,7 +143,7 @@ SHOW_WHEN = {"gps_update_s": "location_source=gps_live", "sdr_location": "data_s
              "remote_pin": "remote_changes=pin",
              "ground_elevation_ft": "elevation_source=manual",
              "sweep_period_s": "sweep_enabled=on",
-             "sweep_trail_deg": "sweep_enabled=on", "runway_types": "show_runways=on",
+             "sweep_trail_deg": "sweep_enabled=on", "fade_rate": "fade_enabled=on", "runway_types": "show_runways=on",
              "runway_centerlines": "show_runways=on",
              "type_filter": "type_mode=only|hide", "operator_filter": "operator_mode=only|hide",
              "country_filter": "country_mode=only|hide"}
@@ -1157,6 +1165,7 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
               label=f"Range ({st.distance_symbol}, to the outer ring)")
         + choice("aircraft_symbol", st)
         + toggle("color_by_kind", st)
+        + choice("scope_style", st)
         + f'<div class="legend" data-when="color_by_kind=on">{legend}</div>'
         + choice("airline_logos", st)
         + toggle("show_photos", st)
@@ -1164,7 +1173,13 @@ def render_page(st: Settings, banner: str = "", statuses: dict[str, str] | None 
           'Planespotters.net, credited and linked); aircraft without one show "No image available".</div>'
         + toggle("show_beyond_dots", st) + toggle("show_ground", st))
     sweep = (toggle("sweep_enabled", st)
-             + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>')
+             + f'<div class="row2">{number("sweep_period_s", st)}{number("sweep_trail_deg", st)}</div>'
+             + '<div data-when="sweep_enabled=on">' + toggle("fade_enabled", st)
+             + '<div class="hint" data-when="fade_enabled=on">Each aircraft is brightest as the sweep passes, then '
+               "dims (never out) until it comes round again. The fade takes one whole turn, so a slow sweep fades "
+               "slowly.</div>" + number("fade_rate", st)
+             + '<div class="hint" data-when="fade_enabled=on">1 barely dims them; 100 dims them to a fifth.</div>'
+               "</div>")
     display = tab("display", "How the scope and its labels look.",
                   card("Scope", scope) + card("Units", units) + card("Radar sweep", sweep))
 

@@ -262,6 +262,13 @@ const C = {
   sweep: [70, 255, 120], highlight: "#ffc800", tile: "#e8ecf2", ringLabel: "rgb(40,170,70)",
   watch: "#ffd60a", alert: "#ff3030", select: "#00e5ff",
 };
+// The green look (scope_style "green", Display tab): the map in greens, like an older ATC radar screen
+const GREEN_MAP = {
+  runway: "rgb(110,225,140)", runwayLabel: "rgb(120,235,150)", centerline: "rgb(40,120,65)",
+  runwayNumber: "rgb(70,165,95)", airspace: { B: "rgb(60,185,100)", C: "rgb(60,185,100)", D: "rgb(60,185,100)" },
+  star: "rgb(105,220,125)", sid: "rgb(75,175,105)",
+};
+function M() { return state && state.settings.scope_style === "green" ? GREEN_MAP : C; }
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const D = Math.PI / 180, KM_PER_DEG = 111;
 // Speed vector: the distance flown in one minute, at the scope's true scale,
@@ -308,7 +315,7 @@ function toXY(lat, lon) {
 // --- static layer: grid, runways, labels (rebuilt on resize / range / location) -----
 
 function buildStatic() {
-  const key = `${G.w}x${G.h}@${G.dpr}|${staticKey}|${state.settings.range_label}`;
+  const key = `${G.w}x${G.h}@${G.dpr}|${staticKey}|${state.settings.range_label}|${state.settings.scope_style}`;
   if (staticFor === key && staticCanvas) return;
   staticFor = key;
   staticCanvas = staticCanvas || document.createElement("canvas");
@@ -371,7 +378,7 @@ function drawRunways(g) {
     const ux = (b0 - a0) / len, uy = (b1 - a1) / len;
     const ends = [[a0, a1, -ux, -uy, rw.le], [b0, b1, ux, uy, rw.he]];  // outward from each threshold
     if (rw.centerline) {
-      g.strokeStyle = C.centerline; g.lineWidth = 1;
+      g.strokeStyle = M().centerline; g.lineWidth = 1;
       for (const [x, y, sx, sy] of ends) {
         g.beginPath(); g.moveTo(x, y); g.lineTo(x + sx * nm * staticData.centerline_nm, y + sy * nm * staticData.centerline_nm);
         if (nm >= 6) {  // ticks only when miles are far enough apart to read
@@ -383,17 +390,17 @@ function drawRunways(g) {
         g.stroke();
       }
     }
-    g.strokeStyle = C.runway; g.lineWidth = Math.max(2, rw.width_ft * 0.0003048 * k);
+    g.strokeStyle = M().runway; g.lineWidth = Math.max(2, rw.width_ft * 0.0003048 * k);
     g.beginPath(); g.moveTo(a0, a1); g.lineTo(b0, b1); g.stroke();
     if (len > 70 * s) for (const [x, y, sx, sy, id] of ends) if (id) numbers.push([id, x + sx * 14 * s, y + sy * 14 * s]);
   }
-  g.fillStyle = C.runwayNumber; g.font = `600 ${Math.max(10, 18 * s)}px ${FONT}`;
+  g.fillStyle = M().runwayNumber; g.font = `600 ${Math.max(10, 18 * s)}px ${FONT}`;
   g.textAlign = "center"; g.textBaseline = "middle";
   for (const [id, x, y] of numbers) g.fillText(id, x, y);
   g.restore();
   // Airport codes: bigger airports first; a code that would overlap another
   // (or the ring labels) is left off. The centre airport is named in the panel.
-  g.font = `700 ${Math.max(11, 26 * s)}px ${FONT}`; g.fillStyle = C.runwayLabel;
+  g.font = `700 ${Math.max(11, 26 * s)}px ${FONT}`; g.fillStyle = M().runwayLabel;
   const rank = { L: 0, M: 1, S: 2 };
   for (const ap of staticData.airports.filter(a => a.label)
          .sort((a, b) => rank[a.type] - rank[b.type] || (b.rwy_ft || 0) - (a.rwy_ft || 0))) {
@@ -416,7 +423,7 @@ function drawOverlayLines(g) {
   g.save(); g.beginPath(); g.arc(cx, cy, grid, 0, 2 * Math.PI); g.clip();
   g.lineWidth = Math.max(1, 1.5 * s); g.lineJoin = "round";
   for (const shape of staticData.airspace || []) {
-    g.strokeStyle = C.airspace[shape.class];
+    g.strokeStyle = M().airspace[shape.class];
     g.setLineDash(shape.class === "D" ? [6 * s, 6 * s] : []);
     for (const ring of shape.rings) {
       g.beginPath();
@@ -426,7 +433,7 @@ function drawOverlayLines(g) {
   }
   g.setLineDash([5 * s, 5 * s]);
   for (const proc of staticData.procedures || []) {
-    g.strokeStyle = proc.kind === "STAR" ? C.star : C.sid;
+    g.strokeStyle = proc.kind === "STAR" ? M().star : M().sid;
     for (const line of proc.lines) {
       g.beginPath();
       line.forEach(([lat, lon], i) => { const [x, y] = toXY(lat, lon); i ? g.lineTo(x, y) : g.moveTo(x, y); });
@@ -459,13 +466,13 @@ function drawOverlayLabels(g) {
     if (outer > (shape.class === "D" ? 40 : 80) || !shape.rings.length) continue;
     const [lon, lat] = shape.rings.map(centroid).sort((a, b) => b[2] - a[2])[0];
     const [x, y] = toXY(lat, lon);
-    place(`${shape.ceiling}/${shape.floor}`, x, y, C.airspace[shape.class]);
+    place(`${shape.ceiling}/${shape.floor}`, x, y, M().airspace[shape.class]);
   }
   const procs = staticData.procedures || [];
   if (outer <= 100) {
     const seen = new Set();
     for (const proc of procs) {
-      const color = proc.kind === "STAR" ? C.star : C.sid;
+      const color = proc.kind === "STAR" ? M().star : M().sid;
       for (const line of proc.lines) for (const [lat, lon, fix] of line) {
         if (seen.has(fix) || fix.startsWith("RW")) continue;
         seen.add(fix);
@@ -482,7 +489,7 @@ function drawOverlayLabels(g) {
     for (let i = longest.length - 1; i >= 0; i--) {
       const [x, y] = toXY(longest[i][0], longest[i][1]);
       if (Math.hypot(x - cx, y - cy) < grid - 30 * s) {
-        place(proc.name, x, y + 16 * s, proc.kind === "STAR" ? C.star : C.sid, "center", small + 2);
+        place(proc.name, x, y + 16 * s, proc.kind === "STAR" ? M().star : M().sid, "center", small + 2);
         break;
       }
     }
@@ -609,13 +616,15 @@ function drawTile(img, x, y, size) {
 // Label where it overlaps nothing placed so far: toward the centre first,
 // then the far side, above, below; otherwise leave it off.
 function drawTag(ac, x, y, placed, focus) {
-  const lines = [[ac.callsign, ac.watched ? C.watch : C.label], [ac.type, C.type], [ac.alt, C.alt]];
+  const green = greenFade(ac);
+  const lines = [[ac.callsign, ac.watched ? C.watch : green ? FADE_GREEN : C.label],
+                 [ac.type, green ? FADE_GREEN_DIM : C.type], [ac.alt, green ? FADE_GREEN_DIM : C.alt]];
   if (ac.emergency) lines.unshift([ac.emergency, C.alert]);
   for (let i = lines.length - 1; i >= 0; i--) if (!lines[i][0] || lines[i][0] === "—") lines.splice(i, 1);
   if (!lines.length) return;
   const s = G.s, fs = G.tagFont, lh = fs * 1.12;
   ctx.font = `700 ${fs}px ${FONT}`;
-  const img = state.settings.airline_logos === "all" ? logoImg(ac.airline) : null;
+  const img = state.settings.airline_logos === "all" && !green ? logoImg(ac.airline) : null;   // (no logos in green)
   const tile = img ? Math.min(2, lines.length) * lh - 4 * s : 0, logoW = img ? tile + 6 * s : 0;
   const w = logoW + Math.max(...lines.map(([t]) => ctx.measureText(t).width)), h = lh * lines.length;
   const gap = symbolRadius(ac) + 10 * s;
@@ -658,6 +667,19 @@ function drawBrackets(x, y, r, color) {
   ctx.stroke();
 }
 
+// Aircraft fade (Display tab): with the fade on, an aircraft is full as the sweep passes, then dims like
+// evenly over one whole turn (a slow sweep fades slowly), as far as fade_rate (1-100) says. Emergencies, watched and selected aircraft stay full.
+const FADE_DEEPEST = 0.8, FADE_GREEN = "rgb(90,255,140)", FADE_GREEN_DIM = "rgb(60,200,105)";
+function fadeOn() { return !!(state.settings.sweep_enabled && state.settings.fade_enabled); }
+function fadeOf(ac, bearingDeg, now) {
+  if (!fadeOn() || ac.emergency || ac.watched || ac.id === selectedId || ac.id === hoverId) return 1;
+  const period = Math.max(0.5, state.settings.sweep_period_s);
+  const head = (now / 1000 / period * 360) % 360, behind = (((head - bearingDeg) % 360) + 360) % 360;
+  const depth = FADE_DEEPEST * Math.min(100, Math.max(1, state.settings.fade_rate || 50)) / 100;
+  return 1 - depth * behind / 360;
+}
+function greenFade(ac) { return state.settings.scope_style === "green" && !ac.emergency && !ac.watched; }
+
 function drawTraffic(now) {
   const st = state.settings, dt = (now - stateAt) / 1000;
   hitTargets = [];
@@ -667,11 +689,14 @@ function drawTraffic(now) {
   const inside = [];
   for (const ac of state.aircraft) {
     const [lat, lon] = extrapolate(ac, dt), [dx, dy] = offsetKm(lat, lon), dist = Math.hypot(dx, dy);
+    const f = fadeOf(ac, Math.atan2(dx, dy) / D, now);
     if (dist <= insideKm) {
-      const [x, y] = toXY(lat, lon); inside.push({ ac, x, y, dist });
+      const [x, y] = toXY(lat, lon); inside.push({ ac, x, y, dist, f });
     } else if ((st.show_beyond_dots || ac.emergency || ac.watched) && dist > 0.01) {
       const b = Math.atan2(dx, dy), bx = G.cx + Math.sin(b) * G.dotR, by = G.cy - Math.cos(b) * G.dotR;
-      ctx.fillStyle = colorOf(ac, now); ctx.beginPath(); ctx.arc(bx, by, G.dot, 0, 2 * Math.PI); ctx.fill();
+      ctx.globalAlpha = f;
+      ctx.fillStyle = greenFade(ac) ? FADE_GREEN : colorOf(ac, now); ctx.beginPath(); ctx.arc(bx, by, G.dot, 0, 2 * Math.PI); ctx.fill();
+      ctx.globalAlpha = 1;
       if (ac.emergency || ac.watched) {
         ctx.strokeStyle = ac.emergency ? C.alert : C.watch; ctx.lineWidth = Math.max(1, 1.5 * G.s);
         ctx.beginPath(); ctx.arc(bx, by, G.dot + 5 * G.s, 0, 2 * Math.PI); ctx.stroke();
@@ -682,13 +707,18 @@ function drawTraffic(now) {
   ctx.save(); ctx.beginPath(); ctx.arc(G.cx, G.cy, G.grid, 0, 2 * Math.PI); ctx.clip();
   ctx.lineWidth = G.stroke; ctx.lineCap = "round";
   for (const p of inside) {
-    ctx.strokeStyle = st.color_by_kind ? p.ac.color : C.track;
+    ctx.globalAlpha = p.f;
+    ctx.strokeStyle = greenFade(p.ac) ? FADE_GREEN : st.color_by_kind ? p.ac.color : C.track;
     drawVector(p.ac, p.x, p.y);
   }
   ctx.restore();
   ctx.save(); ctx.beginPath(); ctx.arc(G.cx, G.cy, G.grid, 0, 2 * Math.PI); ctx.clip();
-  for (const p of inside) drawSymbol(p.ac, p.x, p.y, colorOf(p.ac, now));
+  for (const p of inside) {
+    ctx.globalAlpha = p.f;
+    drawSymbol(p.ac, p.x, p.y, greenFade(p.ac) ? FADE_GREEN : colorOf(p.ac, now));
+  }
   ctx.restore();
+  ctx.globalAlpha = 1;
   for (const p of inside) {
     const r = symbolRadius(p.ac);
     hitTargets.push({ id: p.ac.id, cx: p.x, cy: p.y, r: r + 10 * G.s });
@@ -716,7 +746,8 @@ function drawTraffic(now) {
   const order = inside.slice().sort((a, b) =>
     (!focusOf(a.ac) - !focusOf(b.ac)) || (!a.ac.emergency - !b.ac.emergency) ||
     (!a.ac.watched - !b.ac.watched) || a.dist - b.dist);
-  for (const p of order) drawTag(p.ac, p.x, p.y, placed, focusOf(p.ac));
+  for (const p of order) { ctx.globalAlpha = p.f; drawTag(p.ac, p.x, p.y, placed, focusOf(p.ac)); }
+  ctx.globalAlpha = 1;
   // Brackets last, so no label or symbol covers them.
   for (const p of inside) {
     const f = focusOf(p.ac);

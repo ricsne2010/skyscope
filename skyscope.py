@@ -65,7 +65,17 @@ RUNWAY_NUMBER = (120, 140, 165)
 AIRSPACE_COLORS = {"B": (70, 115, 210), "C": (165, 95, 185), "D": (70, 115, 210)}
 STAR_COLOR = (210, 150, 55)
 SID_COLOR = (55, 180, 180)
+# The green look's map (scope_style "green"): runways, airspace and SIDs/STARs all in greens, like an older ATC radar screen
+GREEN_MAP = {"runway": (110, 225, 140), "centerline": (40, 120, 65), "runway_label": (120, 235, 150),
+             "runway_number": (70, 165, 95), "airspace": {"B": (60, 185, 100), "C": (60, 185, 100),
+                                                           "D": (60, 185, 100)},
+             "star": (105, 220, 125), "sid": (75, 175, 105)}
 SWEEP = (70, 255, 120)
+# Aircraft fade (settings.fade_enabled, fade_rate) and the green look (scope_style "green"): the dimmest an aircraft gets just before the sweep comes round again, and
+# the green look's aircraft greens (symbol and callsign, then type and altitude)
+FADE_DEEPEST = 0.8       # how much fade_rate 100 takes away (to a fifth); 1 takes away almost nothing
+FADE_GREEN = (90, 255, 140)
+FADE_GREEN_DIM = (60, 200, 105)
 PANEL_BG = (7, 16, 40)
 PANEL_DIM = (120, 140, 170)
 HIGHLIGHT = (255, 200, 0)
@@ -378,6 +388,16 @@ class SkyScope:
         self.update_query()
         self.settings.save()
 
+    def map_color(self, what: str, cls: str = ""):
+        """A map colour: the usual one, or the green look's (GREEN_MAP), for an older ATC radar look."""
+        st = self.settings
+        if st.scope_style == "green":
+            c = GREEN_MAP[what]
+            return c[cls] if cls else c
+        return {"runway": RUNWAY, "centerline": CENTERLINE, "runway_label": RUNWAY_LABEL,
+                "runway_number": RUNWAY_NUMBER, "airspace": AIRSPACE_COLORS.get(cls),
+                "star": STAR_COLOR, "sid": SID_COLOR}[what]
+
     def build_static(self) -> pygame.Surface:
         L = self.layout
         # Draw on a 24-bit surface: some displays (macOS) have an alpha channel,
@@ -488,13 +508,13 @@ class SkyScope:
         """Airspace outlines and procedure routes (lines only; labels later)."""
         L = self.layout
         for shape in ov["airspace"]:
-            color = AIRSPACE_COLORS[shape["class"]]
+            color = self.map_color("airspace", shape["class"])
             for ring in shape["rings"]:
                 pts = [self.to_screen(lat, lon) for lon, lat in ring]
                 self.draw_polyline(surf, color, pts + pts[:1], max(1.0, 1.5 * L.s),
                                    dash=6 * L.s if shape["class"] == "D" else 0)
         for proc in ov["procedures"]:
-            color = STAR_COLOR if proc["kind"] == "STAR" else SID_COLOR
+            color = self.map_color("star" if proc["kind"] == "STAR" else "sid")
             for line in proc["lines"]:
                 self.draw_polyline(surf, color, [self.to_screen(p[0], p[1]) for p in line],
                                    max(1.0, 1.5 * L.s), dash=5 * L.s)
@@ -524,13 +544,13 @@ class SkyScope:
                 continue
             lon, lat, _ = max((centroid(r) for r in shape["rings"]), key=lambda c: c[2])
             self.place_label(surf, f"{shape['ceiling']}/{shape['floor']}", small,
-                             AIRSPACE_COLORS[shape["class"]], self.to_screen(lat, lon))
+                             self.map_color("airspace", shape["class"]), self.to_screen(lat, lon))
         if not ov["procedures"]:
             return
         if st.outer_km <= 100:  # fix names, once each
             seen = set()
             for proc in ov["procedures"]:
-                color = STAR_COLOR if proc["kind"] == "STAR" else SID_COLOR
+                color = self.map_color("star" if proc["kind"] == "STAR" else "sid")
                 for line in proc["lines"]:
                     for lat, lon, fix in line:
                         if fix in seen or fix.startswith("RW"):
@@ -543,7 +563,7 @@ class SkyScope:
                                                 round(y + 2.5 * L.s), round(x + 3.5 * L.s), round(y + 2.5 * L.s), color)
                         self.place_label(surf, fix, small, color, (x + 6 * L.s, y), "midleft")
         for proc in ov["procedures"]:  # name at the route's last on-scope fix
-            color = STAR_COLOR if proc["kind"] == "STAR" else SID_COLOR
+            color = self.map_color("star" if proc["kind"] == "STAR" else "sid")
             longest = max(proc["lines"], key=len)
             for lat, lon, _ in reversed(longest):
                 x, y = self.to_screen(lat, lon)
@@ -574,23 +594,23 @@ class SkyScope:
                     far = (end[0] + sx * nm_px * feats["centerline_nm"], end[1] + sy * nm_px * feats["centerline_nm"])
                     seg = clip_segment_to_circle(end, far, c, R)
                     if seg:
-                        aa_wide_line(surf, CENTERLINE, seg[0], seg[1], 1)
+                        aa_wide_line(surf, self.map_color("centerline"), seg[0], seg[1], 1)
                     if nm_px >= 6:  # ticks only when miles are far enough apart to read
                         for n in range(1, feats["centerline_nm"] + 1):
                             px, py = end[0] + sx * nm_px * n, end[1] + sy * nm_px * n
                             if math.hypot(px - L.cx, py - L.cy) > R:
                                 continue
                             h = tick * (2 if n % 5 == 0 else 1)
-                            aa_wide_line(surf, CENTERLINE, (px - uy * h, py + ux * h), (px + uy * h, py - ux * h), 1)
+                            aa_wide_line(surf, self.map_color("centerline"), (px - uy * h, py + ux * h), (px + uy * h, py - ux * h), 1)
             seg = clip_segment_to_circle(a, b, c, R)
             if seg:
                 width = max(2.0, rw["width_ft"] * 0.0003048 * k)
-                aa_wide_line(surf, RUNWAY, seg[0], seg[1], width)
+                aa_wide_line(surf, self.map_color("runway"), seg[0], seg[1], width)
             if length > 70 * L.s:  # runway numbers just beyond each threshold
                 for ident, end, sx, sy in ((rw["le"], a, -ux, -uy), (rw["he"], b, ux, uy)):
                     pos = (end[0] + sx * 14 * L.s, end[1] + sy * 14 * L.s)
                     if ident and math.hypot(pos[0] - L.cx, pos[1] - L.cy) < R - 10 * L.s:
-                        self.text.draw(surf, ident, max(10, round(18 * L.s)), RUNWAY_NUMBER, pos, "center")
+                        self.text.draw(surf, ident, max(10, round(18 * L.s)), self.map_color("runway_number"), pos, "center")
 
         return feats
 
@@ -608,7 +628,7 @@ class SkyScope:
             if d > R:
                 x, y = L.cx + dx / d * R, L.cy + dy / d * R
             x, y = x + dx / d * 22 * L.s, y + dy / d * 22 * L.s  # beside the field, away from the centre
-            img = self.text.render(ap["ident"], L.font_runway, RUNWAY_LABEL)
+            img = self.text.render(ap["ident"], L.font_runway, self.map_color("runway_label"))
             rect = img.get_rect(center=(round(x), round(y)))
             if rect.inflate(round(6 * L.s), 0).collidelist(self.map_labels) != -1:
                 continue
@@ -690,6 +710,29 @@ class SkyScope:
         return {"cls": cls, "color": color, "emergency": emergency,
                 "watched": is_watched(ac, self._watch)}
 
+    def fade(self, bearing: float, sty: dict) -> float:
+        """How bright an aircraft is (1 = full) with the aircraft fade on: full as the sweep passes, then dimming
+        evenly over one whole turn (so a slow sweep fades slowly), as far as fade_rate says, just before it comes
+        round again. Emergencies and watched aircraft stay full.
+        In 1/32 steps, so the text cache stays small."""
+        st = self.settings
+        if not st.fade_enabled or not st.sweep_enabled or sty["emergency"] or sty["watched"]:
+            return 1.0
+        behind = (self.sweep_angle() - bearing) % 360.0
+        depth = FADE_DEEPEST * min(100.0, max(1.0, st.fade_rate)) / 100.0
+        f = 1.0 - depth * behind / 360.0
+        return round(f * 32) / 32
+
+    @staticmethod
+    def dim(color, f: float):
+        """A colour faded toward the scope's background (f = 1: as it is)."""
+        if f >= 1.0:
+            return color
+        return tuple(round(BG[i] + (color[i] - BG[i]) * f) for i in range(3))
+
+    def green_fade(self, sty: dict) -> bool:
+        return self.settings.scope_style == "green" and not sty["emergency"] and not sty["watched"]
+
     def draw_symbol(self, x, y, ac: Aircraft, kind: str | None, color=AIRCRAFT):
         """Draws the aircraft; returns its nose point (where the speed vector starts)."""
         L = self.layout
@@ -731,16 +774,21 @@ class SkyScope:
         none fit, the aircraft is left unlabelled (it's still in the table).
         Returns True if a label was drawn."""
         L, st, t = self.layout, self.settings, self.text
-        lines = [(ac.callsign, WATCH_COLOR if sty["watched"] else LABEL), (ac.type, TAG_TYPE),
-                 (st.format_altitude(ac.alt_ft, ac.on_ground), TAG_ALT)]
+        green, f = self.green_fade(sty), sty.get("fade", 1.0)
+        lines = [(ac.callsign, WATCH_COLOR if sty["watched"] else FADE_GREEN if green else LABEL),
+                 (ac.type, FADE_GREEN_DIM if green else TAG_TYPE),
+                 (st.format_altitude(ac.alt_ft, ac.on_ground), FADE_GREEN_DIM if green else TAG_ALT)]
         if sty["emergency"]:
             lines.insert(0, (sty["emergency"], ERROR))
-        lines = [(text, color) for text, color in lines if text and text != "—"]
+        lines = [(text, self.dim(color, f)) for text, color in lines if text and text != "—"]
         size = L.font_tag
         line_h = t.font(size).get_linesize()
         tile = None
-        if st.airline_logos == "all":
+        if st.airline_logos == "all" and not green:     # (green look: no colourful logos on the scope)
             tile = self.logos.tile(ac.callsign, min(2, len(lines)) * line_h - round(4 * L.s))
+            if tile and f < 1.0:
+                tile = tile.copy()
+                tile.set_alpha(round(255 * f))
         logo_w = tile.get_width() + round(6 * L.s) if tile else 0
         text_w = max(t.render(text, size, color).get_width() for text, color in lines)
         w, h = logo_w + text_w, line_h * len(lines)
@@ -810,6 +858,9 @@ class SkyScope:
             dx, dy = self.offset_km(lat, lon)
             dist = math.hypot(dx, dy)
             bearing = math.degrees(math.atan2(dx, dy)) % 360.0
+            sty["fade"] = self.fade(bearing, sty)
+            if self.green_fade(sty):
+                sty["color"] = FADE_GREEN
             if dist <= inside_km or sty["emergency"] or sty["watched"]:
                 listing.append((dist, bearing, ac))
             if dist <= inside_km:
@@ -824,7 +875,7 @@ class SkyScope:
                                     not self.styles[id(t[2])]["watched"], t[0]))
 
         for x, y, sty in beyond:
-            aa_disc(self.screen, sty["color"], (x, y), L.dot_size)
+            aa_disc(self.screen, self.dim(sty["color"], sty["fade"]), (x, y), L.dot_size)
             if sty["watched"] or sty["emergency"]:
                 ring = ERROR if sty["emergency"] else WATCH_COLOR
                 pygame.gfxdraw.aacircle(self.screen, round(x), round(y), L.dot_size + round(5 * L.s), ring)
@@ -837,9 +888,10 @@ class SkyScope:
             # Vector first so the symbol sits on top of it.
             rad = ac.nose_deg * DEG
             nose = symbols.nose_offset_px(kind, L.s) if kind else L.nose
-            self.draw_speed_vector((x + math.sin(rad) * nose, y - math.cos(rad) * nose), ac,
-                                   sty["color"] if by_kind else TRACK)
-            self.draw_symbol(x, y, ac, kind, sty["color"])
+            f = sty["fade"]
+            vector = sty["color"] if by_kind or self.green_fade(sty) else TRACK
+            self.draw_speed_vector((x + math.sin(rad) * nose, y - math.cos(rad) * nose), ac, self.dim(vector, f))
+            self.draw_symbol(x, y, ac, kind, self.dim(sty["color"], f))
             r = self.symbol_radius(kind)
             if sty["watched"]:
                 for k in (8, 10):
@@ -1229,7 +1281,8 @@ class SkyScope:
                 "flightaware": st.show_routes and self.flightaware.enabled(),
                 "sweep_enabled": st.sweep_enabled, "sweep_period_s": st.sweep_period_s,
                 "sweep_trail_deg": st.sweep_trail_deg, "airline_logos": st.airline_logos,
-                "aircraft_symbol": st.aircraft_symbol,
+                "aircraft_symbol": st.aircraft_symbol, "fade_enabled": st.fade_enabled, "scope_style": st.scope_style,
+                "fade_rate": st.fade_rate,
             },
             "status": {
                 "source": self.feed.source_label(),

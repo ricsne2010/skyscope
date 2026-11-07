@@ -20,8 +20,8 @@ in any web browser (sharp on Retina and high-DPI screens).
 
 ## Download
 
-**[SkyScope 1.9.5 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/SkyScope-1.9.5-for-Mac.dmg)** ·
-**[SkyScope 1.9.5 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/Install-SkyScope-1.9.5-for-Windows.exe)**
+**[SkyScope 1.9.6 for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.6/SkyScope-1.9.6-for-Mac.dmg)** ·
+**[SkyScope 1.9.6 for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.6/Install-SkyScope-1.9.6-for-Windows.exe)**
 (also on [projectmoonpi.com/downloads](https://www.projectmoonpi.com/downloads/#skyscope), or the
 [latest release](../../releases/latest) page): one file. On a Mac, open it and double-click
 **Install SkyScope**; on Windows, double-click it. The [laptop and desktop section](#running-on-a-laptop-or-desktop-mac-windows-linux) below
@@ -47,7 +47,9 @@ guide is built into the app at `http://<address>:7700/guide` (source:
 
 - **Radar scope** on the left, full screen height: range rings, ATC-style runways, aircraft
   symbols, speed lines, labels, and dots for traffic just beyond the range
-- **Radar sweep**: a rotating beam with a fading green trail
+- **Radar sweep**: a rotating beam with a fading green trail; aircraft can fade between sweeps too
+  (Display tab: Aircraft fade, with a fade rate from 1 to 100)
+- **Radar colours**: Standard, or Green: aircraft, labels, runways and airspace all in green, like an older ATC screen
 - **Aircraft silhouettes** (optional): top-down airliner, wide-body, business
   jet, turboprop, light single, glider and helicopter shapes, picked from each
   aircraft's ADS-B category and type code, sized by class. Or the original red
@@ -270,11 +272,14 @@ first run). The web page and keys edit it for you; by hand you can also set:
 | `gps_update_s` | 30 | Seconds between GPS re-centres when mobile |
 | `aircraft_symbol` | `"silhouette"` | `"silhouette"` or `"triangle"` |
 | `airline_logos` | `"all"` | `"off"`, `"panel"` or `"all"` |
+| `scope_style` | `"standard"` | `"standard"` or `"green"` (everything in green, like an older ATC screen) |
 | `sweep_enabled` | true | Radar sweep on/off |
 | `show_beyond_dots` | true | Rim dots for aircraft just outside the range |
 | `web_port` | 7700 | Settings page port (0 = off) |
 | `sweep_period_s` | 4.0 | Seconds per full turn of the beam |
 | `sweep_trail_deg` | 90 | Length of the fading trail, in degrees |
+| `fade_enabled` | false | Aircraft brightest as the sweep passes, dimming (never out) until it comes round |
+| `fade_rate` | 50 | 1–100: how far they dim (1 barely, 100 to a fifth), over one whole turn |
 | `fps` | 30 | Frame-rate cap; lower it if a Pi struggles |
 | `fetch_interval_s` | 5 | ADS-B poll interval (adsb.fi allows 1 req/s) |
 
@@ -360,8 +365,8 @@ device on the network can open `/radar` while the Pi drives the TV.
 
 ## Running on a laptop or desktop (Mac, Windows, Linux)
 
-**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/SkyScope-1.9.5-for-Mac.dmg)**
-or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.5/Install-SkyScope-1.9.5-for-Windows.exe)**
+**The easy way (Mac or Windows):** download **[for Mac](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.6/SkyScope-1.9.6-for-Mac.dmg)**
+or **[for Windows](https://github.com/projectmoonpi/skyscope/releases/download/v1.9.6/Install-SkyScope-1.9.6-for-Windows.exe)**
 (also on the [latest release](../../releases/latest)): one file. On a Mac, open the disk image and
 double-click **Install SkyScope**; on Windows, double-click the downloaded installer. It runs on Python 3.10 or newer from
 [python.org](https://www.python.org/downloads/); if the computer hasn't got

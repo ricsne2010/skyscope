@@ -92,10 +92,15 @@ class Settings:
     remote_changes: str = "off"
     remote_pin_hash: str = ""   # the PIN, hashed (web.pin_hash)
     filter_presets: dict = field(default_factory=dict)  # your saved presets: name → filter values
+    # "standard", or "green": aircraft, labels, runways, airspace and SIDs/STARs all in greens (an older ATC screen)
+    scope_style: str = "standard"
     aircraft_symbol: str = "silhouette"  # "silhouette" or "triangle" (the ESP32 look)
     airline_logos: str = "all"  # "off", "panel" (side panel only) or "all" (panel + radar tags)
     sweep_period_s: float = 4.0  # one full turn
     sweep_trail_deg: float = 90.0  # length of the fading afterglow
+    # aircraft brightest as the sweep passes, then dimming (never out) until it comes round again
+    fade_enabled: bool = False
+    fade_rate: float = 50.0  # 1-100: how far they dim before the sweep comes round again (1 barely, 100 to a fifth)
     # "internet" (adsb.fi) or "sdr" (local receiver via readsb/dump1090)
     data_source: str = "internet"
     # "auto", or a path/URL to the decoder's aircraft.json
